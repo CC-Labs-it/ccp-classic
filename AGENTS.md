@@ -23,6 +23,11 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   Fit the main window around the grid, nearly square, with a compact two-row header.
 - Owner correction 2026-11-03: use CCP's original Bouncing Text tile artwork
   unchanged, including its baked-in wording. It replaces the vector placeholder.
+- Owner polish direction 2026-11-03: reuse public CCP artwork, icons, preset and
+  achievement presentation, help animations and asset-manager patterns. Basic
+  scope must retain depth, hover/press feedback, transitions and visual flair.
+  The visible dashboard logo keeps animating when another app has focus;
+  hidden/minimized and motion-preference gates still apply.
 - Studio / Presets / Progress; Library / Companion / Toys / Settings windows.
   At most three primary controls per editor. Video concurrency goes under More.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.
@@ -37,6 +42,9 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   use and stop analysis if total system RAM exceeds the owner's 75% ceiling.
   Retain FFmpeg -copyts without -start_at_zero. LibVLC source time preserves
   common leading gaps; do not normalize envelopes using ffprobe duration.
+  Retain the verified dependency source cache in artifacts/analysis-helper-cache.
+  Its original upstream Actions download expires on 2026-11-14; source bundles
+  accompany redistributed Windows packages and are separate from the runtime.
 - Owner approval 2026-11-03: Companion barks are Breathe, Relax, Focus, Listen,
   Deeper, using the approved starter recordings. Relax triggers a flash, Focus
   a whisper, Deeper a spiral pulse. The 27 neutral badge names and four legacy

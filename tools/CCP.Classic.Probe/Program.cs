@@ -63,7 +63,7 @@ internal static class Program
                 var rejected = new EffectOverlayWindow();
                 try
                 {
-                    var screen = rejected.Screens.Primary ?? throw new ProbeFailure("screen_missing");
+                    var screen = await ProbeScreen(rejected);
                     Check(!rejected.Prepare(screen) && !rejected.IsVisible && rejected.LastError is not null
                         && rejected.Width <= 1 && rejected.Height <= 1, "unsafe_refusal");
                     Pass(stage);
@@ -77,7 +77,7 @@ internal static class Program
             var overlay = new EffectOverlayWindow();
             try
             {
-                var screen = overlay.Screens.Primary ?? throw new ProbeFailure("screen_missing");
+                var screen = await ProbeScreen(overlay);
                 Check(overlay.Prepare(screen) && overlay.IsVisible, "overlay_prepare");
                 var handle = overlay.TryGetPlatformHandle() ?? throw new ProbeFailure("native_handle");
                 Check(handle.HandleDescriptor == "XID" && overlay.ActualTransparencyLevel == WindowTransparencyLevel.Transparent,
@@ -99,6 +99,16 @@ internal static class Program
             await Analysis(Path.Combine(Path.GetFullPath(args[1]), "silent.wav"));
         }
         finally { XCloseDisplay(display); }
+    }
+
+    private static async Task<Avalonia.Platform.Screen> ProbeScreen(Window window)
+    {
+        await Until(() => window.Screens.All.Any(screen => screen.Bounds.Width > 0 && screen.Bounds.Height > 0), 5);
+        // Xvfb can expose a valid RandR monitor without marking any monitor primary.
+        var screen = window.Screens.Primary ?? window.Screens.All.First(item => item.Bounds.Width > 0 && item.Bounds.Height > 0);
+        Pass("display_available", new { count = window.Screens.ScreenCount, hasPrimary = window.Screens.Primary is not null,
+            width = screen.Bounds.Width, height = screen.Bounds.Height });
+        return screen;
     }
 
     private static async Task Input(nint display)

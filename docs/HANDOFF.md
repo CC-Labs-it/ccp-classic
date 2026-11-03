@@ -8,6 +8,44 @@ continued M2-M8 production work with agents on 2026-11-03; that work is active.
 Source design: owner decisions and mockup dated 2026-11-03 in the CCP handoff.
 CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gate.
 
+## Visual polish continuation, 2026-11-03
+
+The owner requested reuse of CCP's finished artwork and interactions after reviewing
+the functional preview. Three agents and the coordinator implemented this pass:
+
+- Original public application icon in the executable, owned windows and installer.
+  The desktop-shortcut task is selected by default. Shared raised surfaces, hover
+  glow/lift, press depth and page entrances preserve motion preferences.
+- The existing animated logo keeps rendering while visible but inactive. Hidden,
+  minimized, Gentle, Reduced motion and Performance gates remain in place.
+- Three original CCP preset hero masks, animated card art and selected-state glow.
+  Progress has an illustrated XP header, statistic cards and all 27 original badge
+  images with the previously approved localized names and requirements.
+- Native contextual question-mark help for all editors and panels. Thirteen public
+  CCP HelpLoops were ported with their drawing kit, rather than recreating their
+  illustrations or copying untracked local tutorial movies. All ten languages
+  include the guide and help text. Illustrations are silent and never start effects.
+- Library uses CCP's folder rail, thumbnail wall, selection overlays and preview
+  interaction. Search and media filters work on bounded pages. Image decoding is
+  bounded; selected videos preview muted at 1x; audio uses explicit Play and a real
+  waveform from the approved offline helper. Closing or panic releases previews.
+
+Provenance is recorded in `POLISH-ASSETS-CHROME.md`, `POLISH-ASSETS-PROGRESS.md`,
+`POLISH-ASSETS-LIBRARY.md` and `POLISH-ASSETS-HELP.md`. Only pinned public client
+resources were copied. There are no new packages or private assets in this pass.
+
+Release verification: 575 tests passed, zero failures or skips, including the real
+offline FFmpeg fixtures. `tests/CCP.Classic.Tests/TestResults/polish-release.trx`
+records this run. Rendered reviews under `artifacts/proof` include
+`studio-inactive-01.png`, `studio-inactive-02.png`, `presets-polished.png`,
+`progress-polished.png`, `library-polished.png`, `help-guide.png` and the 13 help
+scene stills. Review corrected badge framing, disabled-button contrast, source-stage
+clipping and text opacity. The native Linux probe follow-up is separate from these
+Windows results; desktop feel and actual device/listening checks still need owner use.
+
+The next Windows package is `1.0.0-preview.4`, with complete offline-helper sources.
+Do not describe an unsigned preview as a signed production release.
+
 ## Implemented
 
 - Production continuation: local Library folder pickers and file checkboxes, bounded
@@ -50,7 +88,8 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 - Configurable in-app panic, held-key suppression, shared manual Stop policy.
   Disabling panic requires the visible red warning and resets on the next launch.
 - Gentle visuals, reduced motion and performance settings quiet the animated logo.
-  Inactive, hidden and minimized surfaces do not render animation frames.
+  Hidden and minimized surfaces do not render animation frames. Per the owner's
+  2026-11-03 correction, visible inactive windows keep animating.
 - Local atomic settings saves, export, recovery notice, normalized panic bindings.
 - All ten embedded language files, exact key parity, UTF-8 without BOM, neutral
   chrome checks. No account, browser, updater, telemetry or external networking.
@@ -117,10 +156,15 @@ global Esc listener availability and clean disposal without audio or synthetic k
 Muted native probes decoded exact 320 x 180 video frames at rate 1 and verified
 WAV/MP3 completion durations, panic cancellation and cleanup without sound/windows.
 Production PRs #19-#35 passed Windows and Linux CI. New slices continue the linear stack.
-The current Windows preview.2 ZIP and Inno installer are being rebuilt from the
-554-test validated source. LocalReview packages explicitly record whether the
-analysis source archive is complete and block external redistribution while it is
-pending. Earlier dirty-source preview.1 artifacts are intermediate, not release builds.
+Windows preview.3 ZIP and Inno installer were built from clean e59313b after all
+554 tests passed. The 2,258,080,548-byte corresponding-source ZIP is complete;
+all checksums were verified. Package metadata records self-contained=true,
+dirty=false, ownerLocalReview=false, analysisSourceBundleComplete=true and
+externalDistributionBlocked=false. The installer is unsigned. No installer was
+run, no release was published and no real desktop playback was started.
+Earlier preview.1/preview.2 packages are superseded by preview.3.
+Standard CI for final source passed on Windows and Linux. The extra isolated
+Linux desktop probe failed during setup; diagnostics are being reviewed.
 The source CCP, server and port branches were not modified. Each change is kept
 under roughly 600 changed text lines in a linear review stack.
 
@@ -144,6 +188,15 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 | [11](https://github.com/CC-Labs-it/ccp-classic/pull/11) | Review fixes: held panic keys across window focus and translated XP header |
 
 ## Next
+
+The owner can test `artifacts/packages/CCP.Classic-1.0.0-preview.3-win-x64-setup.exe`
+or the portable ZIP in the same directory. The installer is 174,661,141 bytes,
+SHA256 `c63170e883c1064237d0fa4909e2669798a3b91309a6c4ad584dd5ff5e51b419`.
+The portable ZIP is 206,430,004 bytes,
+SHA256 `96100801eaa94bd135c365d4732f0d1b277180f861a1e192232c81b670a8d125`.
+The separate analysis-sources ZIP has SHA256
+`45c27fb9f8dc2b9d8bd8238b70a67d8326fbe5f7d02a90c01123c0f9d098553c`.
+All files have adjacent checksum files. These local build outputs are ignored by git.
 
 ### Conversation checkpoint, 2026-11-03
 
