@@ -11,6 +11,7 @@ public sealed class PresetDefinition
     public bool GentleVisuals { get; set; }
     public bool ReducedMotion { get; set; }
     public int RunMinutes { get; set; }
+    public List<TimedEffectChange> TimedChanges { get; set; } = [];
 }
 
 public sealed class PresetStore(string directory)
@@ -27,7 +28,8 @@ public sealed class PresetStore(string directory)
         return Normalize(new PresetDefinition
         {
             Name = name, Effects = settings.Effects, GentleVisuals = settings.GentleVisuals,
-            ReducedMotion = settings.ReducedMotion, RunMinutes = settings.RunMinutes
+            ReducedMotion = settings.ReducedMotion, RunMinutes = settings.RunMinutes,
+            TimedChanges = TimedEffectChange.Normalize(settings.TimedChanges)
         });
     }
 
@@ -42,6 +44,7 @@ public sealed class PresetStore(string directory)
         settings.GentleVisuals = normalized.GentleVisuals;
         settings.ReducedMotion = normalized.ReducedMotion;
         settings.RunMinutes = normalized.RunMinutes;
+        settings.TimedChanges = normalized.TimedChanges.ToList();
         settings.Preset = normalized.Name;
     }
 
@@ -139,7 +142,8 @@ public sealed class PresetStore(string directory)
         return new PresetDefinition
         {
             Id = definition.Id, Name = name, Effects = settings.Effects, RunMinutes = settings.RunMinutes,
-            GentleVisuals = definition.GentleVisuals, ReducedMotion = definition.ReducedMotion
+            GentleVisuals = definition.GentleVisuals, ReducedMotion = definition.ReducedMotion,
+            TimedChanges = TimedEffectChange.Normalize(definition.TimedChanges)
         };
     }
 

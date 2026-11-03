@@ -26,6 +26,7 @@ public sealed class ClassicSettings
     public string PanicKey { get; set; } = "Escape";
     public string Preset { get; set; } = "Daily";
     public LibrarySettings Library { get; set; } = new();
+    public List<TimedEffectChange> TimedChanges { get; set; } = [];
     public Dictionary<string, EffectSettings> Effects { get; set; } = [];
 
     public ClassicSettings() => Normalize();
@@ -38,6 +39,7 @@ public sealed class ClassicSettings
         BarkIntervalSeconds = BarkIntervalSeconds <= 0 ? 60 : Math.Clamp(BarkIntervalSeconds, 1, 3600);
         Library ??= new();
         Library.Normalize();
+        TimedChanges = TimedEffectChange.Normalize(TimedChanges);
         Effects ??= [];
         foreach (var definition in EffectCatalog.All)
         {
