@@ -1,8 +1,8 @@
 # Existing feature parity review
 
 Audit date: 2026-11-03. This is a gap inventory, not a completion claim.
-Packaged baseline: preview.7, `902f32b9fdccbf036f09805d48c23c8dc31605bf`,
-plus the explicitly named later checkpoints and working-tree ports below.
+Latest package: preview.8, `37064c8bcb29b06f9e8977a9b3b9902c4130578d`.
+Earlier checkpoint evidence is labeled separately below.
 Reference: public [CCP commit fe40ea7587ac0b09e47d0724e59d7178db3336da](https://github.com/CC-Labs-it/Conditioning-Control-Panel/tree/fe40ea7587ac0b09e47d0724e59d7178db3336da/ConditioningControlPanel).
 Every source path below is relative to that commit's `ConditioningControlPanel/`.
 Initial files were read through the public connector; subsequent ports use git show
@@ -36,9 +36,12 @@ PCM analysis. Extended Linux WMA playback/analysis passed in run 41680210118.
 The layered editor, service and integration are implemented. All 828 Windows
 Release checks pass with zero skips (`parity-preview8-release.trx`), including
 the actual silent layered service, native WMA, analysis, lifecycle/error/reentry,
-editor checks and the final input-reconnect regressions. The extended Linux
-probe builds cleanly; its final native run and preview.8 packaging are next.
-These later changes are not in preview.7. Scope distinctions stay visible below.
+editor checks and the final input-reconnect regressions. Standard Windows and
+Ubuntu CI passed. Preview.8 is built and independently verified, including all
+759 archived files, original media, icons, branding and complete dependency
+source evidence. Extended Linux native/package run 41683113049 also passed,
+including eight looping WAV/WMA layers, live gains and complete cache cleanup.
+Scope distinctions stay visible below.
 
 ## Flash Images
 
@@ -120,7 +123,7 @@ Source: `Features/BubblePopFeatureControl.xaml:86-307` and its `.xaml.cs`,
 | BubblesEnabled/Frequency; original sprite; click pop and recorded Pop/Pop2/Pop3 | Source60/minute range and all three unchanged recorded pops are implemented, with original sound assets verified. | Implemented / production_audit and Root |
 | BubblesSize; BubbleSpeedBoost; BubblesVolume; solid/input mode | Size, speed and independent gain are implemented. Classic always uses one bounded shared host, supplying source Solid Mode stability without a dummy switch to per-bubble windows. | Implemented / Roadmap and Root |
 | BubbleMotionStyle; local Rain/SpiralIn and other styles | Plain FloatUp/Rain/SpiralIn/Mix, source sway/spin/breath/pop/ballistic particles and reduced/gentle/performance gates are implemented. Effect bubbles retain benign FloatUp. | Implemented / Roadmap and Root |
-| BubbleTriggersEnabled/Chance; BubbleTriggerVariants | Arbitrary enabled subset, Glitch image wash, local animated cascade and distinct old image-wash/melt variants are implemented. Source tile counts/sizes/timing and selected local media pool are retained. | Implemented / Roadmap; current checks pending |
+| BubbleTriggersEnabled/Chance; BubbleTriggerVariants | Arbitrary enabled subset, Glitch image wash, local animated cascade and distinct old image-wash/melt variants are implemented. Source tile counts/sizes/timing and selected local media pool are retained. | Implemented / Roadmap; full Release checks pass |
 | BubbleBrainDrainEnabled; original effect faces and transitions | The real10second melt uses the desktop capture worker. Nine exact public sprites, source sizing/lifetime and slow violet pulse are implemented. | Implemented / Roadmap; visual proofs |
 | BubbleGazePopEnabled | Camera/gaze is outside the retained keyboard and pointer input scope. | Input scope exception / Root |
 
@@ -188,9 +191,9 @@ Source: `Views/Controls/AppSettings/AudioSettingsSection.xaml:82-275`,
 | Master and video gain; ducking toggle/amount | Independent duck-enable setting implemented and wired across existing audio lanes. | Implemented / production_audit + Root |
 | Output device list/refresh; test playback | Real DirectSound GUID enumeration and LibVLC selection/default reset verified on Windows with exact native output identity and muted recorded playback. Linux retains the existing Pulse path. DirectSound remains forced; no mixer fallback. | Implemented / production_audit + Root |
 | Layered audio editor; master/per-track enable and gain | Native Audio More editor adds/removes up to eight local tracks with the source 70% defaults, independent track switches, master and per-track volumes, empty-state warning and translated preparation/partial-failure status. Opening remains idle. Structural changes are explicit apply actions; gain changes update the active graph without restarting stopped audio. Ten-language controls/help and styled headless proof are implemented. | Implemented / Roadmap + Root; focused checks pass |
-| Layered sample-domain loops and one output | File-backed bounded PCM tracks feed one paced mix/output with unequal seamless loop boundaries and live sample gains. Playback remains LibVLC; silent first-pass decoding and actual output are separate. Stop clears samples and awaits owned teardown; last-wins replacement cannot overlap outputs. Failed tracks leave healthy tracks playing. Error-status, reentrant-dispose and actual full-tail native playback checks pass with one output, live gain changes and cache cleanup. | Verified Windows / local_library; full suite passes, final Linux native run pending |
+| Layered sample-domain loops and one output | File-backed bounded PCM tracks feed one paced mix/output with unequal seamless loop boundaries and live sample gains. Playback remains LibVLC; silent first-pass decoding and actual output are separate. Stop clears samples and awaits owned teardown; last-wins replacement cannot overlap outputs. Failed tracks leave healthy tracks playing. Error-status, reentrant-dispose and actual full-tail native playback checks pass with one output, live gain changes and cache cleanup. | Verified Windows and Linux / local_library |
 | AudioOnlySession | Captured when the next session starts and forces the selected layer mix even if its standalone master switch is off. Scheduled flash, subliminal, main spiral/filter, video, bubble, bounce, lock/wipe and drain lanes do not start. Companion/typed triggers, corner GIFs, wallpaper and toys retain their separate source controls. Stop, reset and app close keep the shared gate and cleanup policy. | Implemented / Root; independent source/wiring review complete, owner interaction remains manual |
-| Local audio file formats | One shared MP3/WAV/FLAC/OGG/M4A/AAC/Opus/WMA list drives scans, clip settings and pickers. WMA needs the complete 16-byte ASF Header Object GUID and forced asf demux; renamed ASX/M3U/PLS and nonlocal native inputs are rejected. Actual muted Windows WMA playback and leading-silence/two-level PCM analysis pass. Details are in PARITY-AUDIO-FORMATS.md. | Verified Windows / Roadmap; extended Linux probe pending |
+| Local audio file formats | One shared MP3/WAV/FLAC/OGG/M4A/AAC/Opus/WMA list drives scans, clip settings and pickers. WMA needs the complete 16-byte ASF Header Object GUID and forced asf demux; renamed ASX/M3U/PLS and nonlocal native inputs are rejected. Actual muted Windows WMA playback and leading-silence/two-level PCM analysis pass. Details are in PARITY-AUDIO-FORMATS.md. | Verified Windows and Linux / Roadmap |
 | AudioSync latency and intensity | Source-time offset, live intensity and four-pass source DSP implemented in Toys. | Implemented / production_audit |
 | Cloud-specific duck exclusion | Excluded with cloud/network providers, not a missing local control. | Scope exception |
 
@@ -202,7 +205,7 @@ Source: `Services/Video/WallpaperService.cs:126-170,301-337`.
 |---|---|---|
 | Capture original, apply local image, restore on stop/crash recovery | Classic implements journaled restore and guarded writes. Keep those protections. | Present restore contract |
 | WallpaperSourceFolder; random selection and Shuffle | Dedicated folder/own image/random nonrepeat/shuffle and bounded rotation implemented with generation-safe restore. Fake writer/cover tests added; no real wallpaper changed. | Implemented / production_audit |
-| Local collage support | Original three static plans and native moving GIF/WebP collage now share geometry, feathering, focus, hero sharpener and color passes. Moving scenes retain source19-tile selection, frame budgets and animation timing; build/resource/cancel/offscreen proof checks added. | Implemented / production_audit and Roadmap; current verification pending |
+| Local collage support | Original three static plans and native moving GIF/WebP collage now share geometry, feathering, focus, hero sharpener and color passes. Moving scenes retain source19-tile selection, frame budgets and animation timing; build/resource/cancel/offscreen proof checks added. | Implemented / production_audit and Roadmap; native render and full Release checks pass |
 | Classic dynamic video mode | Present as an additional local path with native video. Verify it separately; it does not supply static shuffle/collage parity. Linux wallpaper remains absent by design. | Platform exception / Root |
 
 ## Library
@@ -262,8 +265,8 @@ Source: `Views/Tabs/HapticsTabView.xaml:749-886,958-1221,1341-1605`.
   requires a running session. These limits are recorded rather than presented as
   complete cross-platform/source behavior.
 - Native Remix and glyph raster differences are documented in their specific
-  provenance records. Passing prior Linux or Windows checks does not establish
-  acceptance of the new layered native output or an installer still being built.
+  provenance records. Current Windows native and extended Linux evidence covers
+  layered playback; physical toy hardware and owner interaction remain manual.
 
 ## Acceptance and ownership
 

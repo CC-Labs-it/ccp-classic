@@ -1,6 +1,6 @@
 # CCP Classic handoff
 
-## Active parity work, 2026-11-03
+## Preview.8 parity checkpoint, 2026-11-03
 
 Final preview.8 validation checkpoint: all 828 Windows Release tests pass with
 zero skips in `artifacts/test-results/parity-preview8-release.trx`. This includes
@@ -8,8 +8,23 @@ the real silent layered-audio service, WMA, FFmpeg analysis, native video timing
 desktop capture, source renders and deterministic input-reconnect regressions.
 The extended Linux probe builds with zero warnings/errors and now includes eight
 simultaneous looping audio tracks, live gains, cancellation and cache cleanup.
-Cross-platform CI and final preview.8 packaging are next; preview.7 below remains
-the most recent completed local installer until those finish.
+Preview.8 is built from clean `37064c8bcb29b06f9e8977a9b3b9902c4130578d`.
+Independent package verification passed: all 759 archive files match the staged
+payload; installer/app icons, CC labs Srls branding/license, original media,
+native dependencies and complete analysis-source evidence are correct. Standard
+Windows and Ubuntu CI passed. The extended Linux native/package run also passed,
+including eight looping WAV/WMA layers through one output, live gains, 2,765,520
+bytes of bounded PCM, 20.91 ms stop and an empty cache. Downloaded proof is under
+`artifacts/ci-preview8-linux`; exact CI links are in Scope below.
+
+Installer: `artifacts/packages/CCP.Classic-1.0.0-preview.8-win-x64-setup.exe`
+(200,925,660 bytes), SHA256
+`5c17e702442a1efcb64ac564d7c425446aa42a49a9f043c9512606e5b6875168`.
+Portable ZIP: 232,684,870 bytes, SHA256
+`2080a8819cdecf50bbb270d14436c5e95ca60e8c5ad23b53d986e6d8b52bc9e8`.
+Analysis-source ZIP: 2,258,080,548 bytes, SHA256
+`a1c72d9ce60807702fcba30a93efeb7707a99b524eb1d3626aca890e7474d84f`.
+All three independently computed hashes match their adjacent `.sha256` files.
 
 Owner requested full behavior/customization parity for the existing features, using
 public CCP source and assets. Typed input only: microphone and OCR are excluded.
@@ -91,9 +106,9 @@ settings were not changed. Use literal profile paths when inspecting them becaus
 the sandbox LOCALAPPDATA points to a different profile.
 
 Agents completed native audio evidence, integration review, editor, lifecycle
-tests, translations, Intiface fixes and the extended Linux probe. Root coordinates
-cross-platform CI and preview.8 packaging. Preview.7 remains the last completed
-installer until packaging finishes. Do not run competing builds.
+tests, translations, Intiface fixes, extended Linux probe and independent package
+verification. Cross-platform CI and packaging are complete. The installer remains
+an unsigned preview; physical toy hardware and owner interaction are manual checks.
 
 ## Scope
 
@@ -103,19 +118,20 @@ continued M2-M8 production work with agents on 2026-11-03; that work is active.
 Source design: owner decisions and mockup dated 2026-11-03 in the CCP handoff.
 CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gate.
 
-Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.7-win-x64-setup.exe`.
-It includes the integrated parity ports above, built from clean
-`902f32b9fdccbf036f09805d48c23c8dc31605bf`. All 774 Windows Release tests passed,
-including real silent video pacing/caps and offline FFmpeg analysis, with no skips.
+Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.8-win-x64-setup.exe`.
+It includes the integrated parity ports and all post-preview.7 additions above,
+built from clean `37064c8bcb29b06f9e8977a9b3b9902c4130578d`.
+All 828 Windows Release tests passed, including native layered audio, silent
+video pacing/caps and offline FFmpeg analysis, with no skips.
 Installer and portable ZIP checksums were verified. Publisher and current license
 both read CC labs Srls. The exact analysis source bundle accompanies the binaries.
-Build/test CI: https://github.com/CC-Labs-it/ccp-classic/actions/runs/41676529793
-Linux native/package CI: https://github.com/CC-Labs-it/ccp-classic/actions/runs/41676725882
+Build/test CI: https://github.com/CC-Labs-it/ccp-classic/actions/runs/41683094087
+Linux native/package CI: https://github.com/CC-Labs-it/ccp-classic/actions/runs/41683113049
 The installer remains unsigned and has not been installed or published by agents.
 Prior playback source PR 79 passed standard CI on both Windows and Ubuntu. Its
 isolated Linux native acceptance passed every stage, including the live video cap.
-Current source is the small draft stack PRs 81-84; final PR 84 has Windows/Linux
-standard CI running. No native playback engine changes were made in this follow-up.
+Earlier preview.6 work used the draft stack PRs 81-84. The active parity branch
+and exact preview.8 source are recorded above; those earlier PRs are historical.
 
 Preview.6 artifacts, all adjacent SHA-256 files verified:
 

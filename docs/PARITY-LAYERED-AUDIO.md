@@ -97,6 +97,12 @@ partially started native player. A focused regression verifies that aborting
 an empty blocked read releases it and all following reads return EOF. This
 regression is included in the final passing run.
 
+Final Linux native/package run 41683113049 also passed. Eight alternating local
+WAV/WMA tracks used one output graph, crossed a real loop boundary, applied live
+master/track/duck gains without restarting, and retained 2,765,520 bytes of PCM.
+Stop completed in 20.91 ms and left the private cache empty. The captured proof
+is under `artifacts/ci-preview8-linux/artifacts/native-linux-probe/native.jsonl`.
+
 The pinned source does not feed standalone layered audio into AudioSync.
 `AudioSyncService.cs:355,369` contains the only producers of
 `HapticService.SetSyncIntensityAsync`; those sample the web-video ChunkManager
