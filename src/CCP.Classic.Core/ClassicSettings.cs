@@ -11,6 +11,7 @@ public sealed class ClassicSettings
     public int SchemaVersion { get; set; } = 1;
     public string Language { get; set; } = "en";
     public bool GentleVisuals { get; set; }
+    public bool ReducedMotion { get; set; }
     public bool FillAllMonitors { get; set; } = true;
     public bool PerformanceMode { get; set; }
     public bool StartWithSystem { get; set; }
