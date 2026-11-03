@@ -6,6 +6,29 @@ namespace CCP.Classic.Tests;
 public sealed class EffectsTimelineTests
 {
     [Fact]
+    public void ApprovedCompanionTriggersRespectAudioOptInAndPanicClearsTheirVisuals()
+    {
+        var settings = new ClassicSettings { GentleVisuals = true };
+        settings.Effects["spiral"].Enabled = false;
+        var timeline = new EffectsTimeline(settings, 1, 5);
+        timeline.Start(); timeline.Step(0);
+        Assert.True(timeline.TriggerFlash());
+        Assert.True(timeline.TriggerWhisper());
+        Assert.True(timeline.TriggerSpiralPulse());
+        var frame = timeline.Step(.8);
+        Assert.NotEmpty(frame.Flashes); Assert.Equal(0, frame.Phrase);
+        Assert.True(frame.TextOpacity > 0); Assert.True(frame.SpiralOpacity > 0);
+        Assert.False(frame.Whisper);
+        settings.Effects["sub"].Values["whispers"] = 1;
+        Assert.True(timeline.TriggerWhisper()); Assert.True(timeline.Step(.9).Whisper);
+        Assert.False(timeline.Step(1).Whisper);
+        timeline.Stop();
+        Assert.False(timeline.TriggerFlash()); Assert.False(timeline.TriggerWhisper()); Assert.False(timeline.TriggerSpiralPulse());
+        var stopped = timeline.Step(2);
+        Assert.Empty(stopped.Flashes); Assert.Equal(0, stopped.TextOpacity); Assert.Equal(0, stopped.SpiralOpacity);
+    }
+
+    [Fact]
     public void UpdatingTheImageCatalogPreservesTextAndRemovesInvalidFlashReferences()
     {
         var settings = new ClassicSettings { GentleVisuals = true };

@@ -13,6 +13,8 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
     private double lastTime, lastFlash, lastText, phase, pink, spiral, textAlpha;
     private int phrase;
     private CueEnvelope? textCue;
+    private CueEnvelope? spiralPulse;
+    private bool requestedWhisper;
     private long nextId;
     public bool IsRunning { get; private set; }
 
@@ -26,7 +28,27 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         pinkFade.Reset(); spiralFade.Reset();
     }
 
-    public void Stop() { IsRunning = false; flashes.Clear(); textCue = null; pink = spiral = textAlpha = 0; }
+    public void Stop() { IsRunning = false; flashes.Clear(); textCue = spiralPulse = null; requestedWhisper = false; pink = spiral = textAlpha = 0; }
+
+    public bool TriggerFlash()
+    {
+        if (!IsRunning || !Enabled("flash") || imageCount == 0) return false;
+        var before = flashes.Count; Spawn(lastTime); return flashes.Count > before;
+    }
+    public bool TriggerWhisper(int selectedPhrase = 0)
+    {
+        if (!IsRunning || !Enabled("sub") || selectedPhrase < 0 || selectedPhrase >= phraseCount) return false;
+        phrase = selectedPhrase; lastText = lastTime;
+        textCue = new(lastTime, settings.GentleVisuals ? .75 : .08,
+            settings.GentleVisuals ? .6 : Value("sub", "frames") / 60, settings.GentleVisuals);
+        textGain.Reset(Value("sub", "opacity") / 100);
+        requestedWhisper = Enabled("audio") && Value("sub", "whispers") != 0; return true;
+    }
+    public bool TriggerSpiralPulse()
+    {
+        if (!IsRunning) return false;
+        spiralPulse = new(lastTime, settings.GentleVisuals ? .75 : .3, 1, settings.GentleVisuals); return true;
+    }
 
     public void SetImageCount(int count)
     {
@@ -42,9 +64,14 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         lastTime = now;
         var gentle = settings.GentleVisuals;
         var fade = gentle ? .75 : .3;
-        var whisper = false;
+        var whisper = requestedWhisper; requestedWhisper = false;
         pink = pinkFade.Sample(now, Enabled("pink") ? Value("pink", "opacity") / 100 * (gentle ? .5 : 1) : 0, fade);
         spiral = spiralFade.Sample(now, Enabled("spiral") ? Value("spiral", "opacity") / 100 * (gentle ? .5 : 1) : 0, fade);
+        if (spiralPulse is { } pulse)
+        {
+            spiral = Math.Max(spiral, pulse.Sample(now, gentle) * (gentle ? .2 : .4));
+            if (pulse.Done) spiralPulse = null;
+        }
         if (!settings.ReducedMotion) phase = (phase + dt * Math.Tau / 12 * (gentle ? .5 : 1)) % Math.Tau;
 
         var flashRate = Value("flash", "rate");

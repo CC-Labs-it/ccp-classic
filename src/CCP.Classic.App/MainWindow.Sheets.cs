@@ -28,9 +28,7 @@ public sealed partial class MainWindow
                 FillLibrary(content);
                 break;
             case "Companion":
-                foreach (var setting in new[] { "Avatar", "Barks", "TriggerPhrases", "KeywordTriggers" })
-                    content.Children.Add(Row(setting, DisabledToggle()));
-                content.Children.Add(Note("CompanionPending"));
+                FillCompanion(content);
                 break;
             case "Toys":
                 foreach (var provider in new[] { "Intiface", "LovenseConnect" })

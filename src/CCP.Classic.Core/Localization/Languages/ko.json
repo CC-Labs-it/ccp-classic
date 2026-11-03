@@ -218,5 +218,10 @@
   "AchievementRequirement26": "엄격 잠금, 긴급 중지 끄기, 분홍 필터를 함께 사용하세요.",
   "Achievement27": "모두 함께",
   "AchievementRequirement27": "방울 터뜨리기, 튀는 텍스트, 나선을 함께 사용하세요.",
+  "CompanionUnavailable": "이 화면에서는 아바타를 표시할 수 없습니다.",
+  "TimedChanges": "시간 지정 변경",
+  "AtMinute": "분",
+  "Add": "추가",
+  "TimedNextSession": "시간 지정 변경은 다음 시작부터 적용됩니다.",
   "ByCredit": "By CodeBambi"
 }

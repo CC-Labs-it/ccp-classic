@@ -53,7 +53,8 @@ public sealed partial class DesktopEffectsService : IDisposable
             catch (Exception e) when (e is IOException or ArgumentException) { }
         }
         timeline = new(settings, images.Count, starter.Phrases.Count);
-        panic = new(() => settings.PanicKey, keyChanged);
+        panic = new(() => settings.PanicKey, keyChanged, () => settings.KeywordTriggersEnabled && session.IsRunning);
+        InitializeCompanion();
         timer = new(TimeSpan.FromSeconds(1d / 30), DispatcherPriority.Background, (_, _) => Tick());
         session.Changed += SessionChanged;
         session.StopRequested += Stop;
@@ -72,7 +73,7 @@ public sealed partial class DesktopEffectsService : IDisposable
     {
         if (disposed) return;
         running = true; lastStatus = null;
-        timeline.Start(); videos.Start(); StartInteractive(); lastFlash = 0; started = clock.GetTimestamp();
+        timeline.Start(); videos.Start(); StartInteractive(); StartCompanion(); lastFlash = 0; started = clock.GetTimestamp();
         timer.Start();
         Tick();
     }
@@ -85,6 +86,7 @@ public sealed partial class DesktopEffectsService : IDisposable
             var elapsed = clock.GetElapsedTime(started).TotalSeconds;
             videos.Tick(elapsed);
             TickInteractive(elapsed);
+            TickCompanion(elapsed);
             snapshot = timeline.Step(elapsed);
             foreach (var flash in snapshot.Flashes.Where(flash => flash.Id > lastFlash).OrderBy(flash => flash.Id))
             { lastFlash = flash.Id; FlashShown?.Invoke(); }
@@ -95,7 +97,9 @@ public sealed partial class DesktopEffectsService : IDisposable
             if (!anyVisual && snapshot.Flashes.Count == 0 && snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity == 0
                 && interactiveFrame.Bubbles.Count == 0 && interactiveFrame.BouncingText is null && lockFrame.BrainDrain is null)
                 CloseWindows();
-            if (anyVisual && !ReconcileWindows())
+            var needsHost = anyVisual || snapshot.Flashes.Count > 0 || snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity > 0
+                || interactiveFrame.Bubbles.Count > 0 || interactiveFrame.BouncingText is not null || lockFrame.BrainDrain is not null;
+            if (needsHost && !ReconcileWindows())
             {
                 session.Dispose(); Report("EffectsUnavailable"); return;
             }
@@ -115,7 +119,7 @@ public sealed partial class DesktopEffectsService : IDisposable
             }
             whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath,
                 videos.IsPlaying ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1);
-            Report(videos.Status ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
+            Report(videos.Status ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
                 : audio.LastError is not null ? "AudioUnavailable" : "Running"));
         }
         catch (Exception e) when (e is InvalidOperationException or IOException or ArgumentException)
@@ -172,7 +176,7 @@ public sealed partial class DesktopEffectsService : IDisposable
     public void Stop()
     {
         timer.Stop(); running = false; timeline.Stop(); snapshot = null;
-        CloseWindows(); whispers.Stop(); videos.Stop(); StopInteractive();
+        CloseWindows(); whispers.Stop(); videos.Stop(); StopInteractive(); StopCompanion();
     }
 
     public void Dispose()

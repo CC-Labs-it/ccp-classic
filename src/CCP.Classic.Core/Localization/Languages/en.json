@@ -218,5 +218,10 @@
   "AchievementRequirement26": "Use Strict Lock, disabled panic and Pink Filter together.",
   "Achievement27": "All Together",
   "AchievementRequirement27": "Use Bubble Pop, Bouncing Text and Spiral together.",
+  "CompanionUnavailable": "The companion is unavailable on this display.",
+  "TimedChanges": "Timed changes",
+  "AtMinute": "At minute",
+  "Add": "Add",
+  "TimedNextSession": "Timed changes apply at the next start.",
   "ByCredit": "By CodeBambi"
 }

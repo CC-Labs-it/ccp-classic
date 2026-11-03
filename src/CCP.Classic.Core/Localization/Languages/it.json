@@ -218,5 +218,10 @@
   "AchievementRequirement26": "Usa insieme blocco rigido, emergenza disattivata e filtro rosa.",
   "Achievement27": "Tutto insieme",
   "AchievementRequirement27": "Usa insieme bolle, testo rimbalzante e spirale.",
+  "CompanionUnavailable": "L'avatar non è disponibile su questo schermo.",
+  "TimedChanges": "Modifiche programmate",
+  "AtMinute": "Al minuto",
+  "Add": "Aggiungi",
+  "TimedNextSession": "Le modifiche programmate si applicano al prossimo avvio.",
   "ByCredit": "By CodeBambi"
 }

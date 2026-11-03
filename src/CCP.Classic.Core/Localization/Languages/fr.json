@@ -218,5 +218,10 @@
   "AchievementRequirement26": "Utiliser le verrouillage strict, l'arrêt d'urgence désactivé et le filtre rose ensemble.",
   "Achievement27": "Tout ensemble",
   "AchievementRequirement27": "Utiliser les bulles, le texte rebondissant et la spirale ensemble.",
+  "CompanionUnavailable": "Le compagnon est indisponible sur cet écran.",
+  "TimedChanges": "Changements programmés",
+  "AtMinute": "À la minute",
+  "Add": "Ajouter",
+  "TimedNextSession": "Les changements programmés prennent effet au prochain démarrage.",
   "ByCredit": "By CodeBambi"
 }

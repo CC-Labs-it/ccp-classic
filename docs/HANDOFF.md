@@ -23,8 +23,9 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 - Offline stats, the original v1 XP curve, live Progress and all 27 approved neutral
   achievement rules. Classic awards 1 XP per 5 seconds, 2 per popped bubble,
   50 per finished video and 10 per correct attention answer. There are no unlock gates.
-- Five-word companion/keyword scheduling is ready; avatar and global typing input
-  integration are active work. Haptics remains explicit-connect localhost work.
+- The verified original companion tube and five approved recorded barks are wired.
+  Timed phrases and opted-in keyword capture feed bounded native effect triggers;
+  the Wayland fallback accepts text only inside Classic. Panic clears every queue.
 
 - Current CCP image mosaic with twelve perimeter tiles and the native animated logo
   in its central 2x2 area. The owner replaced the flat card mockup on 2026-11-03.
@@ -76,7 +77,7 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
   bridge/hook setup passed an offscreen probe; an owner-driven desktop session and
   actual audio listening remain manual review gates. No unexpected desktop effects
   or sounds were played during implementation.
-- Companion runtime, autostart/hidden startup, haptics, Loom, wallpaper and installers.
+- Timed preset changes, autostart/hidden startup, haptics, Loom, wallpaper and installers.
   Their unimplemented controls are disabled with a localized explanation.
 - LibVLCSharp 3.10.1 supplies the cross-platform recorded-audio backend; NAudio is
   not required by this implementation. Linux needs LibVLC plus audio/codec plugins.
@@ -85,7 +86,7 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 ## Validation
 
 Latest integrated `dotnet test -c Release -m:4 --no-restore --disable-build-servers`:
-343 tests passed locally, zero failures or skips. The suite covers the existing
+351 tests passed locally, zero failures or skips. The suite covers the existing
 48 M0 tests plus M1 scheduling, real starter
 hashes, native drawing pixels, media cancellation, input mappings/rebinding,
 native/local event ordering and a composed first-playable frame with no stop ghosts.

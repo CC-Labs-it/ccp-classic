@@ -59,6 +59,10 @@ public sealed partial class MainWindow : Window
         BuildShell();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(TextInputEvent, (_, args) =>
+        {
+            if (effects?.GlobalTextAvailable != true && args.Text is { } characters) effects?.FeedText(characters);
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
         Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         Session.Changed += UpdateSession;
         Session.StopRequested += () => { statusKey = "Stopped"; UpdateSession(); };
@@ -81,6 +85,7 @@ public sealed partial class MainWindow : Window
                 };
                 effects.VideoFinished += seconds => Progress.VideoFinished(seconds);
                 effects.FlashShown += Progress.FlashShown;
+                effects.AvatarClicked += Progress.AvatarClicked;
                 effects.LockCompleted += (errors, phrases, seconds) => Progress.LockResult(errors, phrases, seconds);
                 effects.WipePlayingChanged += playing => { if (playing) Progress.WipeStarted(); else Progress.WipeEnded(); };
                 effects.CountAnswered += correct =>

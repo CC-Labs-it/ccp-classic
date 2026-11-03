@@ -218,5 +218,10 @@
   "AchievementRequirement26": "厳格ロック、緊急停止の無効化、ピンクフィルターを同時に使う。",
   "Achievement27": "すべて一緒に",
   "AchievementRequirement27": "バブルポップ、跳ねるテキスト、スパイラルを同時に使う。",
+  "CompanionUnavailable": "この画面ではコンパニオンを表示できません。",
+  "TimedChanges": "時間指定の変更",
+  "AtMinute": "分",
+  "Add": "追加",
+  "TimedNextSession": "時間指定の変更は次の開始時から適用されます。",
   "ByCredit": "By CodeBambi"
 }

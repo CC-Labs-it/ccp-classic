@@ -218,5 +218,10 @@
   "AchievementRequirement26": "Strenge Sperre, deaktivierte Paniktaste und Rosa-Filter gemeinsam nutzen.",
   "Achievement27": "Alles zusammen",
   "AchievementRequirement27": "Seifenblasen, springenden Text und Spirale gemeinsam nutzen.",
+  "CompanionUnavailable": "Die Begleitung ist auf diesem Bildschirm nicht verfügbar.",
+  "TimedChanges": "Zeitgesteuerte Änderungen",
+  "AtMinute": "Bei Minute",
+  "Add": "Hinzufügen",
+  "TimedNextSession": "Zeitgesteuerte Änderungen gelten ab dem nächsten Start.",
   "ByCredit": "By CodeBambi"
 }

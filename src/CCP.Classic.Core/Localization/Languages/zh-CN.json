@@ -218,5 +218,10 @@
   "AchievementRequirement26": "同时开启严格锁定、关闭紧急停止并开启粉色滤镜。",
   "Achievement27": "全部同开",
   "AchievementRequirement27": "同时使用戳泡泡、弹跳文字和螺旋。",
+  "CompanionUnavailable": "此屏幕无法显示伙伴。",
+  "TimedChanges": "定时更改",
+  "AtMinute": "分钟",
+  "Add": "添加",
+  "TimedNextSession": "定时更改将在下次开始时生效。",
   "ByCredit": "By CodeBambi"
 }

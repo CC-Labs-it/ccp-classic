@@ -218,5 +218,10 @@
   "AchievementRequirement26": "Use bloqueio estrito, pânico desativado e filtro rosa juntos.",
   "Achievement27": "Tudo junto",
   "AchievementRequirement27": "Use bolhas, texto saltitante e espiral juntos.",
+  "CompanionUnavailable": "O avatar está indisponível nesta tela.",
+  "TimedChanges": "Alterações programadas",
+  "AtMinute": "No minuto",
+  "Add": "Adicionar",
+  "TimedNextSession": "As alterações programadas serão aplicadas no próximo início.",
   "ByCredit": "By CodeBambi"
 }

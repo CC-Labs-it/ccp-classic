@@ -218,5 +218,10 @@
   "AchievementRequirement26": "Usa bloqueo estricto, pánico desactivado y filtro rosa a la vez.",
   "Achievement27": "Todo a la vez",
   "AchievementRequirement27": "Usa burbujas, texto rebotante y espiral a la vez.",
+  "CompanionUnavailable": "El avatar no está disponible en esta pantalla.",
+  "TimedChanges": "Cambios programados",
+  "AtMinute": "En el minuto",
+  "Add": "Añadir",
+  "TimedNextSession": "Los cambios programados se aplican en el siguiente inicio.",
   "ByCredit": "By CodeBambi"
 }

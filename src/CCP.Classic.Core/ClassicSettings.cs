@@ -20,6 +20,7 @@ public sealed class ClassicSettings
     public bool KeywordTriggersEnabled { get; set; }
     public bool CompanionEnabled { get; set; }
     public bool BarksEnabled { get; set; }
+    public bool TriggerPhrasesEnabled { get; set; }
     public int BarkIntervalSeconds { get; set; } = 60;
     public int RunMinutes { get; set; }
     public string PanicKey { get; set; } = "Escape";
@@ -34,6 +35,7 @@ public sealed class ClassicSettings
         Language = string.IsNullOrWhiteSpace(Language) ? "en" : Language;
         if (!new[] { 0, 15, 30, 60 }.Contains(RunMinutes)) RunMinutes = 0;
         if (string.IsNullOrWhiteSpace(PanicKey)) PanicKey = "Escape";
+        BarkIntervalSeconds = BarkIntervalSeconds <= 0 ? 60 : Math.Clamp(BarkIntervalSeconds, 1, 3600);
         Library ??= new();
         Library.Normalize();
         Effects ??= [];
