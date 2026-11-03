@@ -76,6 +76,7 @@ public sealed partial class MainWindow
             Content = new Border { Name = "SheetHost", Child = frame } };
         child.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         child.AddHandler(KeyUpEvent, (_, e) => Session.KeyUp(e.Key.ToString()), RoutingStrategies.Tunnel, handledEventsToo: true);
+        child.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         child.Closed += (_, _) => { if (ReferenceEquals(SettingsWindow, child)) SettingsWindow = null; capturePanic = false; };
         SettingsWindow = child;
         child.Show(this);

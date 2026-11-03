@@ -44,8 +44,9 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 
 ## Validation
 
-`dotnet test -c Release`: 43 tests passed locally, including the final layout guard.
-Windows and Linux CI also passed for the complete M0 branch.
+`dotnet test -c Release`: 48 tests passed locally, including layout, focus-transition
+panic regressions and Russian/Chinese XP header labels. Windows and Linux CI run
+for each PR.
 The source CCP, server and port branches were not modified. Each change is kept
 under roughly 600 changed text lines in a linear review stack.
 
@@ -53,6 +54,8 @@ under roughly 600 changed text lines in a linear review stack.
 
 All PRs are drafts. Each targets its predecessor; review from 1 through 9.
 PR 10 follows the M0 stack with the owner's Bouncing Text artwork correction.
+The review follow-up preserves held panic keys across owned-window focus changes
+and uses the translated XP label in the header.
 Retarget dependent PRs before removing parent branches during merging.
 
 | PR | Change |
@@ -67,6 +70,7 @@ Retarget dependent PRs before removing parent branches during merging.
 | [8](https://github.com/CC-Labs-it/ccp-classic/pull/8) | Compact mosaic and owned settings windows |
 | [9](https://github.com/CC-Labs-it/ccp-classic/pull/9) | Safety, layout, animation and language rendering tests |
 | [10](https://github.com/CC-Labs-it/ccp-classic/pull/10) | Original CCP Bouncing Text artwork |
+| [11](https://github.com/CC-Labs-it/ccp-classic/pull/11) | Review fixes: held panic keys across window focus and translated XP header |
 
 ## Next
 

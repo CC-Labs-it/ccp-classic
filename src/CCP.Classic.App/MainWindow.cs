@@ -51,7 +51,7 @@ public sealed partial class MainWindow : Window
         BuildShell();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(KeyUpEvent, (_, e) => Session.KeyUp(e.Key.ToString()), RoutingStrategies.Tunnel, handledEventsToo: true);
-        Deactivated += (_, _) => Session.ReleaseKeys();
+        Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         Session.Changed += UpdateSession;
         Session.StopRequested += () => { statusKey = "Stopped"; UpdateSession(); };
         timer = new(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) =>
@@ -98,7 +98,7 @@ public sealed partial class MainWindow : Window
         navigation.Children.Add(tabs);
         Grid.SetRow(navigation, 1); Grid.SetColumnSpan(navigation, 3); grid.Children.Add(navigation);
         var level = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-        level.Children.Add(Label(text["Level"] + " 1     0 XP", 11));
+        level.Children.Add(Label(text["Level"] + " 1     0 " + text["XP"], 11));
         level.Children.Add(new ProgressBar { Value = 0, Height = 3, MinHeight = 0, Maximum = 100 });
         Grid.SetColumn(level, 2); grid.Children.Add(level);
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -190,6 +190,15 @@ public sealed partial class MainWindow : Window
         {
             SetStatus("PanicStopped"); CloseSheet(); e.Handled = true;
         }
+    }
+
+    private void ReleaseKeysWhenUnfocused()
+    {
+        // Let an owned window finish activating before deciding that Classic lost focus.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsActive && SettingsWindow?.IsActive != true) Session.ReleaseKeys();
+        }, DispatcherPriority.Background);
     }
 
     private void UpdateSession()

@@ -119,6 +119,62 @@ public sealed class ShellTests
             Assert.False(window.Session.IsRunning);
         });
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task HeldPanicDoesNotRetriggerWhenOpeningAnotherWindow(bool effectEditor) =>
+        WithWindow(window =>
+        {
+            window.Activate();
+            window.Session.Start();
+            PressEscape(window);
+            Assert.False(window.Session.IsRunning);
+            Click(window, Named<Button>(window, "StartStop"));
+            Assert.True(window.Session.IsRunning);
+            if (effectEditor) window.OpenEffect("flash");
+            else window.OpenSheet("Settings");
+            var child = Owned(window);
+            Deactivate(window);
+            child.Activate();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(child.IsActive);
+            Assert.False(window.IsActive);
+            PressEscape(child);
+            Assert.True(window.Session.IsRunning);
+            child.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            PressEscape(child);
+            Assert.False(window.Session.IsRunning);
+            Assert.Null(window.SettingsWindow);
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+        });
+
+    [Fact]
+    public Task LeavingClassicStillResetsKeysForTheNextPress() => WithWindow(window =>
+    {
+        window.Activate();
+        window.Session.Start();
+        PressEscape(window);
+        window.Session.Start();
+        Deactivate(window);
+        Dispatcher.UIThread.RunJobs();
+        window.Activate();
+        PressEscape(window);
+        Assert.False(window.Session.IsRunning);
+        window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+    });
+
+    [Theory]
+    [InlineData("zh-CN")]
+    [InlineData("ru")]
+    public Task HeaderUsesTheTranslatedXpLabel(string language) => WithWindow(window =>
+    {
+        window.RefreshLanguage(language);
+        Dispatcher.UIThread.RunJobs();
+        var text = new LocalizationService(language);
+        Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+            block => block.Text == text["Level"] + " 1     0 " + text["XP"]);
+    });
+
     [Fact]
     public Task GentleSwitchesShareTheSavedSetting() => UiDispatcher.Run(() =>
     {
@@ -218,6 +274,13 @@ public sealed class ShellTests
     {
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
         Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void Deactivate(Window window)
+    {
+        // Headless activation does not deactivate the previous window like a window manager.
+        typeof(WindowBase).GetMethod("HandleDeactivated",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(window, null);
     }
 
     private static void AssertFrame(Window window, string? name, int minimumWidth = 1000)
