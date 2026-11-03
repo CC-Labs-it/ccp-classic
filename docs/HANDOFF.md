@@ -44,8 +44,26 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 ## Validation
 
 `dotnet test -c Release`: 43 tests passed locally, including the final layout guard.
+Windows and Linux CI also passed for the complete M0 branch.
 The source CCP, server and port branches were not modified. Each change is kept
 under roughly 600 changed text lines in a linear review stack.
+
+## Review stack
+
+All PRs are drafts. Each targets its predecessor; review from 1 through 9.
+Retarget dependent PRs before removing parent branches during merging.
+
+| PR | Change |
+|---|---|
+| [1](https://github.com/CC-Labs-it/ccp-classic/pull/1) | Foundation, local settings, session safety, CI |
+| [2](https://github.com/CC-Labs-it/ccp-classic/pull/2) | Localization loader, English, German, Spanish |
+| [3](https://github.com/CC-Labs-it/ccp-classic/pull/3) | French, Italian, Japanese |
+| [4](https://github.com/CC-Labs-it/ccp-classic/pull/4) | Korean, Brazilian Portuguese, Russian |
+| [5](https://github.com/CC-Labs-it/ccp-classic/pull/5) | Simplified Chinese and localization guards |
+| [6](https://github.com/CC-Labs-it/ccp-classic/pull/6) | Avalonia bootstrap, native editors, preset/progress scaffolds |
+| [7](https://github.com/CC-Labs-it/ccp-classic/pull/7) | Original public artwork and native animated logo |
+| [8](https://github.com/CC-Labs-it/ccp-classic/pull/8) | Compact mosaic and owned settings windows |
+| [9](https://github.com/CC-Labs-it/ccp-classic/pull/9) | Safety, layout, animation and language rendering tests |
 
 ## Next
 
