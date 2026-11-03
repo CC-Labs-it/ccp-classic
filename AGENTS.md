@@ -13,6 +13,8 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   Italian stays gender neutral. Never synthetic speech. Only approved neutral clips.
 - Stop gestures share the panic gate. A held key is one press. Effects consult
   Gentle visuals and have entrances and exits. Videos always play at 1x.
+  Preserve held keys across owned-window focus changes; reset only after the
+  whole Classic window group loses focus.
 - Owner correction 2026-11-03: keep the CURRENT CCP dashboard image mosaic,
   with the animated CCP logo in its central 2x2 cells. Image tiles open owned
   settings windows, replacing the flat mockup grid and slide-in sheets.
