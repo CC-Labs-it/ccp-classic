@@ -344,5 +344,17 @@
   "HelpSettingsBody": "设置包括语言、启动行为、显示器、紧急停止键和视觉偏好。柔和视觉效果会缓和呈现，减少动态效果会使移动效果静止，性能模式则降低渲染负担。\n\n会话前请熟悉紧急停止键。关闭紧急停止后，所有手动停止动作都会遵循相同限制。关闭主窗口始终会退出应用并停止本地播放。",
   "HelpBreathe": "呼吸",
   "HelpFocus": "专注",
-  "HelpListen": "聆听"
+  "HelpListen": "聆听",
+  "EffectBubbles": "效果气泡",
+  "EffectBubbleChance": "效果概率",
+  "EffectBubbleType": "气泡效果",
+  "Mixed": "混合",
+  "ImageExit": "图片退场效果",
+  "ExitMix": "混合",
+  "ExitPop": "爆裂",
+  "ExitTvOff": "电视关机",
+  "ExitSpiral": "螺旋",
+  "ExitMelt": "融化",
+  "ExitGlitch": "故障效果",
+  "ExitNone": "无"
 }

@@ -344,5 +344,17 @@
   "HelpSettingsBody": "Einstellungen enthält Sprache, Startverhalten, Monitore, Paniktaste und visuelle Optionen. Sanfte Effekte mildert die Darstellung, Reduzierte Bewegung hält Animationen still, Leistung senkt den Renderaufwand.\n\nLerne die Paniktaste vor einer Sitzung kennen. Sie zu deaktivieren betrifft alle manuellen Stoppgesten nach derselben Regel. Das Hauptfenster zu schließen beendet immer die App und die lokale Wiedergabe.",
   "HelpBreathe": "Atmen",
   "HelpFocus": "Fokussieren",
-  "HelpListen": "Zuhören"
+  "HelpListen": "Zuhören",
+  "EffectBubbles": "Effektblasen",
+  "EffectBubbleChance": "Effektchance",
+  "EffectBubbleType": "Blaseneffekt",
+  "Mixed": "Gemischt",
+  "ImageExit": "Bildausgang",
+  "ExitMix": "Mix",
+  "ExitPop": "Platzen",
+  "ExitTvOff": "TV aus",
+  "ExitSpiral": "Spirale",
+  "ExitMelt": "Schmelzen",
+  "ExitGlitch": "Bildstörung",
+  "ExitNone": "Keine"
 }

@@ -5,6 +5,25 @@ namespace CCP.Classic.Tests;
 
 public sealed class LockEffectsTimelineTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BubbleDrainPulseReturnsToTheSavedLevelAndPanicClearsIt(bool gentle)
+    {
+        var settings = Settings(); settings.GentleVisuals = gentle; settings.ReducedMotion = true;
+        settings.Effects["drain"].Enabled = true; settings.Effects["drain"].Values["intensity"] = 100;
+        var timeline = new LockEffectsTimeline(settings);
+        Assert.False(timeline.TriggerDrainPulse()); timeline.Start(); timeline.Step(0);
+        var baseline = timeline.Step(1).BrainDrain!;
+        Assert.True(timeline.TriggerDrainPulse()); timeline.Step(1);
+        var pulse = timeline.Step(2).BrainDrain!;
+        Assert.Equal(baseline.Opacity * 1.5, pulse.Opacity, 8); Assert.Equal(baseline.Pulse, pulse.Pulse);
+        timeline.Step(4); Assert.Equal(baseline.Opacity, timeline.Step(5).BrainDrain!.Opacity, 8);
+        Assert.Equal(100, settings.Effects["drain"].Values["intensity"]);
+        timeline.TriggerDrainPulse(); timeline.Stop(); Assert.Same(LockEffectsFrame.Empty, timeline.Step(6));
+        timeline.Start(); timeline.Step(0); Assert.Equal(baseline.Opacity, timeline.Step(1).BrainDrain!.Opacity, 8);
+    }
+
     private static ClassicSettings Settings()
     {
         var settings = new ClassicSettings();

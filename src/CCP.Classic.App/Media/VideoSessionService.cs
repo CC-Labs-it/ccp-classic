@@ -16,6 +16,8 @@ internal sealed class VideoSessionService(Window owner, ClassicSettings settings
     private bool running;
     public string? Status { get; private set; }
     public bool IsPlaying => windows.Count > 0;
+    public bool CanTriggerBubble => running && files is { Length: > 0 } && timeline.CanTriggerBubble;
+    public bool TryTriggerBubble() => CanTriggerBubble && timeline.TryTriggerBubble();
     public event Action<double>? VideoFinished;
     public event Action<bool>? CountAnswered;
     public event Action? AttentionStarted;

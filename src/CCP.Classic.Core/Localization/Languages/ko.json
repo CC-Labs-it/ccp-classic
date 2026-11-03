@@ -344,5 +344,17 @@
   "HelpSettingsBody": "설정에는 언어, 시작 방식, 모니터, 긴급 정지 키, 시각 환경설정이 있습니다. 부드러운 시각 효과는 표현을 완만하게 하고, 동작 줄이기는 움직이는 효과를 정지시키며, 성능은 렌더링 부담을 줄입니다.\n\n세션 전에 긴급 정지 키를 익히세요. 긴급 정지를 끄면 모든 수동 정지 동작에 같은 제한이 적용됩니다. 기본 창을 닫으면 언제나 앱과 로컬 재생이 종료됩니다.",
   "HelpBreathe": "호흡하세요",
   "HelpFocus": "집중하세요",
-  "HelpListen": "들으세요"
+  "HelpListen": "들으세요",
+  "EffectBubbles": "효과 버블",
+  "EffectBubbleChance": "효과 확률",
+  "EffectBubbleType": "버블 효과",
+  "Mixed": "혼합",
+  "ImageExit": "이미지 종료 효과",
+  "ExitMix": "혼합",
+  "ExitPop": "터짐",
+  "ExitTvOff": "TV 끄기",
+  "ExitSpiral": "나선",
+  "ExitMelt": "녹이기",
+  "ExitGlitch": "화면 왜곡",
+  "ExitNone": "없음"
 }

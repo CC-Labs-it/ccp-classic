@@ -344,5 +344,17 @@
   "HelpSettingsBody": "Settings contains language, startup behavior, monitor choices, the panic key and visual preferences. Gentle visuals softens effects. Reduced motion holds moving effects still. Performance reduces rendering work.\n\nLearn the panic key before a session. Turning panic off changes every manual stop gesture through the same gate. Closing the main window always exits and releases local playback.",
   "HelpBreathe": "Breathe",
   "HelpFocus": "Focus",
-  "HelpListen": "Listen"
+  "HelpListen": "Listen",
+  "EffectBubbles": "Effect bubbles",
+  "EffectBubbleChance": "Effect chance",
+  "EffectBubbleType": "Bubble effect",
+  "Mixed": "Mixed",
+  "ImageExit": "Image exit",
+  "ExitMix": "Mix",
+  "ExitPop": "Pop",
+  "ExitTvOff": "TV off",
+  "ExitSpiral": "Spiral",
+  "ExitMelt": "Melt",
+  "ExitGlitch": "Glitch",
+  "ExitNone": "None"
 }

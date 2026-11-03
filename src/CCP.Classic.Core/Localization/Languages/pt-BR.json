@@ -344,5 +344,17 @@
   "HelpSettingsBody": "Configurações contém idioma, inicialização, monitores, tecla de emergência e preferências visuais. Efeitos suaves suaviza a apresentação. Movimento reduzido mantém os efeitos parados. Desempenho reduz o trabalho de renderização.\n\nConheça a tecla de emergência antes de uma sessão. Desativá-la muda todos os gestos de parada manual pela mesma regra. Fechar a janela principal sempre encerra o aplicativo e libera a reprodução local.",
   "HelpBreathe": "Respire",
   "HelpFocus": "Concentre-se",
-  "HelpListen": "Escute"
+  "HelpListen": "Escute",
+  "EffectBubbles": "Bolhas com efeitos",
+  "EffectBubbleChance": "Chance do efeito",
+  "EffectBubbleType": "Efeito da bolha",
+  "Mixed": "Misto",
+  "ImageExit": "Saída da imagem",
+  "ExitMix": "Mistura",
+  "ExitPop": "Estouro",
+  "ExitTvOff": "TV desligada",
+  "ExitSpiral": "Espiral",
+  "ExitMelt": "Derreter",
+  "ExitGlitch": "Distorção",
+  "ExitNone": "Nenhuma"
 }

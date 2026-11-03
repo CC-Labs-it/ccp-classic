@@ -344,5 +344,17 @@
   "HelpSettingsBody": "Ajustes contiene idioma, inicio, monitores, tecla de emergencia y preferencias visuales. Efectos suaves suaviza la presentación. Movimiento reducido mantiene quietos los efectos. Rendimiento reduce el trabajo de renderizado.\n\nConoce la tecla de emergencia antes de una sesión. Desactivarla cambia todos los gestos de parada manual con la misma regla. Cerrar la ventana principal siempre sale y libera la reproducción local.",
   "HelpBreathe": "Respira",
   "HelpFocus": "Concéntrate",
-  "HelpListen": "Escucha"
+  "HelpListen": "Escucha",
+  "EffectBubbles": "Burbujas con efectos",
+  "EffectBubbleChance": "Probabilidad del efecto",
+  "EffectBubbleType": "Efecto de burbuja",
+  "Mixed": "Mixto",
+  "ImageExit": "Salida de imagen",
+  "ExitMix": "Mezcla",
+  "ExitPop": "Estallido",
+  "ExitTvOff": "Apagar TV",
+  "ExitSpiral": "Espiral",
+  "ExitMelt": "Derretir",
+  "ExitGlitch": "Distorsión",
+  "ExitNone": "Ninguna"
 }

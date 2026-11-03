@@ -17,7 +17,7 @@ public sealed class LockEffectsTimeline(ClassicSettings settings)
     private readonly EaseTrack drainFade = new();
     private Card? card;
     private long nextId, wipeId;
-    private double lastTime, nextLock, nextWipe, lockInterval, wipeInterval, drainPhase;
+    private double lastTime, nextLock, nextWipe, lockInterval, wipeInterval, drainPhase, drainPulseUntil;
     private int phrase;
     private bool wipeEnabled, previousLoop, loopPending;
     public bool IsRunning { get; private set; }
@@ -35,7 +35,13 @@ public sealed class LockEffectsTimeline(ClassicSettings settings)
 
     public void Stop()
     {
-        IsRunning = false; card = null; wipeId = 0; loopPending = false; drainFade.Reset();
+        IsRunning = false; card = null; wipeId = 0; loopPending = false; drainPulseUntil = 0; drainFade.Reset();
+    }
+
+    public bool TriggerDrainPulse()
+    {
+        if (!IsRunning || !Enabled("drain") || Value("drain", "intensity") <= 0) return false;
+        drainPulseUntil = lastTime + 3; return true;
     }
 
     public bool SubmitLock(string text) => card is { } current && SubmitLock(current.Id, text);
@@ -114,7 +120,8 @@ public sealed class LockEffectsTimeline(ClassicSettings settings)
         var drainEnabled = Enabled("drain") && intensity > 0;
         if (drainEnabled && !settings.ReducedMotion)
             drainPhase = (drainPhase + dt * Math.Tau / (settings.GentleVisuals ? 12 : 6)) % Math.Tau;
-        var opacity = drainFade.Sample(now, drainEnabled ? intensity * (settings.GentleVisuals ? .15 : .3) : 0, fade);
+        var pulseGain = now < drainPulseUntil ? 1.5 : 1;
+        var opacity = drainFade.Sample(now, drainEnabled ? intensity * (settings.GentleVisuals ? .15 : .3) * pulseGain : 0, fade);
         var drain = drainEnabled || opacity > 0 ? new BrainDrainCue(intensity, opacity, .5 + .5 * Math.Sin(drainPhase),
             Value("drain", "refresh") != 0 && !settings.GentleVisuals && !settings.PerformanceMode && !settings.ReducedMotion) : null;
         return new(lockCue, wipe, drain);

@@ -5,6 +5,34 @@ namespace CCP.Classic.Tests;
 
 public sealed class VideoTimelineTests
 {
+    [Fact]
+    public void BubbleVideoIsShortFloatingBoundedAndDoesNotMoveTheRegularSchedule()
+    {
+        var settings = Settings(); settings.Effects["video"].Values["maximum"] = 1;
+        var timeline = new VideoTimeline(settings);
+        Assert.False(timeline.TryTriggerBubble()); timeline.Start();
+        timeline.Step(10); Assert.True(timeline.TryTriggerBubble()); Assert.False(timeline.TryTriggerBubble());
+        var bubble = Assert.Single(timeline.Step(10).Launches);
+        Assert.Equal(30, bubble.CapSeconds); Assert.True(bubble.Floating);
+        Assert.False(bubble.Strict); Assert.False(bubble.Attention);
+        Assert.False(timeline.TryTriggerBubble()); timeline.Complete(bubble.Id);
+        Assert.Empty(timeline.Step(179).Launches); Assert.Single(timeline.Step(180).Launches);
+        timeline.Stop(); Assert.False(timeline.TryTriggerBubble());
+    }
+
+    [Fact]
+    public void BubbleVideoCannotBecomeAStrictOrFullscreenReservation()
+    {
+        var settings = Settings(rate: 0); var timeline = new VideoTimeline(settings); timeline.Start();
+        Assert.True(timeline.TryTriggerBubble()); settings.Effects["video"].Values["strict"] = 1;
+        Assert.Empty(timeline.Step(1).Launches); Assert.False(timeline.TryTriggerBubble());
+        settings.Effects["video"].Values["strict"] = 0; settings.Effects["video"].Values["floating"] = 0;
+        Assert.False(timeline.TryTriggerBubble()); settings.Effects["video"].Values["floating"] = 1;
+        Assert.True(timeline.TryTriggerBubble()); timeline.Stop(); timeline.Start();
+        Assert.Empty(timeline.Step(1).Launches);
+        settings.Effects["video"].Enabled = false; Assert.False(timeline.TryTriggerBubble());
+    }
+
     private static ClassicSettings Settings(bool launch = false, double rate = 20)
     {
         var settings = new ClassicSettings();

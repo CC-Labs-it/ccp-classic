@@ -344,5 +344,17 @@
   "HelpSettingsBody": "設定には言語、起動、モニター、緊急停止キー、表示設定があります。やさしい表示は効果を穏やかにし、動きを減らす設定は動く効果を静止させます。パフォーマンスは描画負荷を抑えます。\n\nセッション前に緊急停止キーを確認してください。無効にすると、すべての手動停止が同じ制限を受けます。メインウィンドウを閉じれば、常にアプリとローカル再生を終了します。",
   "HelpBreathe": "呼吸して",
   "HelpFocus": "集中して",
-  "HelpListen": "聴いて"
+  "HelpListen": "聴いて",
+  "EffectBubbles": "効果付きバブル",
+  "EffectBubbleChance": "効果の確率",
+  "EffectBubbleType": "バブルの効果",
+  "Mixed": "ミックス",
+  "ImageExit": "画像の終了効果",
+  "ExitMix": "ミックス",
+  "ExitPop": "ポップ",
+  "ExitTvOff": "テレビ消灯",
+  "ExitSpiral": "スパイラル",
+  "ExitMelt": "溶解",
+  "ExitGlitch": "グリッチ",
+  "ExitNone": "なし"
 }

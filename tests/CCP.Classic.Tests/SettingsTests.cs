@@ -47,4 +47,34 @@ public sealed class SettingsTests
         Assert.Equal(8, settings.Effects["video"].Values["cap"]);
         Assert.All(EffectCatalog.All, d => Assert.InRange(d.Primary.Count, 1, 3));
     }
+
+    [Fact]
+    public void OlderPreviewFilesAcquireExitAndBubbleDefaultsAndKeepPersistedChoices()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "settings.json");
+        try
+        {
+            File.WriteAllText(path, """
+                {"SchemaVersion":1,"Language":"it","PanicKey":"F8","Effects":{
+                  "flash":{"Enabled":true,"Values":{"rate":18,"opacity":71}},
+                  "bubble":{"Enabled":true,"Values":{"rate":12,"click":1,"sound":0}}}}
+                """);
+            var store = new SettingsStore(path); var loaded = store.Load(out var recovered);
+            Assert.False(recovered); Assert.Equal("it", loaded.Language); Assert.Equal("F8", loaded.PanicKey);
+            Assert.Equal(18, loaded.Effects["flash"].Values["rate"]); Assert.Equal(0, loaded.Effects["bubble"].Values["sound"]);
+            Assert.Equal(0, loaded.Effects["flash"].Values["exit"]);
+            Assert.Equal(1, loaded.Effects["bubble"].Values["effects"]);
+            Assert.Equal(10, loaded.Effects["bubble"].Values["chance"]); Assert.Equal(0, loaded.Effects["bubble"].Values["kind"]);
+            loaded.Effects["flash"].Values["exit"] = 999;
+            loaded.Effects["bubble"].Values["effects"] = 0; loaded.Effects["bubble"].Values["chance"] = 37;
+            loaded.Effects["bubble"].Values["kind"] = 999;
+            store.Save(loaded); var restored = store.Load(out recovered);
+            Assert.False(recovered); Assert.Equal(6, restored.Effects["flash"].Values["exit"]);
+            Assert.Equal(0, restored.Effects["bubble"].Values["effects"]);
+            Assert.Equal(37, restored.Effects["bubble"].Values["chance"]); Assert.Equal(6, restored.Effects["bubble"].Values["kind"]);
+            Assert.Equal(71, restored.Effects["flash"].Values["opacity"]); Assert.Equal(0, restored.Effects["bubble"].Values["sound"]);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
 }

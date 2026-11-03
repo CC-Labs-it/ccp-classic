@@ -344,5 +344,17 @@
   "HelpSettingsBody": "Réglages contient langue, démarrage, moniteurs, touche d'urgence et préférences visuelles. Effets doux adoucit la présentation, Mouvement réduit immobilise les effets et Performance réduit le travail de rendu.\n\nApprenez la touche d'urgence avant une session. La désactiver change tous les gestes d'arrêt manuel selon la même règle. Fermer la fenêtre principale quitte toujours l'application et libère la lecture locale.",
   "HelpBreathe": "Respire",
   "HelpFocus": "Concentre-toi",
-  "HelpListen": "Écoute"
+  "HelpListen": "Écoute",
+  "EffectBubbles": "Bulles à effets",
+  "EffectBubbleChance": "Probabilité de l'effet",
+  "EffectBubbleType": "Effet de bulle",
+  "Mixed": "Mixte",
+  "ImageExit": "Sortie de l'image",
+  "ExitMix": "Mélange",
+  "ExitPop": "Éclatement",
+  "ExitTvOff": "TV éteinte",
+  "ExitSpiral": "Spirale",
+  "ExitMelt": "Fonte",
+  "ExitGlitch": "Distorsion",
+  "ExitNone": "Aucune"
 }

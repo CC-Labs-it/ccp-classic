@@ -344,5 +344,17 @@
   "HelpSettingsBody": "Impostazioni contiene lingua, avvio, monitor, tasto di emergenza e preferenze visive. Effetti delicati ammorbidisce la presentazione. Movimento ridotto mantiene fermi gli effetti. Prestazioni riduce il lavoro di rendering.\n\nImpara il tasto di emergenza prima di una sessione. Disattivarlo cambia tutti i gesti di arresto manuale secondo la stessa regola. Chiudere la finestra principale termina sempre l'app e la riproduzione locale.",
   "HelpBreathe": "Respira",
   "HelpFocus": "Concentrati",
-  "HelpListen": "Ascolta"
+  "HelpListen": "Ascolta",
+  "EffectBubbles": "Bolle con effetti",
+  "EffectBubbleChance": "Probabilità dell'effetto",
+  "EffectBubbleType": "Effetto della bolla",
+  "Mixed": "Misto",
+  "ImageExit": "Uscita immagine",
+  "ExitMix": "Mix",
+  "ExitPop": "Scoppio",
+  "ExitTvOff": "TV spenta",
+  "ExitSpiral": "Spirale",
+  "ExitMelt": "Fusione",
+  "ExitGlitch": "Distorsione",
+  "ExitNone": "Nessuna"
 }
