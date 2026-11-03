@@ -218,7 +218,10 @@ internal sealed class CompanionWindow : Window
             var size = TubeLayout.WindowSize(scale);
             if (Width != size.Width) Width = size.Width;
             if (Height != size.Height) Height = size.Height;
-            if (Topmost != options.AlwaysOnTop) Topmost = options.AlwaysOnTop;
+            // CCP parity: a docked tube rides with its owner and is never topmost, or it would float over
+            // other apps while the panel sits behind them. Always on top applies to a detached tube.
+            var topmost = options.Detached && options.AlwaysOnTop;
+            if (Topmost != topmost) Topmost = topmost;
             if (options.Detached)
             {
                 mirror.ScaleX = 1; DockSide = TubeDockSide.Float;

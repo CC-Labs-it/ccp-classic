@@ -122,6 +122,9 @@ public sealed class CompanionPlacementTests
             settings.CompanionPlacement.Detached = false; apply.Invoke(companion, null);
             Assert.Equal(attachedWidth, companion.Width, 6); Assert.Equal(attachedHeight, companion.Height, 6);
             Assert.False(companion.IsVisible);
+            // A docked tube is never topmost, even with Always on top set; detached it is.
+            settings.CompanionPlacement.AlwaysOnTop = true; apply.Invoke(companion, null); Assert.False(companion.Topmost);
+            settings.CompanionPlacement.Detached = true; apply.Invoke(companion, null); Assert.True(companion.Topmost);
         }
         finally { companion.FinishImmediately(); owner.Close(); }
     });
