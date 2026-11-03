@@ -10,11 +10,14 @@ different from that pin. Read pinned files with `git show`; cached reference fil
 are in ignored `artifacts/parity-source`. See `docs/PARITY-REVIEW.md` for gaps.
 
 Current branch: `codex/parity-68-recorded-bubble-sounds`. Existing-feature parity
-changes are ready for the preview.7 checkpoint and package.
+checkpoint `902f32b9fdccbf036f09805d48c23c8dc31605bf` is pushed and packaged as preview.7.
 Preview.6 does not contain these changes. All 774 Windows Release tests pass,
 with zero skips (`artifacts/test-results/parity-release-verified.trx`), including
 native playback, selected/default output identity, actual desktop capture and
-offline FFmpeg analysis. Linux CI is pending for this checkpoint.
+offline FFmpeg analysis. Windows CI and the Linux full/native/package pipeline
+passed. The first standard Ubuntu job exposed a fake-clock test scheduling race;
+test-only fix `7c8b2bf` is pushed and passed standard Windows and Ubuntu CI:
+https://github.com/CC-Labs-it/ccp-classic/actions/runs/41677176398
 
 Implemented: original recorded bubble pops and effect faces, flash-in-bubble,
 click outros, flash movement/drag/fling/pendulum/shatter, audio-held batches and
@@ -51,8 +54,10 @@ is paced at 1x, so long tracks still need a bounded streaming/spool design. This
 remains an isolated prototype, not production implementation. Intiface button input needs a bounded receive pump and
 advertised feature subscriptions; Classic already uses protocol v4. Its design is
 under ignored `artifacts/parity-source/INTIFACE-INPUT-DESIGN.md`. Multi-monitor
-Bouncing Text currently mirrors local positions rather than crossing the full
-virtual desktop. These are not completion claims. Microphone, OCR and camera/gaze
+Bouncing Text was ported after preview.7: one or two global text objects now cross
+the selected desktop union with mixed-DPI projection and outer-wall rewards.
+Its geometry, motion and native seam-render checks pass; it is not in preview.7.
+The remaining audio/input ports are not completion claims. Microphone, OCR and camera/gaze
 remain outside the retained input scope. Brain Drain is explicitly Windows only.
 
 Original neutral public spiral GIFs were copied, without overwriting other files,
@@ -64,8 +69,9 @@ the sandbox LOCALAPPDATA points to a different profile.
 Agents: local_library owns Remix and the isolated layered-audio investigation;
 roadmap owns video/bubbles/bounce/animated wallpaper review; production_audit owns
 native audio output and Toys. Root owns shared integration, live image selections,
-coordinated builds, source checkpoints and packaging. Production source is frozen
-except for release-check findings. Do not run competing main-solution builds.
+coordinated builds, source checkpoints and packaging. Preview.7 source is frozen
+in its committed checkpoint. The three remaining parity ports are now active in
+the working tree for a later preview. Do not run competing main-solution builds.
 
 ## Scope
 
@@ -75,10 +81,14 @@ continued M2-M8 production work with agents on 2026-11-03; that work is active.
 Source design: owner decisions and mockup dated 2026-11-03 in the CCP handoff.
 CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gate.
 
-Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.6-win-x64-setup.exe`.
-It includes the company/layout correction and CCP effect ports below, built from clean
-`88ce043e9b6c01ba00d13407eaaa405508bf43b2`. All 599 Windows Release tests passed,
+Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.7-win-x64-setup.exe`.
+It includes the integrated parity ports above, built from clean
+`902f32b9fdccbf036f09805d48c23c8dc31605bf`. All 774 Windows Release tests passed,
 including real silent video pacing/caps and offline FFmpeg analysis, with no skips.
+Installer and portable ZIP checksums were verified. Publisher and current license
+both read CC labs Srls. The exact analysis source bundle accompanies the binaries.
+Build/test CI: https://github.com/CC-Labs-it/ccp-classic/actions/runs/41676529793
+Linux native/package CI: https://github.com/CC-Labs-it/ccp-classic/actions/runs/41676725882
 The installer remains unsigned and has not been installed or published by agents.
 Prior playback source PR 79 passed standard CI on both Windows and Ubuntu. Its
 isolated Linux native acceptance passed every stage, including the live video cap.
@@ -321,8 +331,9 @@ desktop feel and real-device review are separate from these automated results.
   bridge/hook setup passed an offscreen probe; an owner-driven desktop session and
   actual audio listening remain manual review gates. No unexpected desktop effects
   or sounds were played during implementation.
-- Production features are integrated. Final Release validation, native Linux CI and
-  installer verification are in progress. Actual device feel, wallpaper behavior on
+- The preview.7 parity checkpoint passed local Release validation, native Linux CI
+  and installer verification. Three remaining ports are listed at the top of this
+  handoff and are not part of preview.7. Actual device feel, wallpaper behavior on
   the owner's desktop and listening remain manual release checks. No real toy
   connections, audible playback or operating-system startup changes were made.
 - LibVLCSharp 3.10.1 supplies the cross-platform recorded-audio backend; NAudio is
@@ -332,7 +343,7 @@ desktop feel and real-device review are separate from these automated results.
 ## Validation
 
 Latest integrated `dotnet test -c Release -m:4 --no-restore --disable-build-servers`:
-Latest fully green integrated checkpoint: 554 tests passed, zero failures/skips,
+Latest fully green integrated Windows checkpoint: 774 tests passed, zero failures/skips,
 including the approved pinned FFmpeg helper and known delayed-media fixtures.
 The suite covers the existing
 48 M0 tests plus M1 scheduling, real starter

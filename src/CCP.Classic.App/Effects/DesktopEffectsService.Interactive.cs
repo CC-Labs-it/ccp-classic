@@ -50,7 +50,7 @@ public sealed partial class DesktopEffectsService
     private void StartInteractive()
     {
         lockPreviewTimer?.Stop(); CloseLock();
-        interactive.Start(); lockEffects.Start(); audioFile = 0;
+        interactive.Start(); ResetBouncingDesktop(); lockEffects.Start(); audioFile = 0;
         RefreshInteractiveLibrary(force: true);
     }
     private void TickInteractive(double elapsed)
@@ -69,6 +69,7 @@ public sealed partial class DesktopEffectsService
         interactive.VideoAvailable = videos.CanTriggerBubble;
         interactive.VideoPlaying = videos.IsPlaying;
         lockEffects.VideoBlocking = videos.IsBlocking;
+        ConfigureBouncingDesktop();
         interactiveFrame = interactive.Step(elapsed); lockFrame = lockEffects.Step(elapsed);
         TickWipe();
         if (lockFrame.LockCard is { } card)

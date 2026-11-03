@@ -137,7 +137,7 @@ Source: `Features/BouncingTextFeatureControl.xaml:91-305`, its `.xaml.cs`,
 | SecondText; BounceAsync; AlwaysOnTop | Two independent text lines and explicit show-over-videos policy are implemented. Each line has separate motion/color/effect state. | Implemented / Roadmap |
 | FxBreathing; FxWobble; FxSpin; FxVelocityTilt; FxSquashStretch; FxCornerBurst | All six original formulas and corner ring are ported, with reduced/gentle gates. Source15DIP near-corner tolerance replaces the old exact-corner substitute. | Implemented / Roadmap |
 | Ordinary wall hits and rewards | Each wall hit emits one haptic and uses the source shared 15 XP, two-second cooldown and 150 XP/minute cap. Corner achievements stay separate. | Implemented / Roadmap + Root |
-| Multi-monitor travel | Classic currently mirrors local normalized positions; source travel crosses the full virtual desktop. | Remaining / Roadmap |
+| Multi-monitor travel | One/two real text instances cross the selected desktop's rectangular union, including gaps and negative origins. Per-host projection preserves physical glyph size across mixed DPI; monitor removal quietly clamps without rewards. Source outer-wall/corner semantics and native seam raster proof are covered. | Implemented / Roadmap; native offscreen proof |
 
 ## Mind Wipe
 

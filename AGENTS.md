@@ -56,6 +56,9 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
 - All UiDispatcher-backed tests share the Avalonia UI collection. RunJobs can
   reenter another queued test; one dispatcher thread alone does not isolate input.
+- Mixed-DPI offscreen proofs use a 96-DPI RenderTargetBitmap and explicit drawing
+  transforms. Avalonia 12.1.2's hidden bitmap DPI can be applied again after PopClip;
+  that bitmap artifact does not represent the compositor's explicit host transform.
 - Worker-built Avalonia scenes must publish immutable brushes. Mutable gradients
   retain the worker dispatcher and fail when the UI renders their opacity masks.
 - Native playback callbacks can finish between worker polls. Sample completion

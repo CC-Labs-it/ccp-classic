@@ -25,12 +25,16 @@ internal static class BouncingTextRenderer
         var shape = Shape(cue.Text, cue.FontFamily, fontSize, color, cue.Outline);
         var text = shape.Text;
         var over = BouncingTextTimeline.Overhang(text.Width, text.Height, cue.ScaleX, cue.ScaleY, cue.Angle);
-        var travelX = Math.Max(0, bounds.Width - text.Width); var travelY = Math.Max(0, bounds.Height - text.Height);
+        var area = cue.DesktopBounds ?? new BouncingTextBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        var travelX = Math.Max(0, area.Width - text.Width); var travelY = Math.Max(0, area.Height - text.Height);
         var x = Math.Clamp(cue.X * travelX, Math.Min(over.X, travelX / 2), travelX - Math.Min(over.X, travelX / 2));
         var y = Math.Clamp(cue.Y * travelY, Math.Min(over.Y, travelY / 2), travelY - Math.Min(over.Y, travelY / 2));
-        var origin = new Point(bounds.X + x, bounds.Y + y);
+        var origin = new Point(area.X + x, area.Y + y);
         var centre = origin + new Vector(text.Width / 2, text.Height / 2);
+        var projection = cue.Projection ?? new BouncingTextProjection(0, 0, 1);
         using (context.PushClip(bounds))
+        using (context.PushTransform(Matrix.CreateScale(projection.Scale, projection.Scale)
+            * Matrix.CreateTranslation(projection.X, projection.Y)))
         using (context.PushRenderOptions(new RenderOptions { RequiresFullOpacityHandling = true }))
         using (context.PushOpacity(Math.Clamp(cue.Opacity, 0, 1)))
         {
@@ -39,7 +43,7 @@ internal static class BouncingTextRenderer
                 var t = cue.BurstSeconds / .55; var scale = .1 + 1.2 * (1 - (1 - t) * (1 - t));
                 using (context.PushOpacity(.9 * (1 - t)))
                     context.DrawEllipse(null, new Pen(new SolidColorBrush(color), 6 * scale),
-                        new Point(bounds.X + cue.BurstCenterX * bounds.Width, bounds.Y + cue.BurstCenterY * bounds.Height),
+                        new Point(area.X + cue.BurstCenterX * area.Width, area.Y + cue.BurstCenterY * area.Height),
                         120 * scale, 120 * scale);
             }
             using (context.PushTransform(Matrix.CreateTranslation(-centre.X, -centre.Y)

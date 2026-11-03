@@ -1,6 +1,6 @@
 namespace CCP.Classic.Core;
 
-// Public CCP BouncingTextService, fe40ea7. Positions are fractions of the measured travel box.
+// Public CCP BouncingTextService, fe40ea7. One measured travel box spans the selected desktop.
 public sealed class BouncingTextTimeline(int seed = 0, BounceMotion? initial = null)
 {
     private static readonly string[] Palette = ["#FF69B4", "#FF1493", "#8A2BE2", "#FF00FF", "#00FFFF",
@@ -8,16 +8,25 @@ public sealed class BouncingTextTimeline(int seed = 0, BounceMotion? initial = n
     private readonly Random random = new(seed);
     private readonly List<Logo> logos = [];
     private double clock;
+    private BouncingTextBounds? desktopBounds, lastBounds;
     public Func<string, string, double, (double Width, double Height)>? MeasureText { get; set; }
     public event Action? CornerHit;
     public event Action? WallHit;
-    public void Reset() { logos.Clear(); clock = 0; }
+    public void Reset() { logos.Clear(); clock = 0; desktopBounds = lastBounds = null; }
+    public void SetDesktopBounds(BouncingTextBounds? bounds)
+    {
+        if (bounds is { IsValid: false }) throw new ArgumentOutOfRangeException(nameof(bounds));
+        desktopBounds = bounds;
+    }
 
     public IReadOnlyList<BouncingTextCue> Step(double dt, double width, double height, double speed, double size,
         double alpha, BouncingTextOptions options, bool gentle, bool reduced)
     {
         dt = double.IsFinite(dt) ? Math.Clamp(dt, 0, .1) : 0;
         width = Math.Max(1, width); height = Math.Max(1, height);
+        var area = desktopBounds ?? new BouncingTextBounds(0, 0, width, height);
+        width = area.Width; height = area.Height;
+        var previousArea = lastBounds; lastBounds = area;
         var wanted = options.SecondText ? 2 : 1;
         while (logos.Count > wanted) logos.RemoveAt(logos.Count - 1);
         while (logos.Count < wanted)
@@ -35,6 +44,7 @@ public sealed class BouncingTextTimeline(int seed = 0, BounceMotion? initial = n
         for (var index = 0; index < logos.Count; index++)
         {
             var logo = logos[index]; var fontSize = 72 * size;
+            var previousWidth = logo.Width; var previousHeight = logo.Height;
             if (logo.Text.Length == 0 || !options.PhrasePool.TryGetValue(logo.Text, out var on) || !on)
                 logo.Text = PickText(options);
             if (logo.Text != logo.MeasuredText || fontSize != logo.FontSize || logo.Font != options.FontFamily)
@@ -46,6 +56,16 @@ public sealed class BouncingTextTimeline(int seed = 0, BounceMotion? initial = n
                 logo.MeasuredText = logo.Text; logo.Font = options.FontFamily; logo.FontSize = fontSize;
             }
             var travelX = Math.Max(0, width - logo.Width); var travelY = Math.Max(0, height - logo.Height);
+            if (previousArea is { } previous && previous != area)
+            {
+                // Preserve desktop position when a screen moves or disappears. Clamping is not a bounce.
+                var over = Overhang(logo.Width, logo.Height, logo.ScaleX, logo.ScaleY, logo.Angle);
+                Rebase(ref logo.X, ref logo.SignX, previous.X + logo.X * Math.Max(0, previous.Width - previousWidth),
+                    area.X, travelX, Math.Min(over.X, travelX / 2));
+                Rebase(ref logo.Y, ref logo.SignY, previous.Y + logo.Y * Math.Max(0, previous.Height - previousHeight),
+                    area.Y, travelY, Math.Min(over.Y, travelY / 2));
+                logo.Burst = -1;
+            }
             if (!reduced)
             {
                 var motionDt = dt * (gentle ? .5 : 1);
@@ -80,7 +100,7 @@ public sealed class BouncingTextTimeline(int seed = 0, BounceMotion? initial = n
             output.Add(new(logo.Text, logo.X, logo.Y, size, alpha) { Colour = logo.Color, FontFamily = options.FontFamily,
                 ScaleX = logo.ScaleX, ScaleY = logo.ScaleY, Angle = logo.Angle, Outline = options.Outline,
                 BurstSeconds = gentle || reduced || !options.CornerBurst ? -1 : logo.Burst,
-                BurstCenterX = logo.BurstX, BurstCenterY = logo.BurstY });
+                BurstCenterX = logo.BurstX, BurstCenterY = logo.BurstY, DesktopBounds = desktopBounds });
         }
         return Array.AsReadOnly(output.ToArray());
     }
@@ -119,6 +139,14 @@ public sealed class BouncingTextTimeline(int seed = 0, BounceMotion? initial = n
         var radians = angle * Math.PI / 180; var cos = Math.Abs(Math.Cos(radians)); var sin = Math.Abs(Math.Sin(radians));
         return (Math.Max(0, (width * sx * cos + height * sy * sin - width) / 2),
             Math.Max(0, (width * sx * sin + height * sy * cos - height) / 2));
+    }
+    private static void Rebase(ref double fraction, ref int sign, double position, double origin, double travel, double margin)
+    {
+        if (travel <= 0) { fraction = .5; return; }
+        var pos = position - origin;
+        if (pos <= margin) { pos = margin; sign = 1; }
+        else if (pos >= travel - margin) { pos = travel - margin; sign = -1; }
+        fraction = Math.Clamp(pos / travel, 0, 1);
     }
     private static bool Advance(ref double fraction, ref int sign, double velocity, double dt, double travel, double margin)
     {

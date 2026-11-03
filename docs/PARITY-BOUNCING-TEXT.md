@@ -20,7 +20,7 @@ The source's motion formulas are retained: 180-300 DIP/sec times speed/10,
 .4 corner pop, 550 ms expanding ring with quadratic ease out, 15 DIP corner
 tolerance, ten-color random palette, twelve-step rainbow and 10% phrase
 change on a wall bounce. Text measurement uses the selected native font;
-transformed overhang keeps glyphs within their host. The second line has its
+transformed overhang keeps glyphs within the outer desktop bounds. The second line has its
 own position, phase, velocity, color and timers. No text is logged.
 
 Classic uses its existing bounded shared effects host rather than source WPF
@@ -30,9 +30,32 @@ freezes spin, omits corner flashes and keeps colors steady on wall hits.
 Panic clears both lines and all transient transforms. Video pause uses the
 existing playback state and the explicit display-over-videos option.
 
+Multi-monitor travel retains `CalculateScreenBounds` at source lines 344-357 and
+`UpdatePosition` at 1031-1064: exactly one or two global text instances move inside
+the rectangular union of the selected displays. Each host subtracts its desktop
+origin and clips the same glyphs; it never clamps a copy into its own monitor.
+Monitor seams, vertical offsets and gaps do not create walls or rewards. Text can
+briefly be invisible while crossing a gap, as in the source. The same rules apply
+to the global corner burst center.
+
+Classic keeps one reference DPI scale per session and projects physical desktop
+coordinates into each host's local DIPs. This preserves glyph size and position
+at a mixed-DPI seam, including negative screen origins. Display changes preserve
+the current global position, quietly clamp and redirect into the new outer bounds,
+and cancel an obsolete corner ring without emitting a bounce. The opaque fallback
+uses its own client rectangle. Extra spiral or filter hosts outside the selected
+displays receive no bouncing text. Panic clears global poses along with the hosts.
+
+`BouncingDesktopTests` covers geometry, gap traversal, topology changes and motion
+policies. `BouncingDesktopRendererTests` renders a real outlined Fredoka glyph
+across a 100%/150% seam and compares its combined raster with one full desktop
+render. `bouncing-text-desktop-seam.png` is the native offscreen visual proof.
+Its 96-DPI bitmap uses explicit host scaling, matching compositor transforms;
+Avalonia 12.1.2's bitmap-only hidden DPI path can reapply DPI after `PopClip`.
+
 Ordinary wall hits and corner hits are separate events. Every wall bounce
 routes one source haptic, while corner achievements remain independent. The
-source15XP reward shares a2second cooldown and150XP-per-minute cap across both
+source 15 XP reward shares a 2 second cooldown and 150 XP per minute cap across both
 lines. Its monotonic limiter survives session restarts and does not award twice
 for a corner. No haptic is emitted merely because text becomes visible.
 

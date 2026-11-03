@@ -18,6 +18,8 @@ public sealed record BouncingTextCue(string Text, double X, double Y, double Siz
     public double BurstSeconds { get; init; } = -1;
     public double BurstCenterX { get; init; }
     public double BurstCenterY { get; init; }
+    public BouncingTextBounds? DesktopBounds { get; init; }
+    public BouncingTextProjection? Projection { get; init; }
 }
 public sealed record BounceMotion(double X, double Y, double VelocityX, double VelocityY);
 public enum InteractiveEffectEventKind { BubblePopped, CornerHit, LockCompleted, WipeCompleted, WallHit }
@@ -49,6 +51,7 @@ public sealed class InteractiveEffectsTimeline(ClassicSettings settings, int see
     public bool VideoPlaying { get; set; }
     public Func<string, string, double, (double Width, double Height)>? BounceTextMeasurer
     { get => bounceMotion.MeasureText; set => bounceMotion.MeasureText = value; }
+    public void SetBouncingDesktop(BouncingTextBounds? bounds) => bounceMotion.SetDesktopBounds(bounds);
     public bool IsRunning { get; private set; }
     public event Action<InteractiveEffectEvent>? EventOccurred;
 

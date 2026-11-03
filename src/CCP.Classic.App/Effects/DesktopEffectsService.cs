@@ -158,11 +158,11 @@ public sealed partial class DesktopEffectsService : IDisposable
                     fallback.DragMoved += point => timeline.MoveDrag(point.X, point.Y);
                     fallback.DragFinished += timeline.EndDrag;
                 }
-                fallback.UpdateFrame(ApplySpiralMedia(FrameForWindow(frame, fallback), null));
+                fallback.UpdateFrame(ProjectBouncingText(ApplySpiralMedia(FrameForWindow(frame, fallback), null), fallback));
             }
             foreach (var window in windows.Hosts)
             {
-                var windowFrame = ApplySpiralMedia(FrameForWindow(frame, window), owner.Screens.ScreenFromWindow(window));
+                var windowFrame = ProjectBouncingText(ApplySpiralMedia(FrameForWindow(frame, window), owner.Screens.ScreenFromWindow(window)), window);
                 var monitorFlashInput = settings.Effects["flash"].Values["dismiss"] != 0
                     ? windowFrame.Flashes.Where(f => f.Exit is null && f.Shatter is null && f.Opacity > .01).Select(f => f.InputBounds) : [];
                 var input = monitorFlashInput.Concat(windowFrame.Interactive.Bubbles.Where(b => b.CanPop)
