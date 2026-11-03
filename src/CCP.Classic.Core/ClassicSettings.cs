@@ -39,6 +39,7 @@ public sealed class ClassicSettings
     public VideoOptions Video { get; set; } = new();
     public SpiralOptions Spiral { get; set; } = new();
     public AudioOptions Audio { get; set; } = new();
+    public LayeredAudioOptions LayeredAudio { get; set; } = new();
     public CompanionPlacementOptions CompanionPlacement { get; set; } = new();
     public WallpaperOptions Wallpaper { get; set; } = new();
     public bool FlashAvoidCenter { get; set; }
@@ -66,7 +67,7 @@ public sealed class ClassicSettings
         BouncingText = defaults.BouncingText; Subliminal = defaults.Subliminal;
         PinkFilter = defaults.PinkFilter; MindWipe = defaults.MindWipe; Keywords = defaults.Keywords;
         Bubbles = defaults.Bubbles;
-        Video = defaults.Video; Spiral = defaults.Spiral; Audio = defaults.Audio;
+        Video = defaults.Video; Spiral = defaults.Spiral; Audio = defaults.Audio; LayeredAudio = defaults.LayeredAudio;
         CompanionPlacement = defaults.CompanionPlacement;
         Wallpaper = defaults.Wallpaper;
         Flash = defaults.Flash; FlashAvoidCenter = defaults.FlashAvoidCenter; FlashCenterExclusionPercent = defaults.FlashCenterExclusionPercent;
@@ -92,6 +93,7 @@ public sealed class ClassicSettings
         Video ??= new(); Video.Normalize();
         Spiral ??= new(); Spiral.Normalize();
         Audio ??= new(); Audio.Normalize();
+        LayeredAudio ??= new(); LayeredAudio.Normalize();
         CompanionPlacement ??= new(); CompanionPlacement.Normalize();
         Wallpaper ??= new(); Wallpaper.Normalize();
         Flash ??= new(); Flash.Normalize(); FlashCenterExclusionPercent = Math.Clamp(FlashCenterExclusionPercent, 5, 60);
