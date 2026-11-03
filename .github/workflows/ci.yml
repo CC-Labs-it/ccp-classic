@@ -15,6 +15,7 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_NOLOGO: 1
       AVALONIA_TELEMETRY_OPTOUT: 1
+      CCP_CLASSIC_PROOF_DIR: ${{ github.workspace }}/artifacts/proof
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -26,3 +27,8 @@ jobs:
         with:
           name: tests-${{ matrix.os }}
           path: '**/TestResults/*.trx'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: window-previews-${{ matrix.os }}
+          path: artifacts/proof/*.png

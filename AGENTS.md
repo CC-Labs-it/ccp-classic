@@ -22,3 +22,5 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.
 - Keep changes around 600 lines per PR; use a buildable stack. Test Release.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
+- All UiDispatcher-backed tests share the Avalonia UI collection. RunJobs can
+  reenter another queued test; one dispatcher thread alone does not isolate input.
