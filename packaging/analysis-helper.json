@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "runtime": "win-x64",
+  "purpose": "Offline PCM and RMS analysis only",
+  "version": "n9.0.2-39-g7adfbe40dc-20261031",
+  "license": "LGPL-3.0-or-later",
+  "release": "autobuild-2026-10-31-12-59",
+  "releaseUrl": "https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-10-31-12-59",
+  "buildCommit": "5031c6f1082414e53688d39e521849905071070d",
+  "sourceCommit": "7adfbe40dcde598f93a6963d2f7b22cd75202ccc",
+  "archive": {
+    "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-31-12-59/ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-shared-9.0.zip",
+    "size": 76576818,
+    "sha256": "e907b01fa4783913151237e37df2a10fa97d99a1598a021bf59d4ae62ffed4c0",
+    "root": "ffmpeg-n9.0.2-39-g7adfbe40dc-win64-lgpl-shared-9.0"
+  },
+  "files": [
+    { "name": "ffmpeg.exe", "size": 551424, "sha256": "ac68fc6b9c30b7378b54afccc7e9eff84b318ba1e876d9ab85c8b8cc1dd7e4ea" },
+    { "name": "avcodec-63.dll", "size": 91810816, "sha256": "c20d1a5b282a83b5bc586b65b23cf4837d83c2caa3b4dd4863ede2dd0f1858b5" },
+    { "name": "avdevice-63.dll", "size": 5008384, "sha256": "a806e0c109646c3dacdfadbf2a9bb33b1e8e4fa8b1d49b6e27c025e27f12ee60" },
+    { "name": "avfilter-12.dll", "size": 31876096, "sha256": "a56c3f9b6becf4809ee63f85fe1120bbbece56dd2ad700cf2403f8c36499ed4a" },
+    { "name": "avformat-63.dll", "size": 19888128, "sha256": "7c13073a52f7ad76cfc1c7e76d782e89d88c1155cf2500c3320d034b507605f6" },
+    { "name": "avutil-61.dll", "size": 3025408, "sha256": "cb50cdee16a5031090330997b51c016fe7788487150cd07fa20ddbda4d108d09" },
+    { "name": "swresample-7.dll", "size": 747008, "sha256": "12b907ddfff765e10c3b7da1a7985513dc9282c08953259f337f952f7b8a9f2a" },
+    { "name": "swscale-10.dll", "size": 2343936, "sha256": "40c20c66f9bdf08a79453056bd40293ff234927e8c4a1bae5fafdcf97da3be42" }
+  ],
+  "sources": [
+    { "name": "FFmpeg", "file": "ffmpeg-source.tar.gz", "url": "https://github.com/FFmpeg/FFmpeg/archive/7adfbe40dcde598f93a6963d2f7b22cd75202ccc.tar.gz", "size": 17331463, "sha256": "4babda050dcfccb1194dd2a9e75b5e5ec1aa33b3e99d4f6a7106b6337b6b4a0c" },
+    { "name": "BtbN build recipes", "file": "build-recipes.tar.gz", "url": "https://github.com/BtbN/FFmpeg-Builds/archive/5031c6f1082414e53688d39e521849905071070d.tar.gz", "size": 116910, "sha256": "3d82bbb1dd436116034bb4d945245e5550dff0d89db0094e9af90382527c2c17" },
+    { "name": "BtbN complete dependency sources, vendored crates and notices", "file": "btbn-download-cache.zip", "url": "https://nightly.link/BtbN/FFmpeg-Builds/actions/runs/41199749965/download-cache.zip", "officialArtifactUrl": "https://api.github.com/repos/BtbN/FFmpeg-Builds/actions/artifacts/13042311561/zip", "workflowRun": 41199749965, "expiresAt": "2026-11-14T12:08:09Z", "size": 2240577198, "sha256": "3de9f854a07aef24a0029b206e9ef43d674cbd957249575342e9a728d59c2c4d" }
+  ]
+}
