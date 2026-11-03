@@ -15,6 +15,8 @@ public sealed class PresetPanel : UserControl
     private readonly LocalizationService text;
     private readonly PresetStore store;
     private readonly Action changed;
+    private readonly PanelArtworkClock artClock;
+    private readonly Dictionary<string, Border> presetCards = [];
     private readonly StackPanel body = new() { Spacing = 14 };
     private readonly StackPanel custom = new() { Spacing = 8 };
     private readonly List<ToggleButton> durations = [];
@@ -27,16 +29,25 @@ public sealed class PresetPanel : UserControl
     public PresetPanel(ClassicSettings settings, LocalizationService text, PresetStore store, Action changed)
     {
         this.settings = settings; this.text = text; this.store = store; this.changed = changed;
+        artClock = new(this, settings);
         Content = body;
         var builtIns = new UniformGrid { Columns = 3 };
         foreach (var preset in PresetStore.BuiltIns)
         {
             var card = new StackPanel { Spacing = 10 };
-            card.Children.Add(Title(text[preset.Name]));
+            var (asset, accent) = preset.Name switch { "Gentle" => ("hero_drift.png", "#69D8EA"),
+                "Deep" => ("hero_deep.png", "#CC8DFF"), _ => ("hero_default.png", "#FF69B4") };
+            card.Children.Add(artClock.Add(new("Presets/" + asset, accent) { Height = 138, Name = "PresetArt_" + preset.Id }));
+            card.Children.Add(new TextBlock { Text = text[preset.Name], FontSize = 21, FontWeight = FontWeight.Bold,
+                Foreground = new SolidColorBrush(Color.Parse(accent)), Margin = new(2, 0) });
             card.Children.Add(new TextBlock { Text = text[preset.Name + "Summary"], FontSize = 12,
-                TextWrapping = TextWrapping.Wrap, MinHeight = 90 });
-            card.Children.Add(Button("Load", "PresetLoad_" + preset.Id, () => Load(preset)));
-            builtIns.Children.Add(Card(card));
+                Foreground = new SolidColorBrush(Color.Parse("#BDB9D5")), TextWrapping = TextWrapping.Wrap, MinHeight = 58, Margin = new(2, 0) });
+            var load = Button("Load", "PresetLoad_" + preset.Id, () => Load(preset));
+            load.HorizontalAlignment = HorizontalAlignment.Stretch; load.HorizontalContentAlignment = HorizontalAlignment.Center;
+            card.Children.Add(load);
+            var surface = Card(card); surface.Name = "PresetCard_" + preset.Id; surface.Classes.Add("preset-art-card");
+            presetCards[preset.Name] = surface; VisualPolish.AttachHover(surface, settings, 1.015);
+            builtIns.Children.Add(surface);
         }
         body.Children.Add(builtIns);
         body.Children.Add(Duration());
@@ -49,7 +60,7 @@ public sealed class PresetPanel : UserControl
         var save = Button("Save", "PresetSave", Save); Grid.SetColumn(save, 1); create.Children.Add(save);
         body.Children.Add(create); body.Children.Add(custom);
         status.Classes.Add("muted"); body.Children.Add(status);
-        RefreshCustom();
+        RefreshCustom(); UpdateSelection();
     }
 
     private Control Duration()
@@ -111,7 +122,7 @@ public sealed class PresetPanel : UserControl
     {
         try
         {
-            PresetStore.Apply(preset, settings); UpdateDurations(); changed();
+            PresetStore.Apply(preset, settings); UpdateDurations(); UpdateSelection(); changed();
         }
         catch (Exception e) when (e is ArgumentException or InvalidOperationException) { Report("SaveFailed"); }
     }
@@ -125,7 +136,7 @@ public sealed class PresetPanel : UserControl
             if (existing is not null) preset.Id = existing.Id;
             var result = store.Save(preset);
             settings.Preset = result.Name;
-            name.Text = ""; RefreshCustom(); changed(); Report("Saved");
+            name.Text = ""; RefreshCustom(); UpdateSelection(); changed(); Report("Saved");
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         { Report("SaveFailed"); }
@@ -161,6 +172,17 @@ public sealed class PresetPanel : UserControl
         StatusKey = key; status.Text = text[key]; StatusChanged?.Invoke(key);
     }
 
+    private void UpdateSelection()
+    {
+        foreach (var (preset, card) in presetCards)
+        {
+            var selected = string.Equals(preset, settings.Preset, StringComparison.Ordinal);
+            card.Classes.Set("selected", selected);
+            card.BorderBrush = new SolidColorBrush(Color.Parse(selected ? "#FF82CA" : "#443C61"));
+            card.BorderThickness = new Thickness(selected ? 2 : 1);
+        }
+    }
+
     private Button Button(string key, string controlName, Action action)
     {
         var button = new Button { Content = text[key], Name = controlName };
@@ -171,7 +193,7 @@ public sealed class PresetPanel : UserControl
     {
         var card = new Border { Child = child, Padding = new Thickness(12), Margin = new Thickness(4),
             VerticalAlignment = VerticalAlignment.Top };
-        card.Classes.Add("card"); return card;
+        card.Classes.Add("card"); card.Classes.Add("art-card"); return card;
     }
 
     private static TextBlock Title(string value)
