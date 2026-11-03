@@ -27,8 +27,10 @@ public static class AudioOutputSelection
     {
         // VLC3 stores module-specific choices for a future output. DirectSound's configuration prefix is directx.
         if (windows) set("directx", id);
-        // An empty string restores the default. VLC treats a null device as no request at all.
-        set(null, id);
+        // On Windows an empty string restores the default. VLC treats a null device as no request at all.
+        // VLC3's PulseAudio output passes the device id as a sink name, and "" is an invalid sink, so the
+        // stream is refused and playback falls through to a silent ALSA output. Linux leaves the default alone.
+        if (windows || id.Length > 0) set(null, id);
     }
     public static Task<IReadOnlyList<LocalAudioOutput>> EnumerateAsync(CancellationToken token = default) => Task.Run<IReadOnlyList<LocalAudioOutput>>(() =>
     {

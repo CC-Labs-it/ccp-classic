@@ -14,8 +14,11 @@ public sealed class DirectSoundOutputTests
         AudioOutputSelection.SetNativeDevice(true, "", (module, id) => calls.Add((module, id)));
         Assert.Equal(new (string?, string)[] { ("directx", "{B6EC7D2E-166D-4A78-A2B8-3E43B2DBA612}"),
             (null, "{B6EC7D2E-166D-4A78-A2B8-3E43B2DBA612}"), ("directx", ""), (null, "") }, calls);
+        // PulseAudio refuses "" as a sink name and the stream ends up silent, so Linux never sends it.
         calls.Clear(); AudioOutputSelection.SetNativeDevice(false, "", (module, id) => calls.Add((module, id)));
-        Assert.Equal((null, ""), Assert.Single(calls));
+        Assert.Empty(calls);
+        AudioOutputSelection.SetNativeDevice(false, "alsa_output.pci-0000_00_1f.3.analog-stereo", (module, id) => calls.Add((module, id)));
+        Assert.Equal((null, "alsa_output.pci-0000_00_1f.3.analog-stereo"), Assert.Single(calls));
     }
     [Fact]
     public void RealGuidIdentifiersMatchVlcAndUnicodeNamesArePreservedWithoutDefaultDuplicates()
