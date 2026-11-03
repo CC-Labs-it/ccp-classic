@@ -1,0 +1,95 @@
+name: Package preview
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Preview package version
+        default: 1.0.0-preview.1
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'packaging/**'
+      - 'Directory.Build.*'
+      - 'global.json'
+      - '.gitattributes'
+      - '.github/workflows/package.yml'
+      - 'docs/INSTALL.md'
+      - 'THIRD-PARTY-NOTICES.md'
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+          - os: ubuntu-24.04
+            runtime: linux-x64
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      AVALONIA_TELEMETRY_OPTOUT: 1
+      CCP_CLASSIC_PROOF_DIR: ${{ github.workspace }}/artifacts/proof
+      PACKAGE_VERSION: ${{ inputs.version || '1.0.0-preview.1' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libx11-6 libice6 libsm6 libfontconfig1 libxfixes3 libxrandr2 libxcursor1 libxi6 \
+            libgl1 libdbus-1-3 libicu74 libssl3t64 libvlc5 vlc-plugin-base vlc-plugin-video-output \
+            fonts-noto-core fonts-noto-cjk ffmpeg xvfb xauth picom pulseaudio pulseaudio-utils libgl1-mesa-dri libxtst6 libxext6
+      - name: Release tests
+        run: dotnet test -c Release -m:4 --logger "trx;LogFileName=package-tests.trx"
+      - name: Isolated Linux desktop and media probe
+        if: runner.os == 'Linux'
+        run: bash ./packaging/native-linux-probe.sh
+      - uses: actions/cache@v4
+        if: runner.os == 'Windows'
+        with:
+          path: |
+            artifacts/analysis-helper-cache/ffmpeg-win64-lgpl-shared.zip
+            artifacts/analysis-helper-cache/ffmpeg-source.tar.gz
+            artifacts/analysis-helper-cache/build-recipes.tar.gz
+            artifacts/analysis-helper-cache/btbn-download-cache.zip
+          key: analysis-helper-${{ hashFiles('packaging/analysis-helper.json') }}
+      - name: Build self-contained package and installer
+        shell: pwsh
+        run: |
+          $classicPackageArguments = @{ Runtime = '${{ matrix.runtime }}'; Version = $env:PACKAGE_VERSION; SkipTests = $true }
+          if ($IsWindows) { $classicPackageArguments.RequireInstaller = $true }
+          ./packaging/package.ps1 @classicPackageArguments
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ccp-classic-${{ matrix.runtime }}-${{ env.PACKAGE_VERSION }}
+          path: artifacts/packages/*
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-validation-${{ matrix.runtime }}
+          path: |
+            **/TestResults/package-tests.trx
+            artifacts/proof/*.png
+            artifacts/native-linux-probe/*.jsonl
+            artifacts/native-linux-probe/*.log
+          retention-days: 14
