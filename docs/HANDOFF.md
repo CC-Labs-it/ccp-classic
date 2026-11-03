@@ -24,7 +24,8 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 - All ten embedded language files, exact key parity, UTF-8 without BOM, neutral
   chrome checks. No account, browser, updater, telemetry or networking API use.
 - Original public CCP artwork and layered logo renderer with source provenance.
-  The gendered bouncing-text image is omitted; that tile uses its native glyph.
+  The owner selected the original Bouncing Text artwork unchanged on 2026-11-03;
+  it replaces the initial native glyph placeholder.
 - Windows and Linux build/test CI. Release tests cover real pointer/key routing,
   owned windows, neutral language resources, motion gates and network boundaries.
 
@@ -75,5 +76,3 @@ and a verified CCP Default starter pack. Preserve the dashboard and owned editor
 1. D12: repository name `ccp-classic` is provisional until 2026-11-10.
 2. Before M5, review the original 27 achievement conditions and approve neutral names.
 3. Before M4, approve the companion's neutral bark and trigger phrase list.
-4. Approve neutral Bouncing Text artwork if that tile should use a full image.
-   The existing native glyph keeps the current build neutral.

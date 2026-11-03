@@ -30,14 +30,15 @@ No fallback logo or regenerated artwork was substituted.
 | `audio.png` | `ConditioningControlPanel/Resources/features/audio_whispers.png` | `ffffeee0364e522c1d5756fe509166a9222870a5e0981ad199e5d1804f88d599` | 148175 | Git blob |
 | `wall.png` | `ConditioningControlPanel/Resources/features/wallpaper.png` | `9a9b9893f9ed404250e56e8c8fc6360ba1ea78debe70fd170fcaedec1301fdf3` | 692061 | Git blob |
 | `logo.jpg` | `ConditioningControlPanel/Resources/branding/ccp-logo.jpg` | `2a517e3e79903301bed1c0e2dcdc0809b55f7b8f3a9e3b28661220bc8cd2be2a` | 583725 | Git blob |
+| `bounce.png` | `ConditioningControlPanel/Resources/features/bouncing_text.png` | `f34951ab7e7bae85fb6374a6fcf357393c30be93e24e23865ed34d30bbaefd91` | 191893 | Verified source checkout matches Git blob |
 
 ## Visual review
 
-All 13 candidate images were inspected. Twelve ship unchanged: eleven tiles and
+All 13 candidate images were inspected. Thirteen ship unchanged: twelve tiles and
 the current branding logo. No source art was regenerated.
 
-- The source bouncing-text artwork contains gendered wording. It is omitted from
-  this repository. The tile uses its existing native vector glyph pending neutral art.
+- The owner explicitly selected CCP's original Bouncing Text artwork on 2026-11-03.
+  It ships unchanged, including its baked-in wording, replacing the vector placeholder.
 - `lock.png` contains "I AM A GOOD DOLL". It has no persona name, but its original
   doll wording is retained visibly in the image.
 - Other image text is effect or conditioning wording: WATCH, OBEY, FOCUS, LISTEN,
