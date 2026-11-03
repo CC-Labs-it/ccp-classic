@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)][string]$Payload,
     [Parameter(Mandatory)][string]$SourceOutput,
-    [Parameter(Mandatory)][string]$Version
+    [Parameter(Mandatory)][string]$Version,
+    [switch]$AllowPendingSources
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -19,7 +20,7 @@ function Test-PinnedFile($Source, [string]$Path) {
 function Save-LargeArchive($Source, [string]$Target) {
     $parts = Join-Path $cache ('source-' + $Source.sha256.Substring(0, 12))
     New-Item -ItemType Directory -Path $parts -Force | Out-Null
-    $length = [long]$Source.size; $chunk = [long](64 * 1024 * 1024); $url = $Source.url
+    $length = [long]$Source.size; $chunk = [long](4 * 1024 * 1024); $url = $Source.url
     $count = [int][Math]::Ceiling($length / [double]$chunk)
     $completed = 0..($count - 1) | ForEach-Object -Parallel {
         $index = $_; $start = [long]$index * $using:chunk; $end = [Math]::Min($using:length - 1, $start + $using:chunk - 1)
@@ -47,6 +48,7 @@ function Get-PinnedFile($Source, [string]$Name) {
     $verified = Join-Path $cache ([IO.Path]::GetFileNameWithoutExtension($Name) + '.verified' + [IO.Path]::GetExtension($Name))
     if (Test-PinnedFile $Source $verified) { return $verified }
     if ($Source.size -gt 536870912) {
+        if ($AllowPendingSources) { return $null }
         Save-LargeArchive $Source $target
     } else { Invoke-WebRequest -Uri $Source.url -OutFile $target -TimeoutSec 120 }
     if (!(Test-PinnedFile $Source $target)) { throw "Analysis archive checksum differs: $Name" }
@@ -84,6 +86,7 @@ if ($LASTEXITCODE -ne 0 -or ($configuration -match '--enable-gpl|--enable-nonfre
 $configuration | Set-Content -LiteralPath (Join-Path $notices 'buildconf.txt') -Encoding utf8NoBOM
 $sourceName = "CCP.Classic-$Version-analysis-sources.zip"
 $sourceArchive = Join-Path $SourceOutput $sourceName
+$complete = @($sources | Where-Object { !$_.path }).Count -eq 0
 $readme = @"
 FFmpeg analysis helper corresponding source and notices
 
@@ -106,6 +109,14 @@ Classic imposes no restriction on modification or reverse engineering for that p
 Playback remains LibVLC. FFmpeg is used only to analyze owner-selected local media.
 "@
 $readme | Set-Content -LiteralPath (Join-Path $notices 'SOURCE-README.txt') -Encoding utf8NoBOM
+if (!$complete) {
+    $pending = 'Owner local review only. Corresponding dependency source archive is pending. External distribution is blocked.'
+    $pending | Set-Content -LiteralPath (Join-Path $notices 'SOURCE-PENDING.txt') -Encoding utf8NoBOM
+    @{ sourceArtifact = $sourceName; sourceBundleComplete = $false; externalDistributionBlocked = $true;
+        runtimeBytes = ($specification.files | Measure-Object size -Sum).Sum } |
+        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $notices 'package-evidence.json') -Encoding utf8NoBOM
+    Write-Output ([pscustomobject]@{ sourceArchive = $null; sourceBundleComplete = $false }); return
+}
 # ZipArchive supports ZIP64, including the source-cache member larger than 2 GiB.
 $stream = [IO.File]::Create($sourceArchive)
 $bundle = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
@@ -117,7 +128,8 @@ try {
         [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($bundle, $file.FullName, $file.Name, [IO.Compression.CompressionLevel]::NoCompression) | Out-Null
     }
 } finally { $bundle.Dispose(); $stream.Dispose() }
-$proof = @{ sourceArtifact = $sourceName; sourceArchiveSha256 = (Get-FileHash -LiteralPath $sourceArchive -Algorithm SHA256).Hash.ToLowerInvariant();
+$proof = @{ sourceArtifact = $sourceName; sourceBundleComplete = $true; externalDistributionBlocked = $false;
+    sourceArchiveSha256 = (Get-FileHash -LiteralPath $sourceArchive -Algorithm SHA256).Hash.ToLowerInvariant();
     sourceArchiveBytes = (Get-Item -LiteralPath $sourceArchive).Length; runtimeBytes = ($specification.files | Measure-Object size -Sum).Sum }
 $proof | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $notices 'package-evidence.json') -Encoding utf8NoBOM
-Write-Output $sourceArchive
+Write-Output ([pscustomobject]@{ sourceArchive = $sourceArchive; sourceBundleComplete = $true })

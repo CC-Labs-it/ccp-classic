@@ -26,6 +26,20 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 - The verified original companion tube and five approved recorded barks are wired.
   Timed phrases and opted-in keyword capture feed bounded native effect triggers;
   the Wayland fallback accepts text only inside Classic. Panic clears every queue.
+- M6: explicit literal-loopback Intiface spec4 and Lovense connections, six bounded
+  patterns, event controls, global gain and shared Stop. Audio sync samples real
+  LibVLC source positions and effective gain every 100 ms. An expired sample goes
+  to zero after 300 ms; decoding failures never substitute a synthetic signal.
+- M7: native Loom editor, twelve saved spirals, live custom playback and preset
+  selection. One shared worker supplies bounded frames to all selected monitors;
+  reduced motion freezes the pose and Gentle visuals reduce animation and glow.
+- M7: Windows wallpaper recovery journal, opaque transition covers, static restore,
+  muted 1x dynamic playback and covered/battery/motion gates. Recovery and cancellation
+  are tested with fake native backends. No real wallpaper changes were made.
+- M8: explicit startup registration, recoverable hidden launch and one-shot AutoRun.
+  Closing the owner stops the session and awaits bounded toy/wallpaper cleanup.
+  Unsupported overlays fall back to a normal owned window. Isolated Linux probes
+  cover X11 input, transparency, silent playback, analysis and compositor refusal.
 
 - Current CCP image mosaic with twelve perimeter tiles and the native animated logo
   in its central 2x2 area. The owner replaced the flat card mockup on 2026-11-03.
@@ -39,7 +53,8 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
   Inactive, hidden and minimized surfaces do not render animation frames.
 - Local atomic settings saves, export, recovery notice, normalized panic bindings.
 - All ten embedded language files, exact key parity, UTF-8 without BOM, neutral
-  chrome checks. No account, browser, updater, telemetry or networking API use.
+  chrome checks. No account, browser, updater, telemetry or external networking.
+  Literal-loopback toy providers are the only runtime networking boundary.
 - Original public CCP artwork and layered logo renderer with source provenance.
   The owner selected the original Bouncing Text artwork unchanged on 2026-11-03;
   it replaces the initial native glyph placeholder.
@@ -77,10 +92,10 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
   bridge/hook setup passed an offscreen probe; an owner-driven desktop session and
   actual audio listening remain manual review gates. No unexpected desktop effects
   or sounds were played during implementation.
-- Final integration and validation of haptics/audio sync, native Loom, wallpaper,
-  startup and Linux native fallback/probes. Their foundations and native controls
-  are implemented in the continuing small stack; production readiness is not claimed.
-  Their unimplemented controls are disabled with a localized explanation.
+- Production features are integrated. Final Release validation, native Linux CI and
+  installer verification are in progress. Actual device feel, wallpaper behavior on
+  the owner's desktop and listening remain manual release checks. No real toy
+  connections, audible playback or operating-system startup changes were made.
 - LibVLCSharp 3.10.1 supplies the cross-platform recorded-audio backend; NAudio is
   not required by this implementation. Linux needs LibVLC plus audio/codec plugins.
   Windows ships 3.0.24 natives. Missing audio reports status while visuals continue.
@@ -88,9 +103,9 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 ## Validation
 
 Latest integrated `dotnet test -c Release -m:4 --no-restore --disable-build-servers`:
-Latest fully green integrated checkpoint: 442 tests passed, zero failures/skips.
-Subsequent suppression regressions pass 26 focused tests; the full suite is being
-rerun as the remaining integrations land. The suite covers the existing
+Latest fully green integrated checkpoint: 554 tests passed, zero failures/skips,
+including the approved pinned FFmpeg helper and known delayed-media fixtures.
+The suite covers the existing
 48 M0 tests plus M1 scheduling, real starter
 hashes, native drawing pixels, media cancellation, input mappings/rebinding,
 native/local event ordering and a composed first-playable frame with no stop ghosts.
@@ -102,9 +117,10 @@ global Esc listener availability and clean disposal without audio or synthetic k
 Muted native probes decoded exact 320 x 180 video frames at rate 1 and verified
 WAV/MP3 completion durations, panic cancellation and cleanup without sound/windows.
 Production PRs #19-#35 passed Windows and Linux CI. New slices continue the linear stack.
-An unsigned preview Windows ZIP and Inno installer passed a packaging smoke check;
-the manifest records dirty source at 7a78390. Those are intermediate artifacts and
-must be rebuilt from the final validated source before delivery.
+The current Windows preview.2 ZIP and Inno installer are being rebuilt from the
+554-test validated source. LocalReview packages explicitly record whether the
+analysis source archive is complete and block external redistribution while it is
+pending. Earlier dirty-source preview.1 artifacts are intermediate, not release builds.
 The source CCP, server and port branches were not modified. Each change is kept
 under roughly 600 changed text lines in a linear review stack.
 
@@ -131,7 +147,7 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 
 ### Conversation checkpoint, 2026-11-03
 
-- Current integration branch: `codex/production-24-live-policy-review`. The original
+- Current integration branch: `codex/production-45-preview-packages`. The original
   tube, native keywords and companion runtime are committed, followed by native
   Loom model/renderer/translations, timed preset storage and owner-exit fixes.
 - Review fixed app exit under NoPanic/strict children using OwnerWindowOnly, exact

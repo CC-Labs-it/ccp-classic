@@ -35,6 +35,8 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
 - Owner approval 2026-11-03: bundle offline FFmpeg for PCM/RMS analysis only.
   Playback remains LibVLC. Restrict helper inputs to local files/pipes, cap CPU
   use and stop analysis if total system RAM exceeds the owner's 75% ceiling.
+  Retain FFmpeg -copyts without -start_at_zero. LibVLC source time preserves
+  common leading gaps; do not normalize envelopes using ffprobe duration.
 - Owner approval 2026-11-03: Companion barks are Breathe, Relax, Focus, Listen,
   Deeper, using the approved starter recordings. Relax triggers a flash, Focus
   a whisper, Deeper a spiral pulse. The 27 neutral badge names and four legacy

@@ -19,8 +19,16 @@ Run `git lfs install` before cloning, or `git lfs pull` after cloning, to obtain
 the bundled neutral recordings. Linux audio needs the system LibVLC runtime and
 its audio/codec plugins. Windows includes its native runtime.
 
-M1 adds Flash Images, Subliminals with optional recorded whispers, Spiral, Pink
-Filter and Audio. Press Start to use the bundled CCP Default starter media.
-Panic listens globally on Windows and local X11. Wayland keeps in-app panic;
-the panel reports when global panic or desktop transparency is unavailable.
-See [the handoff](docs/HANDOFF.md) for the review stack and current limitations.
+Press Start to use the bundled neutral starter media. Local image and video
+libraries, recorded whispers, bubbles, bouncing text, lock cards, Mind Wipe,
+Brain Drain and the original companion are included. Native Loom creates saved
+custom spirals. Presets, timed changes, progress and achievements stay offline.
+
+Toys connects only after an explicit request to a local Intiface or Lovense
+provider. Optional audio sync uses an offline FFmpeg analysis helper; playback
+uses LibVLC. Windows also supports recoverable static and dynamic wallpaper.
+
+Panic listens globally on Windows and local X11. Wayland keeps in-app panic and
+uses a normal owned effect window when desktop overlays are unavailable.
+See [installation](docs/INSTALL.md) for dependencies and unsigned preview builds,
+and [the handoff](docs/HANDOFF.md) for validation and remaining release checks.
