@@ -149,6 +149,8 @@
   "SpiralOne": "スパイラル1",
   "SpiralTwo": "スパイラル2",
   "SpiralThree": "スパイラル3",
+  "CapturePanicKey": "新しい緊急停止キーを押してください",
+  "PanicOff": "緊急停止は無効",
   "XP": "XP",
   "ByCredit": "By CodeBambi"
 }

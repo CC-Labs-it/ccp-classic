@@ -149,6 +149,8 @@
   "SpiralOne": "Spiral 1",
   "SpiralTwo": "Spiral 2",
   "SpiralThree": "Spiral 3",
+  "CapturePanicKey": "Press the new panic key",
+  "PanicOff": "Panic disabled",
   "XP": "XP",
   "ByCredit": "By CodeBambi"
 }

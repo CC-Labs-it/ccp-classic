@@ -149,6 +149,8 @@
   "SpiralOne": "Спираль 1",
   "SpiralTwo": "Спираль 2",
   "SpiralThree": "Спираль 3",
+  "CapturePanicKey": "Нажмите новую клавишу остановки",
+  "PanicOff": "Экстренная остановка отключена",
   "XP": "ОП",
   "ByCredit": "By CodeBambi"
 }
