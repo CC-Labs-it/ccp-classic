@@ -117,22 +117,36 @@ public sealed class CompanionWindowTests
     public async Task ALateFirstFrameCannotPublishAfterItsPresentationIsSuppressed(string suppression)
     {
         Window owner = null!; CompanionWindow companion = null!;
+        Window? other = null;
+        using var decoding = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
         var settings = new ClassicSettings { CompanionEnabled = true };
         try
         {
             await UiDispatcher.Run(() =>
             {
                 owner = new(); owner.Show(); owner.Activate();
-                companion = new(owner, settings, _ => { }, requireTransparency: false);
+                companion = new(owner, settings, _ => { }, requireTransparency: false,
+                    beforeDecode: () => { decoding.Set(); release.Wait(TestContext.Current.CancellationToken); });
             });
             await Until(() => owner.IsActive, owner.Activate);
             await UiDispatcher.Run(() =>
             {
                 companion.Update(null, 0); Assert.True(companion.IsDecodePending);
+            });
+            Assert.True(decoding.Wait(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken));
+            await UiDispatcher.Run(() =>
+            {
                 if (suppression == "disabled") settings.CompanionEnabled = false;
                 else if (suppression == "hidden") owner.Hide();
                 else if (suppression == "minimized") owner.WindowState = WindowState.Minimized;
-                else typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, null);
+                else
+                {
+                    other = new(); other.Show(); other.Activate(); Dispatcher.UIThread.RunJobs();
+                    // Headless activation does not deactivate the previous window automatically.
+                    typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, null);
+                    Assert.True(other.IsActive); Assert.False(owner.IsActive);
+                }
+                release.Set();
             });
             await Until(() => !companion.IsDecodePending, () => { });
             await UiDispatcher.Run(() =>
@@ -144,7 +158,7 @@ public sealed class CompanionWindowTests
                     companion.Update(null, 1 + index * .1);
                     Assert.False(companion.IsDecodePending);
                 }
-                settings.CompanionEnabled = true; owner.WindowState = WindowState.Normal;
+                other?.Close(); settings.CompanionEnabled = true; owner.WindowState = WindowState.Normal;
                 if (!owner.IsVisible) owner.Show(); owner.Activate();
             });
             await Until(() => owner.IsActive, owner.Activate);
@@ -159,7 +173,7 @@ public sealed class CompanionWindowTests
                 Assert.Null(companion.LastError);
             });
         }
-        finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
+        finally { release.Set(); await UiDispatcher.Run(() => { other?.Close(); companion?.FinishImmediately(); owner?.Close(); }); }
     }
 
     [Fact]

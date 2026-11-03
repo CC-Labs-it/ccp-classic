@@ -17,6 +17,7 @@ internal sealed class CompanionWindow : Window
     private readonly Window owner;
     private readonly ClassicSettings settings;
     private readonly bool requireTransparency;
+    private readonly Action? beforeDecode;
     private readonly Image portrait = new() { Stretch = Stretch.Uniform };
     private readonly Image previousPortrait = new() { Stretch = Stretch.Uniform };
     private readonly TextBlock words = new() { Name = "CompanionBark", TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
@@ -40,9 +41,10 @@ internal sealed class CompanionWindow : Window
     public event Action? AvatarClicked;
     public event Action? StopRequested;
 
-    public CompanionWindow(Window owner, ClassicSettings settings, Action<Window> configureInput, bool requireTransparency = true)
+    public CompanionWindow(Window owner, ClassicSettings settings, Action<Window> configureInput, bool requireTransparency = true,
+        Action? beforeDecode = null)
     {
-        this.owner = owner; this.settings = settings; this.requireTransparency = requireTransparency;
+        this.owner = owner; this.settings = settings; this.requireTransparency = requireTransparency; this.beforeDecode = beforeDecode;
         Title = "CCP Classic"; Width = 240; Height = 390;
         WindowStartupLocation = WindowStartupLocation.Manual; WindowDecorations = WindowDecorations.None;
         CanResize = false; ShowInTaskbar = false; ShowActivated = false; Topmost = true;
@@ -129,6 +131,7 @@ internal sealed class CompanionWindow : Window
         lastRequest = now;
         pending = Task.Run(() =>
         {
+            beforeDecode?.Invoke();
             if (decoder?.Name != clip) { decoder?.Dispose(); decoder = new(clip); }
             return decoder.Decode(position, bootstrap);
         });
