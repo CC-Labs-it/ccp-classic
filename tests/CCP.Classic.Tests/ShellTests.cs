@@ -14,6 +14,7 @@ using Xunit;
 
 namespace CCP.Classic.Tests;
 
+[Collection("Avalonia UI")]
 public sealed class ShellTests
 {
     [Fact]
@@ -200,12 +201,14 @@ public sealed class ShellTests
 
     private static void Click(Window window, Control control)
     {
+        window.Activate();
         control.BringIntoView();
         Dispatcher.UIThread.RunJobs();
         Assert.True(control.IsEffectivelyVisible);
         Assert.True(control.IsEffectivelyEnabled);
         var centre = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window);
         Assert.NotNull(centre);
+        window.MouseMove(centre.Value);
         window.MouseDown(centre.Value, MouseButton.Left);
         window.MouseUp(centre.Value, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();

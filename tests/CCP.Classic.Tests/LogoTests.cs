@@ -7,6 +7,7 @@ using Xunit;
 
 namespace CCP.Classic.Tests;
 
+[Collection("Avalonia UI")]
 public sealed class LogoTests
 {
     [Fact]

@@ -4,8 +4,12 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using Xunit;
 
 namespace CCP.Classic.Tests;
+
+[CollectionDefinition("Avalonia UI", DisableParallelization = true)]
+public sealed class UiCollection;
 
 /// <summary>Runs controls and their input on one long-lived headless UI thread.</summary>
 public static class UiDispatcher
