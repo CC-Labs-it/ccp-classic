@@ -219,7 +219,7 @@ public sealed partial class MainWindow : Window
         // Let an owned window finish activating before deciding that Classic lost focus.
         Dispatcher.UIThread.Post(() =>
         {
-            if (!input.GlobalAvailable && !IsActive && SettingsWindow?.IsActive != true) Session.ReleaseKeys();
+            if (!input.GlobalAvailable && !IsActive && !OwnedWindows.Any(window => window.IsActive)) Session.ReleaseKeys();
         }, DispatcherPriority.Background);
     }
 
@@ -227,6 +227,7 @@ public sealed partial class MainWindow : Window
     {
         window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
+        window.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
     }
 
     private void HandleGlobalKey(string key, bool down)

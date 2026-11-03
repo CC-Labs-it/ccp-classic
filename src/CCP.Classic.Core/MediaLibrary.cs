@@ -26,9 +26,9 @@ public static class MediaLibrary
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp" };
     private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
-        { ".mp4", ".m4v", ".mkv", ".mov", ".avi", ".webm", ".wmv", ".mpeg", ".mpg" };
+        { ".mp4", ".m4v", ".mkv", ".mov", ".avi", ".webm" };
     private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
-        { ".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus" };
+        { ".mp3", ".wav", ".flac", ".ogg" };
 
     public static MediaLibrarySnapshot Scan(IEnumerable<string>? imageDirectories = null,
         IEnumerable<string>? videoDirectories = null, IEnumerable<string>? audioDirectories = null,
@@ -79,7 +79,7 @@ public static class MediaLibrary
             while (pending.TryPop(out var directory))
             {
                 token.ThrowIfCancellationRequested();
-                if (!visited.Add(directory)) continue;
+                if (!visited.Add(directory) || !LocalDirectory(directory)) continue;
                 try
                 {
                     foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
@@ -108,6 +108,7 @@ public static class MediaLibrary
 
     private static bool LocalDirectory(string path)
     {
+        if (OperatingSystem.IsWindows() && new DriveInfo(Path.GetPathRoot(path)!).DriveType == DriveType.Network) return false;
         // Inspect ancestors from the volume down, before following a junction into a selected root.
         var ancestors = new Stack<string>();
         for (string? current = path; current is not null; current = Path.GetDirectoryName(current))
