@@ -26,8 +26,24 @@ values replace the small white hierarchy. The main CCP support wording opens
 The branding/layout checkpoint passed 17 focused Release checks plus the new
 compact/expanded editor regression. Stable visual evidence is in
 `artifacts/proof/flash-settings-compact.png` and `studio-support.png`.
-The next installer will also include the owner's subsequent request to port
-CCP's image-click outros and effect bubbles, including flash previews in bubbles.
+The subsequent effect parity request is also implemented. Image clicks now use
+CCP's original Pop, TV off, Spiral, Melt and Glitch exits, with nonrepeating Mix
+as the default. Timed expiry keeps its fade. Gentle and Reduced motion simplify
+the exits, and completed exits release pointer input.
+
+Effect bubbles reuse CCP's public glass artwork, payload colors and symbols.
+Flash bubbles preview the exact image delivered on pop. Mixed bubbles select
+eligible enabled effects; More controls their 10% default chance and type.
+The pool stays bounded to eight bubbles, at most four carrying effects. Video
+payloads require available local nonstrict floating playback and stop at 30 seconds.
+Normal scheduling, panic cleanup and saved effect settings remain intact.
+
+The combined source passes all 599 Windows Release tests with no skips, including
+native video and offline analysis. `preview6-release.trx` records this run.
+Rendered `bubble-faces.png` and all five `flash-outro-*.png` were reviewed.
+Source provenance is in `POLISH-ASSETS-BUBBLES.md` and `POLISH-ASSETS-EFFECTS.md`.
+The next package is `1.0.0-preview.6`; the older installer above remains available
+until the package rebuild completes.
 
 The owner requested reuse of CCP's finished artwork and interactions after reviewing
 the functional preview. Three agents and the coordinator implemented this pass:

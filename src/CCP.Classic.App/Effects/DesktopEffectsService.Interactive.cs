@@ -40,6 +40,7 @@ public sealed partial class DesktopEffectsService
         cueGate = new(cueAudio); barkGate = new(barkAudio);
         interactive.EventOccurred += value =>
         {
+            TriggerBubbleEffect(value);
             if (value.PlaySound && settings.Effects["audio"].Enabled && popSound?.IsCompletedSuccessfully == true
                 && popSound.Result is { } path) cueGate.Play(path, .7);
             InteractiveEvent?.Invoke(value);
@@ -78,6 +79,8 @@ public sealed partial class DesktopEffectsService
                 timeline.SetImageCount(selectedImages.Count);
             }
         }
+        interactive.SetImageCount(selectedImages?.Count ?? images.Count);
+        interactive.VideoAvailable = videos.CanTriggerBubble;
         interactiveFrame = interactive.Step(elapsed); lockFrame = lockEffects.Step(elapsed);
         TickWipe();
         if (lockFrame.LockCard is { } card)

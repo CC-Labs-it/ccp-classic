@@ -121,7 +121,7 @@ public sealed partial class DesktopEffectsService : IDisposable
             var frame = EffectsFrameBuilder.Build(snapshot, settings, frameImages, phrases)
                 with { Interactive = interactiveFrame, BrainDrain = lockFrame.BrainDrain, CustomSpiral = loom.Image };
             var flashInput = settings.Effects["flash"].Values["dismiss"] != 0
-                ? frame.Flashes.Where(f => f.Opacity > .01).Select(f => f.Bounds) : [];
+                ? frame.Flashes.Where(f => f.Exit is null && f.Opacity > .01).Select(f => f.Bounds) : [];
             if (useFallback && needsHost)
             {
                 if (fallback is null)
@@ -185,7 +185,7 @@ public sealed partial class DesktopEffectsService : IDisposable
             && BubbleGeometry.HitTest(b, point, viewport.Width, viewport.Height));
         if (bubble is not null && interactive.Pop(bubble.Id)) return;
         if (snapshot is null) return;
-        var flash = snapshot.Flashes.LastOrDefault(f => f.Opacity > .01
+        var flash = snapshot.Flashes.LastOrDefault(f => f.Exit is null && f.Opacity > .01
             && new Rect(f.X, f.Y, f.Size, f.Size).Contains(point));
         if (flash is not null) timeline.Dismiss(flash.Id);
     }

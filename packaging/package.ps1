@@ -70,7 +70,7 @@ try {
     $commit = (& git rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Could not record source revision.' }
     $dirty = @(& git status --porcelain).Count -gt 0
-    @{ product = 'CCP Classic'; version = $Version; runtime = $Runtime; sourceCommit = $commit; dirty = $dirty;
+    @{ product = 'CCP Classic'; company = 'CC labs Srls'; version = $Version; runtime = $Runtime; sourceCommit = $commit; dirty = $dirty;
         sdk = (& $DotNet --version).Trim(); selfContained = $true; signed = $false; ownerLocalReview = [bool]$LocalReview;
         analysisSourceBundleComplete = $analysisSourcesComplete; externalDistributionBlocked = !$analysisSourcesComplete } |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $payload 'package.json') -Encoding utf8NoBOM

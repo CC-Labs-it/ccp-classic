@@ -6,7 +6,7 @@ using CCP.Classic.Core;
 
 namespace CCP.Classic.App.Effects;
 
-public sealed record FlashFrame(IImage Image, Rect Bounds, double Opacity);
+public sealed record FlashFrame(IImage Image, Rect Bounds, double Opacity, FlashExitState? Exit = null);
 
 // Final opacities and phase come from the shared engine clock. Images remain caller-owned.
 public sealed record EffectFrame
@@ -26,10 +26,13 @@ public sealed record EffectFrame
     public double SubliminalOpacity { get; init; }
     public bool ReducedMotion { get; init; }
     public InteractiveEffectsFrame Interactive { get; init; } = InteractiveEffectsFrame.Empty;
+    public IReadOnlyList<IImage> BubbleImages { get; init; } = [];
+    public bool GentleVisuals { get; init; }
+    public bool PerformanceMode { get; init; }
     public BrainDrainCue? BrainDrain { get; init; }
 }
 
-public sealed class VisualEffectsControl : Control
+public sealed partial class VisualEffectsControl : Control
 {
     private static readonly Lazy<StreamGeometry[]> Spirals = new(() => [Spiral(3), Spiral(5), Spiral(8)]);
     private static readonly IBrush Pink = new SolidColorBrush(Color.Parse("#FF69B4"));
@@ -59,7 +62,7 @@ public sealed class VisualEffectsControl : Control
         using (context.PushClip(bounds))
         {
             if (Frame.FlashImage is { } image) DrawFlash(context, bounds, image, Frame.FlashBounds, Frame.FlashOpacity);
-            foreach (var flash in Frame.Flashes) DrawFlash(context, bounds, flash.Image, flash.Bounds, flash.Opacity);
+            foreach (var flash in Frame.Flashes) DrawFlash(context, bounds, flash.Image, flash.Bounds, flash.Opacity, flash.Exit);
             DrawSubliminal(context, bounds);
             DrawSpiral(context, bounds);
             if (Alpha(Frame.PinkOpacity) > 0)
@@ -83,17 +86,9 @@ public sealed class VisualEffectsControl : Control
             }
         }
         foreach (var bubble in Frame.Interactive.Bubbles)
-        {
-            var normalized = BubbleGeometry.NormalizedBounds(bubble, bounds.Width, bounds.Height);
-            var rect = new Rect(bounds.X + normalized.X * bounds.Width, bounds.Y + normalized.Y * bounds.Height,
-                normalized.Width * bounds.Width, normalized.Height * bounds.Height);
-            var size = rect.Width;
-            using (context.PushOpacity(Alpha(bubble.Opacity)))
-            {
-                context.DrawEllipse(new SolidColorBrush(Color.Parse("#20FF69B4")), new Pen(Pink, 2), rect);
-                context.DrawEllipse(Brushes.White, null, new Rect(rect.X + size * .2, rect.Y + size * .15, size * .12, size * .12));
-            }
-        }
+            BubbleRenderer.Draw(context, bounds, bubble,
+                bubble.Image >= 0 && bubble.Image < Frame.BubbleImages.Count ? Frame.BubbleImages[bubble.Image] : null,
+                Frame.SpiralPhase, Frame.ReducedMotion, Frame.GentleVisuals, Frame.PerformanceMode);
         if (Frame.Interactive.BouncingText is { Opacity: > 0 } bounce)
         {
             var fontSize = Math.Clamp(Math.Min(bounds.Width, bounds.Height) * bounce.Size * .2, 16, 120);
@@ -104,21 +99,6 @@ public sealed class VisualEffectsControl : Control
             using (context.PushRenderOptions(new RenderOptions { RequiresFullOpacityHandling = true }))
             using (context.PushOpacity(Alpha(bounce.Opacity))) context.DrawText(text, origin);
         }
-    }
-
-    private static void DrawFlash(DrawingContext context, Rect bounds, IImage image, Rect box, double opacity)
-    {
-        if (Alpha(opacity) <= 0) return;
-        if (!double.IsFinite(box.X + box.Y + box.Width + box.Height) || box.Width <= 0 || box.Height <= 0) return;
-        if (image.Size.Width <= 0 || image.Size.Height <= 0) return;
-        var target = new Rect(box.X * bounds.Width, box.Y * bounds.Height,
-            box.Width * bounds.Width, box.Height * bounds.Height);
-        var scale = Math.Max(target.Width / image.Size.Width, target.Height / image.Size.Height);
-        var width = target.Width / scale;
-        var height = target.Height / scale;
-        var source = new Rect((image.Size.Width - width) / 2, (image.Size.Height - height) / 2, width, height);
-        using (context.PushOpacity(Alpha(opacity)))
-        using (context.PushClip(new RoundedRect(target, 8))) context.DrawImage(image, source, target);
     }
 
     private void DrawSubliminal(DrawingContext context, Rect bounds)
