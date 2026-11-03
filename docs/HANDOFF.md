@@ -1,5 +1,18 @@
 # CCP Classic handoff
 
+## Tube fixes after the owner's beta.4 look, 2026-11-03 (feat/companion-tube)
+
+Owner saw a still avatar, a tube too big with a gap to the panel, clicks that did
+nothing and no barks. Causes and fixes (lanes fix/tube-geometry + fix/tube-motion):
+- Size follows the panel's visible height (art = 38% of it, `TubeLayout.Scale`), not the
+  monitor; Companion size and Ctrl+wheel multiply it, docked too.
+- The gap was Windows' invisible resize borders: docking uses the DWM visible frame
+  (`PanelFrame`), art overlaps it by 1 DIP.
+- Gentle froze the clip: Gentle now slows the idle loop, only reduced motion stills it.
+- Barks were session only (timeline, audio gate and default all off outside one):
+  Barks default ON, idle barks between sessions, a click barks at once (1.5 s cooldown).
+840 Release tests pass. NOT packaged: owner tests an unpackaged build first.
+
 ## 1.0.0-beta.4 draft release, 2026-11-03
 
 GitHub pre-release v1.0.0-beta.4 (tag at 3f8fc45 on feat/companion-tube) is a DRAFT,
