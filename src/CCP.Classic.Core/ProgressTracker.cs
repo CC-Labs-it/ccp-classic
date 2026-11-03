@@ -108,6 +108,7 @@ public sealed partial class ProgressTracker
     private bool switchedAway;
     private EffectProgressState currentEffects;
     public ProgressData Data { get; }
+    private bool launched;
     public bool IsRunning { get; private set; }
     public double ContinuousSpiralSeconds { get; private set; }
     public event Action? Changed;
@@ -153,9 +154,13 @@ public sealed partial class ProgressTracker
         Notify(new(ProgressEventKind.Xp, amount));
     }
 
+    // Whole days since the previous launch day at this tracker's first launch; null when there was none.
+    public int? DaysAwayAtLaunch { get; private set; }
+
     public void RecordLaunch()
     {
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        if (!launched) { launched = true; DaysAwayAtLaunch = Data.LastLaunchDay is { } last ? Math.Max(0, today.DayNumber - last.DayNumber) : null; }
         if (Data.LastLaunchDay == today) return;
         Data.ConsecutiveDays = Data.LastLaunchDay == today.AddDays(-1)
             ? Math.Min(Data.ConsecutiveDays + 1, 1_000_000) : 1;

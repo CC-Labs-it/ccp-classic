@@ -25,9 +25,11 @@ public sealed partial class DesktopEffectsService
         companionHost.IdleBark += bark => { if (!running) { RefreshIdleBarkGate(); SpeakBark(bark); } };
         companionHost.AvatarClicked += () =>
         {
+            CountAvatarClick();
             if (running) companion.Poke(clock.GetElapsedTime(started).TotalSeconds);
             AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion);
         };
+        InitializeBarks();
     }
     private void StartCompanion()
     {
@@ -35,6 +37,7 @@ public sealed partial class DesktopEffectsService
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         companion.Start(); keywords.Start(); lastBark = 0;
         timedChanges.Start(settings.TimedChanges);
+        BeginSessionBarks();
     }
     public void FeedText(string characters) => FeedKeywords(characters);
     public bool TriggerPhrase(string phrase)
@@ -45,7 +48,11 @@ public sealed partial class DesktopEffectsService
     private void TickCompanion(double elapsed)
     {
         TickKeywords(elapsed);
-        foreach (var change in timedChanges.Step(elapsed)) settings.Effects[change.EffectId].Enabled = change.Enabled;
+        var timed = false;
+        foreach (var change in timedChanges.Step(elapsed)) { settings.Effects[change.EffectId].Enabled = change.Enabled; timed = true; }
+        // A timed change is the preset's doing, not the player's: it never reads as a switch turned on.
+        if (timed) barkSwitches.Rebase();
+        TickSessionBarks(elapsed);
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         var frame = companion.Step(elapsed);
         companionHost.SessionFrame(frame.Bark);
@@ -62,14 +69,16 @@ public sealed partial class DesktopEffectsService
             if (triggered && trigger.Source == CompanionTriggerSource.Keyword) DeviceEvent?.Invoke(LocalDeviceEvent.Keyword);
         }
     }
-    // One voice for idle and session words: the approved recording only, never synthetic speech;
-    // a word with no recording stays text. A new word replaces one still speaking.
+    // One voice for idle and session words and library lines: the approved recording only, never
+    // synthetic speech; a word with no recording stays text. A new line replaces one still speaking.
     private void SpeakBark(CompanionBarkCue bark)
     {
         if (bark.Id == lastBark) return;
         lastBark = bark.Id;
-        if (settings.Effects["audio"].Enabled && starter.Phrases[bark.AudioIndex].AudioPath is { } path)
-            barkGate.Replace(path, 1);
+        RaiseLineSpoken(bark);
+        var path = bark.Pick is { } pick ? Path.Combine(barkFolder, pick.Line.Clip)
+            : bark.AudioIndex >= 0 && bark.AudioIndex < starter.Phrases.Count ? starter.Phrases[bark.AudioIndex].AudioPath : null;
+        if (settings.Effects["audio"].Enabled && path is not null && File.Exists(path)) barkGate.Replace(path, 1);
     }
     // Outside a session nothing else opens the bark lane, and a muted switch must silence it at once.
     private void RefreshIdleBarkGate()

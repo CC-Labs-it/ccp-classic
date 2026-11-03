@@ -4,8 +4,10 @@ namespace CCP.Classic.Core;
 
 public enum CompanionEffect { Flash, Whisper, SpiralPulse }
 public enum CompanionTriggerSource { TimedPhrase, ExplicitPhrase, Keyword }
-public sealed record CompanionPhrase(string Text, int AudioIndex, CompanionEffect? Effect);
-public sealed record CompanionBarkCue(long Id, string Text, int AudioIndex, double Opacity);
+// Seconds: the starter recording's length.
+public sealed record CompanionPhrase(string Text, int AudioIndex, CompanionEffect? Effect, double Seconds = 2.5);
+// Pick is set for a library line (docs/BARKS.md); AudioIndex then is -1. Seconds is the clip length.
+public sealed record CompanionBarkCue(long Id, string Text, int AudioIndex, double Opacity, BarkPick? Pick = null, double Seconds = 0);
 public sealed record CompanionTriggerCue(long Id, CompanionEffect Effect, CompanionTriggerSource Source);
 public sealed record CompanionFrame(CompanionBarkCue? Bark, IReadOnlyList<CompanionTriggerCue> Triggers)
 {
@@ -17,10 +19,13 @@ public sealed class CompanionTimeline(ClassicSettings settings)
 {
     public static IReadOnlyList<CompanionPhrase> Phrases { get; } = Array.AsReadOnly(new CompanionPhrase[]
     {
-        new("Breathe", 1, null), new("Relax", 2, CompanionEffect.Flash),
-        new("Focus", 0, CompanionEffect.Whisper), new("Listen", 3, null),
-        new("Deeper", 4, CompanionEffect.SpiralPulse)
+        new("Breathe", 1, null, 2.72), new("Relax", 2, CompanionEffect.Flash, 2.56),
+        new("Focus", 0, CompanionEffect.Whisper, 2.24), new("Listen", 3, null, 1.44),
+        new("Deeper", 4, CompanionEffect.SpiralPulse, 2.24)
     });
+    // The bubble shows only approved words and curated library lines, never other text.
+    public static bool IsApproved(string text) =>
+        Phrases.Any(phrase => phrase.Text == text) || BarkLibrary.Default.IsApproved(text);
     private readonly List<CompanionTriggerCue> pending = [];
     private readonly char[] suffix = new char[6];
     private Bark? bark;
@@ -31,6 +36,11 @@ public sealed class CompanionTimeline(ClassicSettings settings)
     private double lastPoke = double.NegativeInfinity;
     // Spam clicks never stack words or recordings.
     public const double PokeCooldownSeconds = 1.5;
+    // When set, idle words and clicks come from the bark library ("Idle", "AvatarClicked"); a null
+    // answer (gap, cooldown, panic quiet) says nothing. Session words stay the approved five.
+    public Func<string, BarkPick?>? Lines { get; set; }
+    // A word or line is showing and has not started its exit.
+    public bool IsSpeaking => bark is { Ending: false };
     public bool IsRunning { get; private set; }
     // Idle barks speak words only: no effect triggers and no keyword input outside a session.
     public bool IsIdle { get; private set; }
@@ -69,6 +79,13 @@ public sealed class CompanionTimeline(ClassicSettings settings)
         var at = Math.Max(lastTime, now);
         if (at - lastPoke < PokeCooldownSeconds) return false;
         lastPoke = at; poked = true; return true;
+    }
+    // An event line at once, replacing a word still showing; the timer then waits a full interval.
+    public bool Say(BarkPick pick, double now)
+    {
+        if (!IsRunning || !BarksVisible || !double.IsFinite(now)) return false;
+        var at = Math.Max(lastTime, now);
+        bark = Line(pick, at); nextPhrase = at + interval; return true;
     }
     public void ClearKeywordInput()
     {
@@ -112,7 +129,8 @@ public sealed class CompanionTimeline(ClassicSettings settings)
         {
             // Replaces a word still showing; the timer then waits a full interval after it.
             poked = false;
-            if (BarksVisible) { bark = new(++nextId, NextPhrase(), now + 4, settings.GentleVisuals ? .75 : .25); nextPhrase = now + interval; }
+            if (BarksVisible && (Lines is null ? Word(NextPhrase(), now) : Lines("AvatarClicked") is { } pick ? Line(pick, now) : null) is { } said)
+            { bark = said; nextPhrase = now + interval; }
         }
         var nextInterval = BarkInterval;
         var enabled = TimerEnabled;
@@ -121,9 +139,16 @@ public sealed class CompanionTimeline(ClassicSettings settings)
         if (enabled && now >= nextPhrase)
         {
             nextPhrase = now + interval;
-            var selected = NextPhrase();
-            if (BarksVisible && bark is null) bark = new(++nextId, selected, now + 4, settings.GentleVisuals ? .75 : .25);
-            if (phrasesEnabled && !IsIdle) QueuePhrase(selected.Text, CompanionTriggerSource.TimedPhrase);
+            if (IsIdle && Lines is not null)
+            {
+                if (BarksVisible && bark is null && Lines("Idle") is { } pick) bark = Line(pick, now);
+            }
+            else
+            {
+                var selected = NextPhrase();
+                if (BarksVisible && bark is null) bark = Word(selected, now);
+                if (phrasesEnabled && !IsIdle) QueuePhrase(selected.Text, CompanionTriggerSource.TimedPhrase);
+            }
         }
         CompanionBarkCue? visible = null;
         if (bark is { } current)
@@ -131,7 +156,7 @@ public sealed class CompanionTimeline(ClassicSettings settings)
             current.Ending |= !BarksVisible || now >= current.Expires;
             var alpha = current.Sample(now, current.Ending ? 0 : 1, settings.GentleVisuals ? .75 : .25);
             if (current.Ending && alpha == 0) bark = null;
-            else visible = new(current.Id, current.Phrase.Text, current.Phrase.AudioIndex, alpha);
+            else visible = new(current.Id, current.Text, current.AudioIndex, alpha, current.Pick, current.Seconds);
         }
         var triggers = Array.AsReadOnly(pending.ToArray()); pending.Clear();
         return new(visible, triggers);
@@ -143,6 +168,11 @@ public sealed class CompanionTimeline(ClassicSettings settings)
         if (selected?.Effect is not { } effect || pending.Count >= 16) return false;
         pending.Add(new(++nextId, effect, source)); return true;
     }
+    private Bark Word(CompanionPhrase phrase, double now) =>
+        new(++nextId, phrase.Text, phrase.AudioIndex, null, phrase.Seconds, now + 4, settings.GentleVisuals ? .75 : .25);
+    // A recorded line stays up while it is spoken.
+    private Bark Line(BarkPick pick, double now) => new(++nextId, pick.Line.Text, -1, pick, pick.Line.Seconds,
+        now + Math.Max(4, pick.Line.Seconds + .5), settings.GentleVisuals ? .75 : .25);
     private CompanionPhrase NextPhrase() { var selected = Phrases[phrase]; phrase = (phrase + 1) % Phrases.Count; return selected; }
     private bool BarksVisible => settings.CompanionEnabled && settings.BarksEnabled;
     private bool TimerEnabled => BarksVisible || phrasesEnabled && !IsIdle;
@@ -150,10 +180,13 @@ public sealed class CompanionTimeline(ClassicSettings settings)
     private static bool IsWord(char character) => char.IsLetterOrDigit(character) || character == '_'
         || char.GetUnicodeCategory(character) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark
             or UnicodeCategory.ConnectorPunctuation;
-    private sealed class Bark(long id, CompanionPhrase phrase, double expires, double initialFade)
+    private sealed class Bark(long id, string text, int audioIndex, BarkPick? pick, double seconds, double expires, double initialFade)
     {
         public readonly long Id = id;
-        public readonly CompanionPhrase Phrase = phrase;
+        public readonly string Text = text;
+        public readonly int AudioIndex = audioIndex;
+        public readonly BarkPick? Pick = pick;
+        public readonly double Seconds = seconds;
         public readonly double Expires = expires;
         public double EndsAt = expires + initialFade;
         public bool Ending;

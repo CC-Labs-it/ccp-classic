@@ -16,11 +16,13 @@ internal sealed class CompanionHost : IDisposable
     private readonly DispatcherTimer idle;
     private readonly CompanionTimeline barks;
     private long spoken;
-    private bool session, disposed;
+    private bool session, disposed, idleShown;
     public CompanionWindow? Window { get; private set; }
     public event Action? StopRequested, AvatarClicked, PlacementChanged;
     // A new idle word to voice. Session words are voiced by the session itself.
     public event Action<CompanionBarkCue>? IdleBark;
+    // The idle clock (re)started with the tube on screen: the moment for a queued greeting or session-end line.
+    public event Action? IdleStarted;
     // One monotonic clock for idle and session frames; session time restarts at zero.
     public double Now => clock.GetElapsedTime(epoch).TotalSeconds;
     internal bool IdleRunning => idle.IsEnabled;
@@ -79,8 +81,10 @@ internal sealed class CompanionHost : IDisposable
     private CompanionBarkCue? IdleWord(CompanionWindow window, double now)
     {
         var present = window.CanPresent;
-        if (!present || !barks.IsIdle) barks.StartIdle(now);
-        if (!present) return null;
+        var restarted = !present || !barks.IsIdle;
+        if (restarted) barks.StartIdle(now);
+        if (!present) { idleShown = false; return null; }
+        if (restarted || !idleShown) { idleShown = true; IdleStarted?.Invoke(); }
         var bark = barks.Step(now).Bark;
         if (bark is not null && bark.Id != spoken) { spoken = bark.Id; IdleBark?.Invoke(bark); }
         return bark;

@@ -42,10 +42,10 @@ public sealed partial class DesktopEffectsService
         {
             TriggerBubbleEffect(value);
             popSounds.Play(cueGate, value.PlaySound && settings.Effects["audio"].Enabled, settings.Bubbles.VolumePercent / 100d);
-            InteractiveEvent?.Invoke(value);
+            InteractiveEvent?.Invoke(value); InteractiveBark(value);
             if (value.Kind == InteractiveEffectEventKind.WallHit) DeviceEvent?.Invoke(LocalDeviceEvent.BouncingText);
         };
-        lockEffects.EventOccurred += value => InteractiveEvent?.Invoke(value);
+        lockEffects.EventOccurred += value => { InteractiveEvent?.Invoke(value); InteractiveBark(value); };
     }
     private void StartInteractive()
     {
@@ -81,11 +81,11 @@ public sealed partial class DesktopEffectsService
     }
     public bool PreviewLockCard()
     {
-        if (running) { var shown = lockEffects.TriggerLock(preview: true); Tick(); return shown; }
+        if (running) { var shown = lockEffects.TriggerLock(preview: true); Tick(); if (shown) Bark("PreviewLockCard"); return shown; }
         lockEffects.Start();
         if (!lockEffects.TriggerLock(preview: true)) { lockEffects.Stop(); return false; }
         started = clock.GetTimestamp();
-        var initial = lockEffects.Step(0).LockCard!; OpenLock(initial, 0);
+        var initial = lockEffects.Step(0).LockCard!; OpenLock(initial, 0); Bark("PreviewLockCard");
         lockPreviewTimer?.Stop();
         lockPreviewTimer = new(TimeSpan.FromMilliseconds(33), Avalonia.Threading.DispatcherPriority.Background, (_, _) =>
         {
@@ -118,7 +118,10 @@ public sealed partial class DesktopEffectsService
                     lockCorrect++; lockInput = "";
                     var completed = lockEffects.Step(clock.GetElapsedTime(started).TotalSeconds).LockCard;
                     if (running && completed?.Completed >= card.Repetitions)
+                    {
                         LockCompleted?.Invoke(lockErrors, lockCorrect, clock.GetElapsedTime(started).TotalSeconds - lockOpenedAt);
+                        Bark("LockCardCompleted", new Dictionary<string, double> { ["mistakes"] = lockErrors });
+                    }
                 }
                 var current = lockEffects.Step(clock.GetElapsedTime(started).TotalSeconds).LockCard;
                 if (current is not null) foreach (var window in lockWindows) window.Update(current, lockInput);

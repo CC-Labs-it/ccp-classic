@@ -45,7 +45,9 @@ public sealed partial class DesktopEffectsService
     }
     private void TickKeywords(double elapsed)
     {
-        DispatchKeywordActions(keywords.Step(elapsed));
+        var fired = keywords.Step(elapsed);
+        if (fired.Count > 0) Bark("KeywordTriggered");
+        DispatchKeywordActions(fired);
         TickKeywordAudio(elapsed);
     }
     public bool TestKeyword(KeywordDefinition trigger)

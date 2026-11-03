@@ -77,6 +77,7 @@ public sealed partial class MainWindow : Window
             Session.Tick();
             TickStartup();
             TickProgress();
+            effects?.PollBarks();
             elapsed.Text = Session.Elapsed.ToString(@"hh\:mm\:ss");
         });
         Opened += (_, _) =>
@@ -117,6 +118,7 @@ public sealed partial class MainWindow : Window
                     if (correct) Progress.AddXp(10);
                 };
                 SetStatus("Idle");
+                InitializeBarks();
                 InitializeStartup(startupLaunch);
             }
             if (SettingsRecovered) SetStatus("SettingsRecovered");
@@ -244,6 +246,7 @@ public sealed partial class MainWindow : Window
 
     public void SelectTab(string key)
     {
+        if (tab != key) BarkOpened(key);
         tab = key;
         Control body = key switch
         {
@@ -292,13 +295,13 @@ public sealed partial class MainWindow : Window
         if (capturePanic)
         {
             if (!PanicKeys.IsBindable(e.Key)) return;
-            if (Session.KeyDown(e.Key.ToString())) { Progress.PanicPressed(); SetStatus("PanicStopped"); }
+            if (Session.KeyDown(e.Key.ToString())) { Panicked(); SetStatus("PanicStopped"); }
             Settings.PanicKey = e.Key.ToString(); capturePanic = false;
             RefreshLanguage(Settings.Language); e.Handled = true; return;
         }
         if (input.LocalDown(e.Key.ToString()))
         {
-            Progress.PanicPressed();
+            Panicked();
             SetStatus("PanicStopped"); CloseSheet(); e.Handled = true;
         }
         if (input.ConsumesKey(e.Key.ToString())) e.Handled = true;
@@ -334,7 +337,7 @@ public sealed partial class MainWindow : Window
 
     private void HandleGlobalKey(string key, bool down)
     {
-        if (input.GlobalChanged(key, down)) { Progress.PanicPressed(); SetStatus("PanicStopped"); CloseSheet(); }
+        if (input.GlobalChanged(key, down)) { Panicked(); SetStatus("PanicStopped"); CloseSheet(); }
     }
 
     private void OnTextInput(object? sender, TextInputEventArgs args)
