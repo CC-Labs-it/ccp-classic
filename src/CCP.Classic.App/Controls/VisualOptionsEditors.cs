@@ -100,7 +100,7 @@ internal static class LocalAudioPicker
     {
         if (TopLevel.GetTopLevel(control)?.StorageProvider is not { } provider) return null;
         var files = await provider.OpenFilePickerAsync(new() { AllowMultiple = false,
-            FileTypeFilter = [new("Audio") { Patterns = ["*.mp3", "*.wav", "*.ogg", "*.flac", "*.m4a", "*.aac"] }] });
+            FileTypeFilter = [new("Audio") { Patterns = LocalAudioFormats.Patterns }] });
         return SubliminalOptions.LocalAudio(files.FirstOrDefault()?.TryGetLocalPath());
     }
 }

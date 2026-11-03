@@ -127,7 +127,7 @@ public sealed class KeywordEditor : OptionEditor
                         pick.Click += async (_, _) =>
                         {
                             if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } provider) return;
-                            var files = await provider.OpenFilePickerAsync(new() { AllowMultiple = false, FileTypeFilter = [new("Audio") { Patterns = ["*.mp3", "*.wav", "*.ogg", "*.flac", "*.m4a"] }] });
+                            var files = await provider.OpenFilePickerAsync(new() { AllowMultiple = false, FileTypeFilter = [new("Audio") { Patterns = LocalAudioFormats.Patterns }] });
                             var local = SubliminalOptions.LocalAudio(files.FirstOrDefault()?.TryGetLocalPath());
                             if (local is not null) { action.AudioPath = local; path.Text = System.IO.Path.GetFileName(local); Changed(); }
                         };

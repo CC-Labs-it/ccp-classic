@@ -24,8 +24,7 @@ public sealed class SubliminalOptions
             || !Path.IsPathFullyQualified(path) || !MediaLibrary.IsLocalPath(path)) return null;
         try
         {
-            return Path.GetExtension(path).ToLowerInvariant() is ".mp3" or ".wav" or ".ogg" or ".flac" or ".m4a" or ".aac"
-                ? Path.GetFullPath(path) : null;
+            return LocalAudioFormats.SupportsPath(path) ? Path.GetFullPath(path) : null;
         }
         catch (Exception error) when (error is ArgumentException or NotSupportedException or IOException) { return null; }
     }

@@ -79,5 +79,9 @@ ffmpeg -nostdin -v error -f lavfi -i 'color=c=0x3c83d9:s=320x180:r=15:d=2' \
   -an -c:v mpeg4 -threads 2 -pix_fmt yuv420p "$classic_probe_tmp/neutral.mp4"
 ffmpeg -nostdin -v error -f lavfi -i 'anullsrc=r=22050:cl=mono' -t 2 \
   -c:a pcm_s16le -threads 2 "$classic_probe_tmp/silent.wav"
+ffmpeg -nostdin -v error -threads 2 -filter_threads 1 -f lavfi \
+  -i 'sine=frequency=440:sample_rate=48000:duration=2' \
+  -af "volume='if(lt(t,0.2),0,if(lt(t,1.0),5.656854249,if(lt(t,1.8),2.828427125,0)))':eval=frame,pan=stereo|c0=c0|c1=c0" \
+  -c:a wmav2 -b:a 128k -threads 2 -f asf "$classic_probe_tmp/neutral.wma"
 dotnet "$classic_probe_dll" --media "$classic_probe_tmp" >"$classic_probe_output/native.jsonl" 2>"$classic_probe_output/native.log"
 cat -- "$classic_probe_output/no-compositor.jsonl" "$classic_probe_output/native.jsonl"

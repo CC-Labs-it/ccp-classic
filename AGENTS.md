@@ -64,6 +64,9 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
 - Native playback callbacks can finish between worker polls. Sample completion
   once per pass and revalidate terminal errors before release; a healthy Refresh
   does not prove that a subsequent completion succeeded.
+- A helper can exit between Process.HasExited and WorkingSet64. Resource monitors
+  ignore that read failure only after confirming exit; live-process failures still
+  fail the operation. The native WMA fixture reproduced this race.
 - LibVLC 3 can leave player.Time stale while video Display callbacks keep playing.
   Video caps combine source time with bounded presented-frame progress. Keep raw
   source positions for audio metering; do not replace this with metadata duration.

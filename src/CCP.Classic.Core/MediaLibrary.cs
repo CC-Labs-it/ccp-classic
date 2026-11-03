@@ -27,8 +27,7 @@ public static class MediaLibrary
         { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp" };
     private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".mp4", ".m4v", ".mkv", ".mov", ".avi", ".webm" };
-    private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
-        { ".mp3", ".wav", ".flac", ".ogg" };
+    private static readonly HashSet<string> AudioExtensions = new(LocalAudioFormats.Extensions, StringComparer.OrdinalIgnoreCase);
 
     public static MediaLibrarySnapshot Scan(IEnumerable<string>? imageDirectories = null,
         IEnumerable<string>? videoDirectories = null, IEnumerable<string>? audioDirectories = null,

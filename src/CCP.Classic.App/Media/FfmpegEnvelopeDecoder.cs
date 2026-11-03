@@ -20,7 +20,8 @@ internal sealed class FfmpegEnvelopeDecoder(string? testExecutable = null, Actio
                 ?? throw new IOException("A supported local media file is required.");
             using var source = new FileStream(local, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (source.Length > 8L * 1024 * 1024 * 1024) throw new IOException("Media exceeds the audio analysis budget.");
-            var header = new byte[12]; active.ThrowIfCancellationRequested(); var count = source.Read(header); source.Position = 0;
+            var header = new byte[LocalAudioInput.HeaderBytes]; active.ThrowIfCancellationRequested();
+            var count = source.ReadAtLeast(header, header.Length, throwOnEndOfStream: false); source.Position = 0;
             var demux = Demux(header.AsSpan(0, count), Path.GetExtension(local))
                 ?? throw new IOException("Unsupported audio analysis container.");
             var executable = testExecutable ?? AnalysisHelper.Resolve(active);
@@ -64,11 +65,11 @@ internal sealed class FfmpegEnvelopeDecoder(string? testExecutable = null, Actio
     internal static string? Demux(ReadOnlySpan<byte> header, string extension)
     {
         var detected = LocalAudioInput.DetectDemux(header, extension) ?? LocalVideoPlayback.Demux(header);
-        return detected switch { "mp4" => "mov", "mkv" => "matroska", "wav" or "mp3" or "ogg" or "flac" or "aac" or "avi" => detected, _ => null };
+        return detected switch { "mp4" => "mov", "mkv" => "matroska", "wav" or "mp3" or "ogg" or "flac" or "aac" or "avi" or "asf" => detected, _ => null };
     }
     internal static ProcessStartInfo StartInfo(string executable, string path, string demux)
     {
-        if (demux is not ("wav" or "mp3" or "ogg" or "flac" or "aac" or "avi" or "mov" or "matroska")) throw new ArgumentException("Unsupported demuxer.");
+        if (demux is not ("wav" or "mp3" or "ogg" or "flac" or "aac" or "avi" or "mov" or "matroska" or "asf")) throw new ArgumentException("Unsupported demuxer.");
         var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true, WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = Path.GetDirectoryName(executable)! };

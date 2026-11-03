@@ -90,7 +90,7 @@ internal sealed class AnalysisProcessBudget : IDisposable
                         if (sched_setaffinity(tid, (nuint)IntPtr.Size, ref mask) != 0 && Directory.Exists(task))
                             throw new IOException("Audio analysis CPU affinity was refused.");
                     }
-                    bytes += member.WorkingSet64;
+                    bytes += WorkingSet(member);
                     foreach (var value in File.ReadAllText($"/proc/{id}/task/{id}/children").Split(' ', StringSplitOptions.RemoveEmptyEntries))
                         pending.Enqueue(int.Parse(value, CultureInfo.InvariantCulture));
                 }
@@ -98,8 +98,18 @@ internal sealed class AnalysisProcessBudget : IDisposable
                 catch (System.ComponentModel.Win32Exception) when (!Directory.Exists($"/proc/{id}")) { }
             }
         }
-        else { process.Refresh(); if (!process.HasExited) bytes = process.WorkingSet64; }
+        else bytes = WorkingSet(process);
         if (bytes > MaximumBytes) throw new IOException("Audio analysis memory budget was exceeded.");
+    }
+    private static long WorkingSet(Process member)
+    {
+        try
+        {
+            member.Refresh();
+            return member.HasExited ? 0 : member.WorkingSet64;
+        }
+        catch (InvalidOperationException) when (member.HasExited) { return 0; }
+        catch (System.ComponentModel.Win32Exception) when (member.HasExited) { return 0; }
     }
     internal void Stop()
     {

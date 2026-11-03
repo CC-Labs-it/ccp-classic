@@ -3,6 +3,9 @@ namespace CCP.Classic.App.Media;
 // An open local handle and an exact demuxer keep native audio away from paths and playlists.
 internal sealed class LocalAudioInput : IDisposable
 {
+    internal const int HeaderBytes = 16;
+    private static ReadOnlySpan<byte> AsfHeader =>
+        [0x30, 0x26, 0xb2, 0x75, 0x8e, 0x66, 0xcf, 0x11, 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c];
     public FileStream Stream { get; }
     public string Demux { get; }
     public LocalAudioInput(string path)
@@ -11,8 +14,8 @@ internal sealed class LocalAudioInput : IDisposable
         Stream = new FileStream(local, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
         {
-            Span<byte> header = stackalloc byte[12];
-            var read = Stream.Read(header); Stream.Position = 0;
+            Span<byte> header = stackalloc byte[HeaderBytes];
+            var read = Stream.ReadAtLeast(header, HeaderBytes, throwOnEndOfStream: false); Stream.Position = 0;
             Demux = DetectDemux(header[..read], Path.GetExtension(local)) ?? throw new IOException("Unsupported audio container.");
         }
         catch { Stream.Dispose(); throw; }
@@ -25,7 +28,7 @@ internal sealed class LocalAudioInput : IDisposable
         try
         {
             var full = Path.GetFullPath(value!);
-            if (Path.GetExtension(full).ToLowerInvariant() is not (".mp3" or ".wav" or ".ogg" or ".flac" or ".m4a" or ".aac" or ".opus")) return null;
+            if (!CCP.Classic.Core.LocalAudioFormats.SupportsPath(full)) return null;
             if (OperatingSystem.IsWindows() && new DriveInfo(Path.GetPathRoot(full)!).DriveType == DriveType.Network) return null;
             var ancestors = new Stack<string>();
             for (string? current = full; current is not null; current = Path.GetDirectoryName(current)) ancestors.Push(current);
@@ -37,6 +40,8 @@ internal sealed class LocalAudioInput : IDisposable
     }
     internal static string? DetectDemux(ReadOnlySpan<byte> header, string extension = ".mp3")
     {
+        // Complete ASF Header Object GUID, not the short prefix shared by other ASF objects.
+        if (header.Length >= HeaderBytes && header[..HeaderBytes].SequenceEqual(AsfHeader)) return "asf";
         if (header.Length >= 12 && header[..4].SequenceEqual("RIFF"u8) && header.Slice(8, 4).SequenceEqual("WAVE"u8)) return "wav";
         if (header.Length >= 4 && header[..4].SequenceEqual("OggS"u8)) return "ogg";
         if (header.Length >= 4 && header[..4].SequenceEqual("fLaC"u8)) return "flac";

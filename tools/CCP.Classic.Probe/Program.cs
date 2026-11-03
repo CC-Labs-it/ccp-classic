@@ -97,6 +97,8 @@ internal static class Program
             await Video(Path.Combine(Path.GetFullPath(args[1]), "neutral.mp4"));
             await Audio(Path.Combine(Path.GetFullPath(args[1]), "silent.wav"));
             await Analysis(Path.Combine(Path.GetFullPath(args[1]), "silent.wav"));
+            await Audio(Path.Combine(Path.GetFullPath(args[1]), "neutral.wma"), "wma");
+            await Analysis(Path.Combine(Path.GetFullPath(args[1]), "neutral.wma"), true);
         }
         finally { XCloseDisplay(display); }
     }
@@ -200,9 +202,9 @@ internal static class Program
         Check(canceled.LastError is null, "video_cancel_error"); Pass(stage);
     }
 
-    private static async Task Audio(string path)
+    private static async Task Audio(string path, string kind = "audio")
     {
-        stage = "native_muted_audio";
+        stage = "native_muted_" + kind;
         var audio = new LibVlcAudioPlayback();
         try
         {
@@ -211,7 +213,7 @@ internal static class Program
             await Until(() => ticket.IsFinished, 10);
             Check(ticket.WasSuccessful && Math.Abs(ticket.PlayedSeconds - 2) < .1 && audio.LastError is null, "audio_completion");
             Pass(stage, new { playedSeconds = ticket.PlayedSeconds });
-            stage = "native_audio_cancel";
+            stage = "native_" + kind + "_cancel";
             var canceled = audio.PlayTracked(path, 1) ?? throw new ProbeFailure("audio_cancel_request");
             await Until(() => canceled.PlayedSeconds > .02 || canceled.IsFinished, 5);
             Check(!canceled.IsFinished, "audio_cancel_active"); audio.StopAll();
@@ -220,16 +222,23 @@ internal static class Program
         finally { audio.Dispose(); await audio.Completion.WaitAsync(TimeSpan.FromSeconds(5), token); }
     }
 
-    private static async Task Analysis(string path)
+    private static async Task Analysis(string path, bool wma = false)
     {
-        stage = "native_offline_analysis";
+        stage = wma ? "native_wma_analysis" : "native_offline_analysis";
         using var cache = new AudioEnvelopeCache();
         var envelope = cache.Get(path);
         await cache.Completion.WaitAsync(TimeSpan.FromSeconds(15), token);
-        Check(!envelope.Failed && envelope.IsComplete && envelope.DurationSeconds is > 1.99 and < 2.01
-            && envelope.Sample(1) == 0, "analysis_source_time");
-        Pass(stage, new { duration = envelope.DurationSeconds, rms = envelope.Sample(1) });
-        stage = "native_analysis_cancel";
+        Check(!envelope.Failed && envelope.IsComplete && (wma ? envelope.DurationSeconds is > 1.95 and < 2.1
+            : envelope.DurationSeconds is > 1.99 and < 2.01), "analysis_source_time");
+        if (wma)
+        {
+            Check(envelope.Sample(.025) < .001 && envelope.Sample(.425) is > .45 and < .55
+                && envelope.Sample(1.425) is > .22 and < .28, "wma_energy_timing");
+            Pass(stage, new { duration = envelope.DurationSeconds, leadingRms = envelope.Sample(.025),
+                highRms = envelope.Sample(.425), lowRms = envelope.Sample(1.425) });
+        }
+        else { Check(envelope.Sample(1) == 0, "analysis_silence"); Pass(stage, new { duration = envelope.DurationSeconds, rms = envelope.Sample(1) }); }
+        stage = wma ? "native_wma_analysis_cancel" : "native_analysis_cancel";
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
         var canceled = false;
         var decoder = new FfmpegEnvelopeDecoder(started: _ => stop.Cancel());
