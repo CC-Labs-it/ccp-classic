@@ -154,6 +154,8 @@ internal static class Program
                 }
                 return video.IsFinished;
             }, 15);
+            Pass("video_completion_evidence", new { frames, colored, rate, playedSeconds = video.PlayedSeconds,
+                hasError = video.LastError is not null });
             Check(frames > 0 && colored && rate == 1f && video.LastError is null && video.PlayedSeconds >= 1, "video_completion");
             Pass(stage, new { frames, width = 320, height = 180, rate, playedSeconds = video.PlayedSeconds });
         }
