@@ -149,6 +149,8 @@
   "SpiralOne": "나선 1",
   "SpiralTwo": "나선 2",
   "SpiralThree": "나선 3",
+  "CapturePanicKey": "새 긴급 중지 키를 누르세요",
+  "PanicOff": "긴급 중지 꺼짐",
   "XP": "XP",
   "ByCredit": "By CodeBambi"
 }
