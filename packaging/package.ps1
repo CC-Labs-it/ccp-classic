@@ -52,7 +52,7 @@ try {
     $required = @('CCP.Classic.App.dll', 'CCP.Classic.App.runtimeconfig.json', 'Starter/Images/spiral.png',
         'Starter/Words/focus.mp3', 'Starter/Words/breathe.mp3', 'Starter/Words/relax.mp3', 'Starter/Words/listen.mp3', 'Starter/Words/deeper.mp3',
         'Starter/Audio/Bubbles/Pop.mp3', 'Starter/Audio/Bubbles/Pop2.mp3', 'Starter/Audio/Bubbles/Pop3.mp3',
-        'Starter/Spirals/spiral.gif', 'Starter/Spirals/spiral_corner.gif', 'licenses/Fredoka-OFL.txt')
+        'Starter/Spirals/spiral.gif', 'Starter/Spirals/spiral_corner.gif', 'Starter/Barks/flash_1.mp3', 'licenses/Fredoka-OFL.txt')
     $required += if ($windowsPackage) { @('CCP.Classic.App.exe', 'coreclr.dll', 'hostfxr.dll', 'libSkiaSharp.dll',
         'libHarfBuzzSharp.dll', 'libvlc/win-x64/libvlc.dll', 'libvlc/win-x64/libvlccore.dll',
         'libvlc/win-x64/plugins/audio_output/libdirectsound_plugin.dll', 'Analysis/ffmpeg.exe', 'Analysis/analysis-helper.json') } else {
@@ -69,7 +69,7 @@ try {
             if ($LASTEXITCODE -ne 0 -or ($dependencies -match 'not found')) { throw "Unresolved Linux dependency for ${file}: $dependencies" }
         }
     }
-    foreach ($file in Get-ChildItem -LiteralPath @((Join-Path $payload 'Starter/Words'), (Join-Path $payload 'Starter/Audio/Bubbles')) -File) {
+    foreach ($file in Get-ChildItem -LiteralPath @((Join-Path $payload 'Starter/Words'), (Join-Path $payload 'Starter/Audio/Bubbles'), (Join-Path $payload 'Starter/Barks')) -File) {
         if ($file.Length -lt 256) { throw "Starter recording is missing or an LFS pointer: $($file.Name)" }
     }
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $payload 'Starter/Spirals') -Filter '*.gif' -File) {
