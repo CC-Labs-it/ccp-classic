@@ -18,6 +18,8 @@ internal interface IAudioVoice : IDisposable
     bool IsFinished { get; }
     bool WasSuccessful => false;
     double PlayedSeconds => 0;
+    double SourceSeconds => 0;
+    bool IsPlaying => false;
     void Start();
     void SetGain(double gain);
     void Refresh();
@@ -27,7 +29,7 @@ internal interface IAudioVoice : IDisposable
 public sealed class LibVlcAudioPlayback : IAudioPlayback
 {
     private sealed record Request(string Path, double Gain, long Generation, AudioPlaybackTicket Ticket);
-    private sealed record ActiveVoice(IAudioVoice Voice, double PerSoundGain, AudioPlaybackTicket Ticket);
+    private sealed record ActiveVoice(IAudioVoice Voice, double PerSoundGain, AudioPlaybackTicket Ticket, string Path);
     private readonly object gate = new();
     private readonly Queue<Request> pending = new();
     private readonly List<ActiveVoice> active = new();
@@ -40,8 +42,10 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
     private double masterGain = 1;
     private DateTime retryAfter;
     private string? lastError;
+    private IReadOnlyList<AudioPlaybackSample> audioSamples = Array.Empty<AudioPlaybackSample>();
     internal Task Completion => completion.Task;
     public string? LastError => Volatile.Read(ref lastError);
+    public IReadOnlyList<AudioPlaybackSample> GetAudioSamples() => Volatile.Read(ref audioSamples);
 
     public LibVlcAudioPlayback() : this(() => new NativeAudioDevice()) { }
 
@@ -90,6 +94,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
             tickets.Clear();
             pending.Clear();
             stopRequested = true;
+            Volatile.Write(ref audioSamples, Array.Empty<AudioPlaybackSample>());
             signal.Set();
         }
     }
@@ -104,6 +109,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
             foreach (var ticket in tickets) ticket.Complete(false);
             tickets.Clear();
             pending.Clear();
+            Volatile.Write(ref audioSamples, Array.Empty<AudioPlaybackSample>());
             signal.Set();
         }
     }
@@ -142,6 +148,10 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                     catch (Exception error) { Volatile.Write(ref lastError, error.Message); Finish(playing.Ticket, false); Release(voice); active.RemoveAt(index); continue; }
                     if (voice.IsFinished) { Finish(playing.Ticket, voice.WasSuccessful, voice.PlayedSeconds); Release(voice); active.RemoveAt(index); }
                 }
+                lock (gate)
+                    Volatile.Write(ref audioSamples, disposed || stopRequested ? Array.Empty<AudioPlaybackSample>()
+                        : Array.AsReadOnly(active.Where(v => !v.Ticket.IsFinished).Select(v => new AudioPlaybackSample(v.Path,
+                            v.Voice.SourceSeconds, v.PerSoundGain * master, v.Voice.IsPlaying, TimeProvider.System.GetTimestamp())).ToArray()));
                 Request? request = null;
                 // A stop received during Refresh belongs before any new-generation playback.
                 lock (gate) if (!stopRequested && active.Count < 10 && pending.Count > 0) request = pending.Dequeue();
@@ -173,7 +183,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                     // The master may have changed while the native output was opening.
                     opened.SetGain(EffectiveGain(request));
                     if (!Current(request)) { Release(opened); continue; }
-                    playingVoice = new(opened, request.Gain, request.Ticket);
+                    playingVoice = new(opened, request.Gain, request.Ticket, request.Path);
                     active.Add(playingVoice);
                     opened.Start();
                     if (!Current(request)) { Release(opened); active.Remove(playingVoice); }

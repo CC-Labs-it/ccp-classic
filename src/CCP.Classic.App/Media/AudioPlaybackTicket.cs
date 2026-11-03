@@ -1,5 +1,7 @@
 namespace CCP.Classic.App.Media;
 
+public sealed record AudioPlaybackSample(string Path, double SourceSeconds, double Gain, bool IsPlaying, long ObservedAt);
+
 // A ticket owns one accepted request. Completion is published once, after its final played time.
 public sealed class AudioPlaybackTicket
 {

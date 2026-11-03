@@ -77,6 +77,22 @@ public sealed class VideoPlaybackTests
     }
 
     [Fact]
+    public async Task MeterUsesTheSourcePositionAndHidesPausedOrDisposedPlaybackImmediately()
+    {
+        using var file = new VideoFile(); var device = new Device { SourcePosition = 12000 };
+        var playback = new LocalVideoPlayback(file.Path, 60, _ => device);
+        try
+        {
+            playback.SetGain(.3); playback.Start();
+            await Until(() => playback.GetAudioSample() is { SourceSeconds: 12, Gain: .3, IsPlaying: true });
+            Assert.Equal(0, playback.PlayedSeconds); playback.SetPaused(true); Assert.Null(playback.GetAudioSample());
+            playback.SetPaused(false); await Until(() => playback.GetAudioSample() is { IsPlaying: true });
+            playback.Dispose(); Assert.Null(playback.GetAudioSample());
+        }
+        finally { playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
     public async Task DisposalHidesFramesImmediatelyWhileNativeTeardownIsBlocked()
     {
         using var file = new VideoFile();
@@ -193,6 +209,7 @@ public sealed class VideoPlaybackTests
         private int starts, disposed, paused;
         private double gain;
         public VideoFrame? Frame;
+        public long SourcePosition;
         public int Starts => Volatile.Read(ref starts);
         public bool Disposed => Volatile.Read(ref disposed) != 0;
         public bool Paused => Volatile.Read(ref paused) != 0;
@@ -202,7 +219,7 @@ public sealed class VideoPlaybackTests
         public int Height => 1;
         public bool IsFinished => false;
         public bool IsPlaying => !Paused;
-        public long PositionMilliseconds => 0;
+        public long PositionMilliseconds => Interlocked.Read(ref SourcePosition);
         public void Start() { StartGain = Gain; Interlocked.Increment(ref starts); }
         public void SetGain(double value) => Volatile.Write(ref gain, value);
         public void SetPaused(bool value) => Interlocked.Exchange(ref paused, value ? 1 : 0);

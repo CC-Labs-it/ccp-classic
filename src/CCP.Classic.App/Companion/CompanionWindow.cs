@@ -31,10 +31,12 @@ internal sealed class CompanionWindow : Window
     private bool closed, prepared, hasTime, forced, stopPending;
     public string? LastError { get; private set; }
     public int DecodedFrames { get; private set; }
-    public bool IsMotionActive => !closed && IsVisible && settings.CompanionEnabled
-        && !settings.GentleVisuals && !settings.ReducedMotion && !settings.PerformanceMode
+    internal bool IsDecodePending => pending is not null;
+    private bool CanBootstrap => !closed && settings.CompanionEnabled && WindowState != WindowState.Minimized
         && owner.IsVisible && owner.WindowState != WindowState.Minimized
         && (owner.IsActive || owner.OwnedWindows.Any(window => window.IsActive));
+    public bool IsMotionActive => CanBootstrap && IsVisible
+        && !settings.GentleVisuals && !settings.ReducedMotion && !settings.PerformanceMode;
     public event Action? AvatarClicked;
     public event Action? StopRequested;
 
@@ -99,7 +101,7 @@ internal sealed class CompanionWindow : Window
             if (clip != wantedClip) { wantedClip = clip; animationTime = 0; lastRequest = double.NegativeInfinity; }
         }
         if (pending is null && settings.CompanionEnabled && LastError is null
-            && (bitmap is null || IsMotionActive && now - lastRequest >= .05)) RequestFrame(now);
+            && (bitmap is null ? CanBootstrap : IsMotionActive && now - lastRequest >= .05)) RequestFrame(now);
     }
 
     private void EnsureShown()
@@ -123,19 +125,19 @@ internal sealed class CompanionWindow : Window
 
     private void RequestFrame(double now)
     {
-        var clip = wantedClip; var position = bitmap is null ? 0 : animationTime;
+        var clip = wantedClip; var bootstrap = bitmap is null; var position = bootstrap ? 0 : animationTime;
         lastRequest = now;
         pending = Task.Run(() =>
         {
             if (decoder?.Name != clip) { decoder?.Dispose(); decoder = new(clip); }
-            return decoder.Decode(position);
+            return decoder.Decode(position, bootstrap);
         });
         _ = pending.ContinueWith(result => Dispatcher.UIThread.Post(() =>
         {
             pending = null;
             if (closed) { _ = result.Exception; return; }
             if (result.IsFaulted) { LastError = result.Exception!.GetBaseException().Message; Hide(); return; }
-            if (result.Result is not { } frame || clip != wantedClip || bitmap is not null && !IsMotionActive) return;
+            if (result.Result is not { } frame || clip != wantedClip || !(bitmap is null ? CanBootstrap : IsMotionActive)) return;
             if (displayedClip != clip || bitmap is null)
             {
                 previousPortrait.Source = null; previous?.Dispose(); previous = bitmap;
@@ -180,11 +182,11 @@ internal sealed class CompanionWindow : Window
             bitmap = new(new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Bgra8888, SKAlphaType.Premul));
             double end = 0; ends = codec.FrameInfo.Select(frame => end += Math.Max(20, frame.Duration) / 1000d).ToArray();
         }
-        public DecodedFrame? Decode(double seconds)
+        public DecodedFrame? Decode(double seconds, bool force)
         {
             var position = ends.Length > 0 ? seconds % ends[^1] : 0;
             var index = Array.FindIndex(ends, end => position < end); if (index < 0) index = 0;
-            if (index == decoded) return null;
+            if (index == decoded && !force) return null;
             var result = codec.GetPixels(bitmap.Info, bitmap.GetPixels(), new SKCodecOptions(index));
             if (result != SKCodecResult.Success) throw new InvalidDataException("Companion frame could not be decoded.");
             decoded = index; return new(bitmap.Bytes, bitmap.Width, bitmap.Height);

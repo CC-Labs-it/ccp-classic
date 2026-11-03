@@ -114,16 +114,21 @@ public sealed class VideoWindowTests
     [Fact]
     public Task AttentionUsesVideoStartTimePausesAndResumesAfterAnAnswer() => UiDispatcher.Run(() =>
     {
-        using var fixture = new Fixture(attention: true); var answers = new List<bool>();
+        using var fixture = new Fixture(attention: true); var answers = new List<bool>(); var prompts = 0;
         fixture.Window.CountAnswered += answers.Add;
+        fixture.Window.AttentionStarted += () => prompts++;
         fixture.Frame(1000); fixture.Window.Pulse(1029.99, 1); Assert.False(fixture.Playback.Paused);
+        Assert.NotNull(fixture.Window.GetAudioSample());
         fixture.Window.Pulse(1030, 1); Assert.True(fixture.Playback.Paused);
+        Assert.Equal(1, prompts); Assert.Null(fixture.Window.GetAudioSample());
         var bubbles = fixture.Window.GetVisualDescendants().OfType<Canvas>().Single(canvas => canvas.Name == "AttentionBubbles");
         Assert.False(fixture.Window.AnswerCount(0)); Assert.True(fixture.Playback.Paused);
         Assert.True(fixture.Window.AnswerCount(bubbles.Children.Count)); Assert.False(fixture.Playback.Paused);
+        Assert.NotNull(fixture.Window.GetAudioSample());
         Assert.Equal(new[] { false, true }, answers);
         Assert.False(fixture.Window.AnswerCount(bubbles.Children.Count)); Assert.Equal(2, answers.Count);
         fixture.Window.Pulse(1060, 1); Assert.True(fixture.Playback.Paused);
+        Assert.Equal(2, prompts);
         fixture.Window.Pulse(1075, 1); Assert.False(fixture.Playback.Paused);
         Assert.Equal(new[] { false, true, false }, answers);
         fixture.Window.FinishImmediately(); Assert.False(fixture.Window.AnswerCount(bubbles.Children.Count));
@@ -137,6 +142,91 @@ public sealed class VideoWindowTests
         fixture.Window.Pulse(0, 1);
         Assert.True(fixture.Window.HasFinished); Assert.False(fixture.Window.IsVisible);
         Assert.NotNull(fixture.Window.PlaybackError); Assert.Null(fixture.Image.Source);
+    });
+
+    [Fact]
+    public Task VisibleFloatingVideoContinuesWhenTheWholeWindowGroupLosesFocus() => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(); fixture.Frame(0);
+        var deactivate = typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        deactivate.Invoke(fixture.Owner, null); deactivate.Invoke(fixture.Window, null);
+        var copies = fixture.Playback.Copies; fixture.Frame(1);
+        Assert.False(fixture.Owner.IsActive); Assert.False(fixture.Window.IsActive);
+        Assert.True(fixture.Window.IsVisible); Assert.False(fixture.Playback.Paused);
+        Assert.Equal(copies + 1, fixture.Playback.Copies);
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task OwnerHidingOrMinimizingPausesDecodingAndRestoresTheLatestFrame(bool minimize) => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(); fixture.Frame(0); fixture.Window.Pulse(.25, 1);
+        var copies = fixture.Playback.Copies;
+        if (minimize) fixture.Owner.WindowState = WindowState.Minimized; else fixture.Owner.Hide();
+        fixture.Frame(1); var latest = fixture.Playback.Frame; fixture.Window.Pulse(200, 1);
+        Assert.True(fixture.Playback.Paused); Assert.False(fixture.Window.IsVisible);
+        Assert.Equal(copies, fixture.Playback.Copies); Assert.Same(latest, fixture.Playback.Frame);
+        if (minimize) fixture.Owner.WindowState = WindowState.Normal; else fixture.Owner.Show();
+        fixture.Window.Pulse(201, 1);
+        Assert.True(fixture.Window.IsVisible); Assert.False(fixture.Playback.Paused);
+        Assert.Equal(copies + 1, fixture.Playback.Copies); Assert.Null(fixture.Playback.Frame);
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task TheVideoWindowItselfCanBeHiddenOrMinimizedWithoutCopyingFrames(bool minimize) => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(); fixture.Frame(0); var copies = fixture.Playback.Copies;
+        if (minimize) fixture.Window.WindowState = WindowState.Minimized; else fixture.Window.Hide();
+        fixture.Frame(1); fixture.Window.Pulse(200, 1);
+        Assert.True(fixture.Playback.Paused); Assert.Equal(copies, fixture.Playback.Copies);
+        if (!minimize)
+        {
+            fixture.Owner.Hide(); fixture.Window.Pulse(201, 1); fixture.Owner.Show(); fixture.Window.Pulse(202, 1);
+            Assert.False(fixture.Window.IsVisible);
+        }
+        if (minimize) fixture.Window.WindowState = WindowState.Normal; else fixture.Window.Show(fixture.Owner);
+        fixture.Window.Pulse(203, 1);
+        Assert.False(fixture.Playback.Paused); Assert.Equal(copies + 1, fixture.Playback.Copies);
+    });
+
+    [Fact]
+    public Task HiddenFirstFrameWaitsWithoutCopyingMappingOrConsumingTheWatchdog() => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(); fixture.Owner.Hide(); fixture.Frame(0);
+        fixture.Window.Pulse(1000, 1);
+        Assert.True(fixture.Playback.Paused); Assert.Equal(0, fixture.Playback.Copies);
+        Assert.False(fixture.Window.IsVisible); Assert.False(fixture.Window.HasFinished);
+        Assert.Null(fixture.Window.PlaybackError); Assert.Null(fixture.Image.Source);
+        fixture.Owner.Show(); fixture.Window.Pulse(1001, 1);
+        Assert.False(fixture.Playback.Paused); Assert.True(fixture.Window.IsVisible);
+        Assert.NotNull(fixture.Image.Source); Assert.False(fixture.Window.HasFinished);
+    });
+
+    [Fact]
+    public Task HiddenAttentionFreezesItsDeadlineAndRestoringKeepsTheAttentionPause() => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(attention: true); var results = new List<bool>();
+        fixture.Window.CountAnswered += results.Add; fixture.Frame(0); fixture.Window.Pulse(30, 1);
+        Assert.True(fixture.Playback.Paused);
+        fixture.Owner.Hide(); fixture.Window.Pulse(31, 1); fixture.Window.Pulse(300, 1);
+        fixture.Owner.Show(); fixture.Window.Pulse(301, 1);
+        Assert.True(fixture.Playback.Paused); Assert.Empty(results);
+        fixture.Window.Pulse(315.9, 1); Assert.Empty(results);
+        fixture.Window.Pulse(316, 1);
+        Assert.Equal(new[] { false }, results); Assert.False(fixture.Playback.Paused);
+    });
+
+    [Fact]
+    public Task AnsweringAnAttentionPromptWhileHiddenCannotUnpauseTheDecoder() => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(attention: true); fixture.Frame(0); fixture.Window.Pulse(30, 1);
+        var bubbles = fixture.Window.GetVisualDescendants().OfType<Canvas>().Single(canvas => canvas.Name == "AttentionBubbles");
+        fixture.Owner.Hide(); fixture.Window.Pulse(31, 1);
+        Assert.True(fixture.Window.AnswerCount(bubbles.Children.Count)); Assert.True(fixture.Playback.Paused);
+        fixture.Owner.Show(); fixture.Window.Pulse(300, 1); Assert.False(fixture.Playback.Paused);
     });
 
     [Fact]
@@ -192,14 +282,15 @@ public sealed class VideoWindowTests
         public bool IsFinished { get; set; }
         public string? LastError { get; set; }
         public VideoFrame? Frame;
-        public int Starts, Disposals;
+        public int Starts, Disposals, Copies;
         public bool Paused;
         public double Gain;
         public Action? Disposing;
         public void Start() => Starts++;
         public void SetGain(double gain) => Gain = gain;
         public void SetPaused(bool paused) => Paused = paused;
-        public bool TryCopyFrame(out VideoFrame? frame) { frame = Frame; Frame = null; return frame is not null; }
+        public AudioPlaybackSample? GetAudioSample() => new("test.wav", 1, Gain, !Paused, TimeProvider.System.GetTimestamp());
+        public bool TryCopyFrame(out VideoFrame? frame) { Copies++; frame = Frame; Frame = null; return frame is not null; }
         public void Dispose() { Disposing?.Invoke(); Disposals++; }
     }
 }

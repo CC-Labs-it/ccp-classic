@@ -248,6 +248,21 @@ public sealed class AudioPlaybackTests
     }
 
     [Fact]
+    public async Task MeterSnapshotsKeepSourcePositionAndEffectiveGainSeparateFromWatchedDuration()
+    {
+        using var file = new LocalFile(".wav"); var device = new Device(); var playback = new LibVlcAudioPlayback(() => device);
+        try
+        {
+            playback.SetMasterGain(.4); var ticket = playback.PlayTracked(file.Path, .5)!;
+            await Until(() => device.Voices.Any(v => v.Started)); Assert.Single(device.Voices).Advance(1.25);
+            await Until(() => playback.GetAudioSamples().SingleOrDefault() is { SourceSeconds: 11.25, Gain: .2, IsPlaying: true });
+            Assert.Equal(1.25, ticket.PlayedSeconds); Assert.Equal(file.Path, Assert.Single(playback.GetAudioSamples()).Path);
+            playback.StopAll(); Assert.Empty(playback.GetAudioSamples());
+        }
+        finally { playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
     public async Task PanicImmediatelyCancelsActiveAndQueuedTicketsEvenDuringBlockedRefresh()
     {
         using var file = new LocalFile(".wav");
@@ -344,6 +359,8 @@ public sealed class AudioPlaybackTests
         public bool IsFinished => Volatile.Read(ref failed) != 0 || Volatile.Read(ref completed) != 0;
         public bool WasSuccessful => Volatile.Read(ref completed) != 0 && Volatile.Read(ref failed) == 0;
         public double PlayedSeconds => Volatile.Read(ref playedSeconds);
+        public double SourceSeconds => PlayedSeconds + 10;
+        public bool IsPlaying => Started && !IsFinished;
         public int RefreshCount => Volatile.Read(ref refreshCount);
         public double Gain => Volatile.Read(ref gain);
         public double StartGain => Volatile.Read(ref startGain);

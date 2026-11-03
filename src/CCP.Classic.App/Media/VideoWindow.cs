@@ -20,12 +20,13 @@ internal sealed class VideoWindow : Window
     private readonly Border attention = new() { Background = Brushes.Black, IsVisible = false };
     private readonly TextBox answer = new() { Width = 100, Name = "AttentionAnswer" };
     private WriteableBitmap? bitmap;
-    private bool forced, completed, counted, released, closePending;
+    private bool forced, completed, counted, released, closePending, suppressed, hiddenForOwner, pendingOwnerHide;
     private Window? owner;
     private int windowIndex;
     private string? error;
     private double? firstFrame, firstPulse, ending, attentionStarted;
-    private double lastNow, nextAttention = 30;
+    private double lastNow, nextAttention = 30, excludedTime;
+    private double? lastPulse;
     private double opacityFrom, opacityTarget, opacityStarted, opacityDuration, alpha;
     private int expected;
     public long CueId => cue.Id;
@@ -33,7 +34,10 @@ internal sealed class VideoWindow : Window
     public string? PlaybackError => error ?? playback.LastError;
     public event Action<bool>? CountAnswered;
     public event Action? VideoFinished;
+    public event Action? AttentionStarted;
     public double PlayedSeconds => playback.PlayedSeconds;
+    public AudioPlaybackSample? GetAudioSample() => completed || ending is not null || IsSuppressed || attentionStarted is not null
+        ? null : playback.GetAudioSample();
 
     public VideoWindow(VideoCue cue, ClassicSettings settings, ILocalVideoPlayback playback,
         LocalizationService text, Func<bool> requestStop, Action<Window> configureInput)
@@ -58,6 +62,12 @@ internal sealed class VideoWindow : Window
             }
         };
         Closed += (_, _) => { completed = true; ClearVisuals(); ReleasePlayback(); };
+        PropertyChanged += (_, args) =>
+        {
+            if (completed || args.Property != IsVisibleProperty) return;
+            pendingOwnerHide = firstFrame is not null && !IsVisible;
+            SyncPause();
+        };
         var panel = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = text["CountBubbles"], FontSize = 20 });
@@ -71,12 +81,38 @@ internal sealed class VideoWindow : Window
     public void Begin(Window owner, int index)
     {
         this.owner = owner; windowIndex = index; Opacity = 0;
+        owner.PropertyChanged += OwnerChanged;
+        playback.SetPaused(IsSuppressed);
         playback.Start();
+    }
+
+    private bool OwnerAvailable => owner is { IsVisible: true } && owner.WindowState != WindowState.Minimized;
+    private bool IsSuppressed => !OwnerAvailable || WindowState == WindowState.Minimized || firstFrame is not null && !IsVisible;
+    private void SyncPause() => playback.SetPaused(IsSuppressed || attentionStarted is not null);
+    private void OwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
+    {
+        // Avalonia hides owned children before changing the owner's own visibility.
+        if (args.Property == IsVisibleProperty && !OwnerAvailable && pendingOwnerHide) hiddenForOwner = true;
+        if (args.Property == IsVisibleProperty || args.Property == WindowStateProperty) SyncPause();
+    }
+
+    private bool PreparePresentation()
+    {
+        pendingOwnerHide = false;
+        if (!OwnerAvailable)
+        {
+            hiddenForOwner |= IsVisible;
+            if (IsVisible) Hide();
+            return false;
+        }
+        if (hiddenForOwner && WindowState != WindowState.Minimized)
+        { hiddenForOwner = false; Show(owner!); }
+        return !IsSuppressed;
     }
 
     private void ShowFirstFrame()
     {
-        if (owner is null || completed) return;
+        if (owner is null || !OwnerAvailable || completed) return;
         Show(owner);
         var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
         if (screen is not null)
@@ -102,10 +138,16 @@ internal sealed class VideoWindow : Window
 
     private void UpdatePlayback(double now, double gain)
     {
-        now = double.IsFinite(now) ? Math.Max(lastNow, now) : lastNow;
+        now = double.IsFinite(now) ? Math.Max(lastPulse ?? now, now) : lastPulse ?? 0;
+        var visible = PreparePresentation();
+        if (lastPulse is { } previous && (suppressed || !visible)) excludedTime += now - previous;
+        lastPulse = now; suppressed = !visible;
+        playback.SetGain(gain); SyncPause();
+        if (suppressed) return;
+        // Watchdogs, fades and attention use only time with an available presentation.
+        now -= excludedTime;
         firstPulse ??= now;
         lastNow = now;
-        playback.SetGain(gain);
         if (ending is null && playback.TryCopyFrame(out var frame) && frame is not null)
         {
             if (frame.Width is <= 0 or > 960 || frame.Height is <= 0 or > 540
@@ -153,7 +195,8 @@ internal sealed class VideoWindow : Window
             Canvas.SetLeft(bubble, 15 + index % 4 * 70); Canvas.SetTop(bubble, 20 + index / 4 * 80);
             canvas.Children.Add(bubble);
         }
-        playback.SetPaused(true); attentionStarted = now; attention.IsVisible = true; answer.Text = ""; answer.Focus();
+        attentionStarted = now; SyncPause(); attention.IsVisible = true; answer.Text = ""; answer.Focus();
+        AttentionStarted?.Invoke();
     }
 
     internal bool AnswerCount(int count)
@@ -166,7 +209,7 @@ internal sealed class VideoWindow : Window
     private void Resume()
     {
         attentionStarted = null; attention.IsVisible = false;
-        nextAttention = lastNow + 30; playback.SetPaused(false);
+        nextAttention = lastNow + 30; SyncPause();
     }
     private static double Ease(double value) { var t = Math.Clamp(value, 0, 1); return t * t * (3 - 2 * t); }
     private void ClearVisuals()
@@ -174,7 +217,13 @@ internal sealed class VideoWindow : Window
         attentionStarted = null; attention.IsVisible = false;
         image.Source = null; bitmap?.Dispose(); bitmap = null;
     }
-    private void ReleasePlayback() { if (!released) { released = true; playback.Dispose(); } }
+    private void ReleasePlayback()
+    {
+        if (released) return;
+        released = true;
+        if (owner is not null) owner.PropertyChanged -= OwnerChanged;
+        playback.Dispose();
+    }
     public void FinishImmediately()
     {
         if (completed) return;

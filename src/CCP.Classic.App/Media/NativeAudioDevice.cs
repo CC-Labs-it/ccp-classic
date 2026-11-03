@@ -77,9 +77,13 @@ internal sealed class NativeAudioDevice : IAudioDevice
         private int finished, applyGain, failed, successful;
         private long length;
         private long lastPosition = -1, lastProgressAt;
+        private long sourceMilliseconds;
+        private int isPlaying;
         public bool IsFinished => Volatile.Read(ref finished) != 0;
         public bool WasSuccessful => Volatile.Read(ref successful) != 0 && Volatile.Read(ref failed) == 0;
         public double PlayedSeconds => Math.Max(allowance.PlayedMilliseconds, WasSuccessful ? Interlocked.Read(ref length) : 0) / 1000d;
+        public double SourceSeconds => Interlocked.Read(ref sourceMilliseconds) / 1000d;
+        public bool IsPlaying => Volatile.Read(ref isPlaying) != 0 && !IsFinished;
 
         public Voice(LibVLC vlc, string path, double gain, Action wake)
         {
@@ -132,6 +136,8 @@ internal sealed class NativeAudioDevice : IAudioDevice
         {
             if (Volatile.Read(ref failed) != 0) throw new InvalidOperationException("Audio playback failed.");
             var position = player!.Time;
+            Interlocked.Exchange(ref sourceMilliseconds, Math.Max(0, position));
+            Volatile.Write(ref isPlaying, player.State == VLCState.Playing ? 1 : 0);
             var now = elapsed.ElapsedMilliseconds;
             if (position != lastPosition) { lastPosition = position; lastProgressAt = now; }
             else if (elapsed.IsRunning && !IsFinished && now - lastProgressAt > 15_000)

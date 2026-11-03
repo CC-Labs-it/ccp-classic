@@ -18,6 +18,9 @@ internal sealed class VideoSessionService(Window owner, ClassicSettings settings
     public bool IsPlaying => windows.Count > 0;
     public event Action<double>? VideoFinished;
     public event Action<bool>? CountAnswered;
+    public event Action? AttentionStarted;
+    public IReadOnlyList<AudioPlaybackSample> GetAudioSamples() => windows.Values.Select(window => window.GetAudioSample())
+        .OfType<AudioPlaybackSample>().ToArray();
 
     public void Start()
     {
@@ -59,6 +62,7 @@ internal sealed class VideoSessionService(Window owner, ClassicSettings settings
             var window = new VideoWindow(cue, settings, playback, new LocalizationService(settings.Language), session.Stop, configureInput);
             window.VideoFinished += () => VideoFinished?.Invoke(window.PlayedSeconds);
             window.CountAnswered += correct => CountAnswered?.Invoke(correct);
+            window.AttentionStarted += () => AttentionStarted?.Invoke();
             try { windows.Add(cue.Id, window); window.Begin(owner, windows.Count - 1); Status = null; }
             catch { window.FinishImmediately(); windows.Remove(cue.Id); timeline.Complete(cue.Id); Status = "VideoUnavailable"; }
         }

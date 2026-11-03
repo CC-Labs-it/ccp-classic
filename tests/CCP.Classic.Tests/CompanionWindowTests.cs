@@ -109,6 +109,88 @@ public sealed class CompanionWindowTests
         finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
     }
 
+    [Theory]
+    [InlineData("disabled")]
+    [InlineData("hidden")]
+    [InlineData("minimized")]
+    [InlineData("inactive")]
+    public async Task ALateFirstFrameCannotPublishAfterItsPresentationIsSuppressed(string suppression)
+    {
+        Window owner = null!; CompanionWindow companion = null!;
+        var settings = new ClassicSettings { CompanionEnabled = true };
+        try
+        {
+            await UiDispatcher.Run(() =>
+            {
+                owner = new(); owner.Show(); owner.Activate();
+                companion = new(owner, settings, _ => { }, requireTransparency: false);
+            });
+            await Until(() => owner.IsActive, owner.Activate);
+            await UiDispatcher.Run(() =>
+            {
+                companion.Update(null, 0); Assert.True(companion.IsDecodePending);
+                if (suppression == "disabled") settings.CompanionEnabled = false;
+                else if (suppression == "hidden") owner.Hide();
+                else if (suppression == "minimized") owner.WindowState = WindowState.Minimized;
+                else typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, null);
+            });
+            await Until(() => !companion.IsDecodePending, () => { });
+            await UiDispatcher.Run(() =>
+            {
+                Assert.Equal(0, companion.DecodedFrames); Assert.False(companion.IsVisible);
+                Assert.All(companion.GetVisualDescendants().OfType<Image>(), image => Assert.Null(image.Source));
+                for (var index = 0; index < 100; index++)
+                {
+                    companion.Update(null, 1 + index * .1);
+                    Assert.False(companion.IsDecodePending);
+                }
+                settings.CompanionEnabled = true; owner.WindowState = WindowState.Normal;
+                if (!owner.IsVisible) owner.Show(); owner.Activate();
+            });
+            await Until(() => owner.IsActive, owner.Activate);
+            await UiDispatcher.Run(() =>
+            {
+                companion.Update(null, 12); Assert.True(companion.IsDecodePending);
+            });
+            await Until(() => companion.DecodedFrames > 0, () => companion.Update(null, 12.1));
+            await UiDispatcher.Run(() =>
+            {
+                companion.Update(null, 12.2); Assert.True(companion.IsVisible);
+                Assert.Null(companion.LastError);
+            });
+        }
+        finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
+    }
+
+    [Fact]
+    public async Task ForcedCloseDiscardsThePendingFrameAndQueuedStop()
+    {
+        Window owner = null!; CompanionWindow companion = null!; var stops = 0;
+        try
+        {
+            await UiDispatcher.Run(() =>
+            {
+                owner = new(); owner.Show(); owner.Activate();
+                companion = new(owner, new() { CompanionEnabled = true }, _ => { }, requireTransparency: false);
+                companion.StopRequested += () => stops++;
+            });
+            await Until(() => owner.IsActive, owner.Activate);
+            await UiDispatcher.Run(() =>
+            {
+                companion.Update(null, 0); Assert.True(companion.IsDecodePending);
+                companion.Show(owner); companion.Close(); companion.FinishImmediately();
+            });
+            await Until(() => !companion.IsDecodePending, () => { });
+            await UiDispatcher.Run(() =>
+            {
+                Dispatcher.UIThread.RunJobs(); Assert.Equal(0, stops); Assert.Equal(0, companion.DecodedFrames);
+                Assert.False(companion.IsVisible);
+                Assert.All(companion.GetVisualDescendants().OfType<Image>(), image => Assert.Null(image.Source));
+            });
+        }
+        finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
+    }
+
     private static async Task Until(Func<bool> ready, Action update)
     {
         for (var attempt = 0; attempt < 100; attempt++)

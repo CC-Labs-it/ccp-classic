@@ -11,6 +11,7 @@ public interface ILocalVideoPlayback : IDisposable
     bool IsFinished { get; }
     string? LastError { get; }
     double PlayedSeconds => 0;
+    AudioPlaybackSample? GetAudioSample() => null;
     void Start();
     void SetGain(double gain);
     void SetPaused(bool paused);
@@ -46,11 +47,13 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
     private int finished;
     private long playedMilliseconds;
     private string? lastError;
+    private AudioPlaybackSample? audioSample;
     public int Width => Volatile.Read(ref device)?.Width ?? 0;
     public int Height => Volatile.Read(ref device)?.Height ?? 0;
     public bool IsFinished => Volatile.Read(ref finished) != 0;
     public string? LastError => Volatile.Read(ref lastError);
     public double PlayedSeconds => Interlocked.Read(ref playedMilliseconds) / 1000d;
+    public AudioPlaybackSample? GetAudioSample() { lock (gate) return disposed || paused ? null : audioSample; }
     internal Task Completion => completion.Task;
 
     public LocalVideoPlayback(string localPath, double capSeconds) : this(localPath, capSeconds, p => new NativeVideo(p)) { }
@@ -88,7 +91,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
         lock (gate)
         {
             if (disposed) return;
-            disposed = true;
+            disposed = true; audioSample = null;
             Interlocked.Exchange(ref finished, 1);
             if (started) signal.Set();
             else { signal.Dispose(); completion.TrySetResult(); }
@@ -124,6 +127,8 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
                 if (nextGain != appliedGain) { opened.SetGain(nextGain); appliedGain = nextGain; }
                 if (nextPause != appliedPause) { opened.SetPaused(nextPause); appliedPause = nextPause; }
                 opened.Refresh();
+                lock (gate) if (!disposed) audioSample = new(path, Math.Max(0, opened.PositionMilliseconds) / 1000d,
+                    appliedGain, !nextPause && opened.IsPlaying, TimeProvider.System.GetTimestamp());
                 clock.Observe(opened.PositionMilliseconds, elapsed.ElapsedMilliseconds, !nextPause && (opened.IsPlaying || opened.IsFinished));
                 Interlocked.Exchange(ref playedMilliseconds, clock.PlayedMilliseconds);
                 if (opened.IsFinished || clock.PlayedMilliseconds >= capSeconds * 1000) break;
@@ -133,7 +138,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
         catch (Exception error) { if (Current()) Volatile.Write(ref lastError, error.Message); }
         finally
         {
-            lock (gate) device = null;
+            lock (gate) { device = null; audioSample = null; }
             try { opened?.Dispose(); } catch (Exception error) { if (Current()) Volatile.Write(ref lastError, error.Message); }
             Interlocked.Exchange(ref finished, 1);
             lock (gate) { disposed = true; signal.Dispose(); }
