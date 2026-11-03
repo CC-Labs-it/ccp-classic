@@ -1,5 +1,24 @@
 # CCP Classic handoff
 
+## Tube emotes at CCP parity, 2026-11-03 (fix/tube-emotes)
+
+Owner: animations 20% slower, no talking on every trigger, idle animations more often, full
+parity with CCP. Before: `CompanionWindow.Update` played `talkA` for every visible bark (idle
+interval words, click pokes and session timed phrases, which are also the effect triggers), the
+greeting for 7.2 s after a click, and otherwise looped `idle` forever at the GIFs' 60 ms frames.
+Now `Core/CompanionEmotes.cs` ports CCP's `AvatarTubeWindow.CirceEmotes.cs` as a pure planner
+(`CompanionEmoteDirector`) over the trimmed `Assets/Companion/emotes.json` + `clip_timing.json`:
+each clip plays once, weighted idle rotation never repeats the clip on screen, a spoken line plays
+1 to 3 talk clips by length then one reaction (stem, mood, random expressive), non-verbal sounds and
+single trigger words play one expressive clip from idle (never talk), a click plays a click emote
+(3 s cooldown, 2 s hold). The window crossfades on two layers (fadeMs 1 s, Gentle 1.5 s) once the
+new clip has a frame. Rate: 16.7 fps (7.2 s clips) before, 13.3 fps (9.0 s) now
+(`CompanionEmoteDirector.PlaybackRate` 0.8). Gentle and Reduced motion still only still the bob,
+as before. Bark hook for fix/tube-barks: `CompanionHost.SpeakLine(lineId, mood, text, seconds)`,
+plus `NonVerbal()` and `TriggerWord()` (keyword triggers are not wired to it yet: that lives in
+DesktopEffectsService.Companion.cs). 24 clips added (50.3 MB, LFS); provenance in
+docs/ASSET-PROVENANCE.md. Not packaged or launched; the owner judges the feel.
+
 ## Tube fixes after the owner's beta.4 look, 2026-11-03 (feat/companion-tube)
 
 Owner saw a still avatar, a tube too big with a gap to the panel, clicks that did

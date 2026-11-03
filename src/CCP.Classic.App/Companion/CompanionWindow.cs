@@ -11,8 +11,9 @@ using SkiaSharp;
 
 namespace CCP.Classic.App.Companion;
 
-// Original tube clips inside CCP's glass tube art, one decoded frame in flight. The effects service
-// supplies one monotonic clock for idle and session frames.
+// Original tube clips inside CCP's glass tube art, one decode in flight. The effects service supplies one
+// monotonic clock for idle and session frames. CompanionEmoteDirector picks the clips with CCP's rules; each
+// plays once at CompanionEmoteDirector.PlaybackRate and crossfades into the next on two image layers.
 internal sealed class CompanionWindow : Window
 {
     private static Bitmap? tubeArt;
@@ -20,7 +21,10 @@ internal sealed class CompanionWindow : Window
     private readonly ClassicSettings settings;
     private readonly bool requireTransparency;
     private readonly Action? beforeDecode;
-    private readonly Image portrait = Portrait("CompanionPortrait"), previousPortrait = Portrait("CompanionPrevious");
+    private static CompanionEmoteMap? emoteMap;
+    private readonly CompanionEmoteDirector director;
+    private readonly Layer front = new(Portrait("CompanionPortrait")), back = new(Portrait("CompanionPrevious"));
+    private Layer active, outgoing;
     private readonly Image tube = new() { Name = "CompanionTube", Width = TubeLayout.TubeSize, Height = TubeLayout.TubeSize,
         Stretch = Stretch.Uniform, IsHitTestVisible = false,
         RenderTransformOrigin = new RelativePoint(TubeLayout.AvatarCentre / TubeLayout.TubeSize, .5, RelativeUnit.Relative) };
@@ -29,13 +33,12 @@ internal sealed class CompanionWindow : Window
     private readonly TextBlock words = new() { Name = "CompanionBark", TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
         Foreground = Brushes.White, FontSize = 26 };
     private readonly Border speech;
-    private readonly Fade entrance = new(), dissolve = new();
-    private WriteableBitmap? bitmap, previous;
-    private GifClip? decoder;
-    private Task<DecodedFrame?>? pending;
-    private string wantedClip = "idle", displayedClip = "";
-    private double lastNow, animationTime, lastRequest = double.NegativeInfinity, reaction = 7.2;
-    private bool closed, prepared, hasTime, forced, stopPending;
+    private readonly Fade entrance = new();
+    private Task<DecodedFrame?[]>? pending;
+    // A click sets reaction above zero; the next frame turns it into a click emote.
+    private double lastNow, lastRequest = double.NegativeInfinity, reaction, fadeStarted, outgoingFrom;
+    private long lastBarkReaction;
+    private bool closed, prepared, forced, stopPending, fading;
     private Point? dragStart;
     private PixelPoint dragPosition;
     private bool dragged, placing;
@@ -46,13 +49,18 @@ internal sealed class CompanionWindow : Window
     internal TubeDockSide DockSide { get; private set; }
     internal bool IsMirrored => mirror.ScaleX < 0;
     internal double BobOffset => bob.Y;
-    internal string WantedClip => wantedClip;
+    internal string WantedClip => director.Clip;
+    internal CompanionEmoteDirector Emotes => director;
+    internal bool IsCrossfading => fading;
+    internal static CompanionEmoteMap EmoteMap => emoteMap ??= LoadEmotes();
     // Idle callers poll quickly only while something moves or is still loading.
     internal bool WantsFrames => !closed && (IsClipPlaying || pending is not null || Opacity is > 0 and < 1
-        || portrait.Opacity < 1 || bitmap is null && CanBootstrap);
+        || fading || !HasPortrait && CanBootstrap);
     // CCP parity: the clip plays whenever the tube can be seen, focused or not. Gentle visuals and
-    // Reduced motion only still the bob; Performance mode lowers the clip to 15 fps.
+    // Reduced motion only still the bob. Frames are polled at 20 fps (15 in Performance mode); the clip
+    // itself advances at PlaybackRate, 13.3 fps of its 60 ms frames.
     internal double FrameSeconds => settings.PerformanceMode ? 1d / 15 : .05;
+    private bool HasPortrait => front.Bitmap is not null || back.Bitmap is not null;
     private bool CanBootstrap => !closed && settings.CompanionEnabled && WindowState != WindowState.Minimized
         && owner.IsVisible && owner.WindowState != WindowState.Minimized;
     internal bool CanPresent => CanBootstrap && LastError is null;
@@ -63,16 +71,17 @@ internal sealed class CompanionWindow : Window
     public event Action? PlacementChanged;
 
     public CompanionWindow(Window owner, ClassicSettings settings, Action<Window> configureInput, bool requireTransparency = true,
-        Action? beforeDecode = null)
+        Action? beforeDecode = null, CompanionEmoteDirector? emotes = null)
     {
         this.owner = owner; this.settings = settings; this.requireTransparency = requireTransparency; this.beforeDecode = beforeDecode;
+        director = emotes ?? new(EmoteMap); active = front; outgoing = back;
         Title = "CCP Classic"; var initial = TubeLayout.WindowSize(1); Width = initial.Width; Height = initial.Height;
         WindowStartupLocation = WindowStartupLocation.Manual; WindowDecorations = WindowDecorations.None;
         CanResize = false; ShowInTaskbar = false; ShowActivated = false; Topmost = true;
         Background = Brushes.Transparent; TransparencyBackgroundFallback = Brushes.Transparent;
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
         var images = new Grid { Width = TubeLayout.AvatarWidth, Height = TubeLayout.AvatarHeight, RenderTransform = bob, IsHitTestVisible = false };
-        images.Children.Add(previousPortrait); images.Children.Add(portrait);
+        images.Children.Add(back.Image); images.Children.Add(front.Image);
         tube.RenderTransform = mirror; tube.Source = tubeArt ??= LoadTube();
         // Clicks land on the painted art's box, avatar included.
         var hit = new Border { Name = "CompanionHit", Background = Brushes.Transparent, Width = TubeLayout.BandWidth, Height = 540 };
@@ -149,6 +158,12 @@ internal sealed class CompanionWindow : Window
         using var source = AssetLoader.Open(new Uri("avares://CCP.Classic.App/Assets/Companion/tube.png"));
         return Bitmap.DecodeToWidth(source, 1024, BitmapInterpolationMode.HighQuality);
     }
+    private static CompanionEmoteMap LoadEmotes() => CompanionEmoteMap.Parse(ReadAsset("emotes.json"), ReadAsset("clip_timing.json"));
+    private static string ReadAsset(string name)
+    {
+        using var reader = new StreamReader(AssetLoader.Open(new Uri($"avares://CCP.Classic.App/Assets/Companion/{name}")));
+        return reader.ReadToEnd();
+    }
     private void OwnerMoved(object? sender, PixelPointEventArgs args) => FollowOwner();
     private void OwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
     {
@@ -162,7 +177,7 @@ internal sealed class CompanionWindow : Window
         if (!owner.IsVisible || owner.WindowState == WindowState.Minimized) { Hide(); return; }
         if (!prepared) return;
         if (IsVisible) ApplyPlacement();
-        else if (settings.CompanionEnabled && bitmap is not null && LastError is null && Opacity > 0) EnsureShown();
+        else if (settings.CompanionEnabled && HasPortrait && LastError is null && Opacity > 0) EnsureShown();
     }
 
     public void Update(CompanionBarkCue? bark, double seconds)
@@ -170,28 +185,68 @@ internal sealed class CompanionWindow : Window
         if (closed) return;
         if (prepared) ApplyPlacement();
         var now = double.IsFinite(seconds) ? Math.Max(lastNow, seconds) : lastNow;
-        var dt = hasTime ? Math.Clamp(now - lastNow, 0, .1) : 0;
-        lastNow = now; hasTime = true;
+        lastNow = now;
         var approved = bark is not null && CompanionTimeline.Phrases.Any(phrase => phrase.Text == bark.Text);
         words.Text = approved ? bark!.Text : ""; speech.Opacity = approved ? Math.Clamp(bark!.Opacity, 0, 1) : 0;
         speech.IsVisible = approved;
         if (!owner.IsVisible || owner.WindowState == WindowState.Minimized) { Hide(); return; }
-        var target = settings.CompanionEnabled && bitmap is not null && LastError is null ? 1 : 0;
+        var target = settings.CompanionEnabled && HasPortrait && LastError is null ? 1 : 0;
         Opacity = entrance.Sample(now, target, settings.GentleVisuals ? .75 : .25);
         if (target > 0) EnsureShown();
         else if (Opacity == 0) Hide();
-        var blend = dissolve.Sample(now, 1, settings.GentleVisuals ? .75 : .25);
-        portrait.Opacity = blend; previousPortrait.Opacity = 1 - blend;
-        if (blend == 1) { previousPortrait.Source = null; previous?.Dispose(); previous = null; }
-        if (IsClipPlaying)
+        if (IsClipPlaying || !HasPortrait && CanBootstrap)
         {
-            animationTime += dt; reaction = Math.Max(0, reaction - dt);
-            var clip = approved ? "talkA" : reaction > 0 ? "greeting" : "idle";
-            if (clip != wantedClip) { wantedClip = clip; animationTime = 0; lastRequest = double.NegativeInfinity; }
+            // A click plays a click emote. An approved word is a single trigger word: one expressive clip from
+            // idle, never talk. Spoken lines arrive through SpeakLine.
+            if (reaction > 0) { reaction = 0; director.Click(now); }
+            if (approved && bark!.Id != lastBarkReaction) { lastBarkReaction = bark.Id; director.TriggerWord(now); }
+            director.Step(now);
+            if (director.Generation != active.Generation) Retarget();
         }
+        Blend(now);
         bob.Y = IsMotionActive ? 4 * Math.Sin(now * Math.PI) : 0;
         if (pending is null && settings.CompanionEnabled && LastError is null
-            && (bitmap is null ? CanBootstrap : IsClipPlaying && now - lastRequest >= FrameSeconds - .001)) RequestFrame(now);
+            && (!HasPortrait ? CanBootstrap : IsClipPlaying && now - lastRequest >= FrameSeconds - .001)) RequestFrame(now);
+    }
+
+    // Bark entry point: a spoken line with its line id, mood, text and recording length in seconds. Talk
+    // clips cover the line, then one reaction by line id stem, mood or a random expressive clip.
+    public void SpeakLine(string? lineId, string? mood, string? text, double seconds, double now) =>
+        director.Line(Math.Max(lastNow, now), lineId, mood, text, seconds);
+    // A giggle or other short non-verbal sound: one expressive clip, no mouth movement.
+    public void NonVerbal(double now) => director.NonVerbal(Math.Max(lastNow, now));
+    // A keyword or other repetitive trigger: one expressive clip from idle, never talk.
+    public bool TriggerWord(double now) => director.TriggerWord(Math.Max(lastNow, now));
+    // A stop or panic: talk and reactions end and the idle rotation returns.
+    public void StopReactions(double now) => director.Stop(Math.Max(lastNow, now));
+
+    // The clip on screen keeps playing while the next one loads; the crossfade starts on the new clip's
+    // first decoded frame (CCP's load gate), so the avatar never fades into an empty layer.
+    private void Retarget()
+    {
+        if (active.Ready)
+        {
+            (active, outgoing) = (outgoing, active);
+            fading = false; active.Image.Opacity = 0;
+        }
+        active.Clip = director.Clip; active.Started = director.ClipStarted; active.Generation = director.Generation;
+        active.Ready = false; lastRequest = double.NegativeInfinity;
+    }
+    private void BeginFade()
+    {
+        outgoingFrom = outgoing.Bitmap is not null ? outgoing.Image.Opacity : 0;
+        fadeStarted = lastNow; fading = outgoingFrom > 0;
+        if (!fading) { active.Image.Opacity = 1; outgoing.Image.Opacity = 0; outgoing.Clip = ""; }
+    }
+    // CCP's fadeMs crossfade; Gentle visuals only lengthens it.
+    private void Blend(double now)
+    {
+        if (!fading) return;
+        var seconds = settings.GentleVisuals ? Math.Max(1.5, director.Map.FadeSeconds) : director.Map.FadeSeconds;
+        var t = seconds > 0 ? Math.Clamp((now - fadeStarted) / seconds, 0, 1) : 1;
+        var blend = t * t * (3 - 2 * t);
+        active.Image.Opacity = blend; outgoing.Image.Opacity = outgoingFrom * (1 - blend);
+        if (t >= 1) { fading = false; outgoing.Image.Opacity = 0; outgoing.Clip = ""; }
     }
 
     private void EnsureShown()
@@ -275,33 +330,53 @@ internal sealed class CompanionWindow : Window
 
     private void RequestFrame(double now)
     {
-        var clip = wantedClip; var bootstrap = bitmap is null; var position = bootstrap ? 0 : animationTime;
+        // The new clip decodes from its start; the outgoing one keeps moving until its fade ends.
+        var jobs = new List<FrameJob>(2);
+        foreach (var layer in new[] { active, outgoing })
+            if (layer.Clip.Length > 0 && (layer == active || fading || !active.Ready))
+                jobs.Add(new(layer, layer.Clip, layer.Generation, CompanionEmoteDirector.PositionOf(layer.Started, now), !layer.Ready));
         lastRequest = now;
+        if (jobs.Count == 0) return;
         pending = Task.Run(() =>
         {
             beforeDecode?.Invoke();
-            if (decoder?.Name != clip) { decoder?.Dispose(); decoder = new(clip); }
-            return decoder.Decode(position, bootstrap);
+            var frames = new DecodedFrame?[jobs.Count];
+            for (var index = 0; index < jobs.Count; index++)
+            {
+                var job = jobs[index];
+                if (job.Layer.Decoder?.Name != job.Clip) { job.Layer.Decoder?.Dispose(); job.Layer.Decoder = new(job.Clip); }
+                frames[index] = job.Layer.Decoder.Decode(job.Position, job.Force);
+            }
+            return frames;
         });
         _ = pending.ContinueWith(result => Dispatcher.UIThread.Post(() =>
         {
             pending = null;
             if (closed) { _ = result.Exception; return; }
             if (result.IsFaulted) { LastError = result.Exception!.GetBaseException().Message; Hide(); return; }
-            if (result.Result is not { } frame || clip != wantedClip || !(bitmap is null ? CanBootstrap : IsClipPlaying)) return;
-            if (displayedClip != clip || bitmap is null)
+            if (!(HasPortrait ? IsClipPlaying : CanBootstrap)) return;
+            for (var index = 0; index < jobs.Count; index++)
             {
-                previousPortrait.Source = null; previous?.Dispose(); previous = bitmap;
-                previousPortrait.Source = previous;
-                bitmap = new(new PixelSize(frame.Width, frame.Height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
-                portrait.Source = bitmap; displayedClip = clip; dissolve.Reset(previous is null ? 1 : 0);
+                var job = jobs[index];
+                if (result.Result[index] is { } frame && job.Layer.Generation == job.Generation && job.Layer.Clip == job.Clip)
+                    Publish(job.Layer, frame);
             }
-            using (var pixels = bitmap.Lock())
-                for (var row = 0; row < frame.Height; row++)
-                    System.Runtime.InteropServices.Marshal.Copy(frame.Pixels, row * frame.Width * 4,
-                        pixels.Address + row * pixels.RowBytes, frame.Width * 4);
-            DecodedFrames++; portrait.InvalidateVisual();
         }), TaskScheduler.Default);
+    }
+    private void Publish(Layer layer, DecodedFrame frame)
+    {
+        if (layer.Bitmap is not { } bitmap || bitmap.PixelSize.Width != frame.Width || bitmap.PixelSize.Height != frame.Height)
+        {
+            var old = layer.Bitmap;
+            layer.Bitmap = bitmap = new(new PixelSize(frame.Width, frame.Height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
+            layer.Image.Source = bitmap; old?.Dispose();
+        }
+        using (var pixels = bitmap.Lock())
+            for (var row = 0; row < frame.Height; row++)
+                System.Runtime.InteropServices.Marshal.Copy(frame.Pixels, row * frame.Width * 4,
+                    pixels.Address + row * pixels.RowBytes, frame.Width * 4);
+        DecodedFrames++; layer.Image.InvalidateVisual();
+        if (!layer.Ready) { layer.Ready = true; if (layer == active) BeginFade(); }
     }
 
     public void FinishImmediately() { forced = true; Release(); Close(); }
@@ -309,13 +384,25 @@ internal sealed class CompanionWindow : Window
     {
         if (closed) return;
         closed = true; owner.PositionChanged -= OwnerMoved; owner.PropertyChanged -= OwnerChanged;
-        Hide(); portrait.Source = previousPortrait.Source = tube.Source = null; speech.IsVisible = false; bob.Y = 0;
-        bitmap?.Dispose(); previous?.Dispose(); bitmap = previous = null;
-        if (pending is { } work) _ = work.ContinueWith(_ => decoder?.Dispose(), TaskScheduler.Default);
-        else decoder?.Dispose();
+        Hide(); front.Image.Source = back.Image.Source = tube.Source = null; speech.IsVisible = false; bob.Y = 0;
+        front.Bitmap?.Dispose(); back.Bitmap?.Dispose(); front.Bitmap = back.Bitmap = null;
+        if (pending is { } work) _ = work.ContinueWith(_ => { front.Decoder?.Dispose(); back.Decoder?.Dispose(); }, TaskScheduler.Default);
+        else { front.Decoder?.Dispose(); back.Decoder?.Dispose(); }
     }
 
     private sealed record DecodedFrame(byte[] Pixels, int Width, int Height);
+    private sealed record FrameJob(Layer Layer, string Clip, long Generation, double Position, bool Force);
+    // One of the two crossfading portraits. Decoder is touched only by the decode task.
+    private sealed class Layer(Image image)
+    {
+        public Image Image { get; } = image;
+        public WriteableBitmap? Bitmap { get; set; }
+        public GifClip? Decoder { get; set; }
+        public string Clip { get; set; } = "";
+        public double Started { get; set; }
+        public long Generation { get; set; }
+        public bool Ready { get; set; }
+    }
     private sealed class GifClip : IDisposable
     {
         private readonly SKData data;
@@ -334,14 +421,19 @@ internal sealed class CompanionWindow : Window
             bitmap = new(new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Bgra8888, SKAlphaType.Premul));
             double end = 0; ends = codec.FrameInfo.Select(frame => end += Math.Max(20, frame.Duration) / 1000d).ToArray();
         }
+        // A clip plays once: past its end it holds the last frame until the director moves on.
         public DecodedFrame? Decode(double seconds, bool force)
         {
-            var position = ends.Length > 0 ? seconds % ends[^1] : 0;
-            var index = Array.FindIndex(ends, end => position < end); if (index < 0) index = 0;
+            var index = FrameAt(ends, seconds);
             if (index == decoded && !force) return null;
             var result = codec.GetPixels(bitmap.Info, bitmap.GetPixels(), new SKCodecOptions(index));
             if (result != SKCodecResult.Success) throw new InvalidDataException("Companion frame could not be decoded.");
             decoded = index; return new(bitmap.Bytes, bitmap.Width, bitmap.Height);
+        }
+        internal static int FrameAt(IReadOnlyList<double> ends, double seconds)
+        {
+            for (var index = 0; index < ends.Count; index++) if (seconds < ends[index]) return index;
+            return Math.Max(0, ends.Count - 1);
         }
         public void Dispose() { bitmap.Dispose(); codec.Dispose(); data.Dispose(); }
     }
