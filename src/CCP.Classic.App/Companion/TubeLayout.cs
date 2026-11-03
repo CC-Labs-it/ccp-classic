@@ -19,7 +19,9 @@ internal static class TubeLayout
     public const double AvatarCentre = 329.5;
     public const double AvatarFit = .8, AvatarWidth = 198 * AvatarFit, AvatarHeight = 306 * AvatarFit;
     public const double GlassCentre = 334, AvatarFigureOffset = 17 * AvatarFit;
-    public const double AvatarBoxCentre = GlassCentre - AvatarFigureOffset, AvatarFeet = 838;
+    // Owner nudge 2026-11-03: "20 px to the right" at about .72 px per design unit on their panel.
+    public const double AvatarNudge = 28;
+    public const double AvatarBoxCentre = GlassCentre - AvatarFigureOffset + AvatarNudge, AvatarFeet = 838;
     // Visible band, symmetric about the avatar's centre so a mirrored tube still fits.
     public const double BandLeft = 229, BandRight = 430;
     public const double BandWidth = BandRight - BandLeft;
