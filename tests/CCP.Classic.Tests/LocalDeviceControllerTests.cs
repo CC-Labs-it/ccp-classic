@@ -101,7 +101,7 @@ public sealed class LocalDeviceControllerTests
         await using var controller = new LocalDeviceController(() => new(() => wire), clock);
         controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        clock.Advance(100); controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
+        clock.Advance(100); SetFreshAudio(controller, clock, .5); await wire.WaitForLevel(7);
         clock.Advance(299); controller.GlobalIntensity = .6; await wire.WaitForLevel(6);
         clock.Advance(1); controller.GlobalIntensity = .7; await wire.WaitForLevel(0);
         Assert.Equal(0, controller.ActivePulseCount);
@@ -114,7 +114,7 @@ public sealed class LocalDeviceControllerTests
         await using var controller = new LocalDeviceController(() => new(() => wire), clock);
         controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        clock.Advance(100); controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
+        clock.Advance(100); SetFreshAudio(controller, clock, .5); await wire.WaitForLevel(7);
         controller.Emit(LocalDeviceEvent.LevelUp, .8, TimeSpan.FromSeconds(10)); clock.Advance(100);
         controller.SetAudioLevel(.5); await wire.WaitForLevel(11);
         controller.Emit(LocalDeviceEvent.LevelUp, 1, TimeSpan.FromSeconds(10)); clock.Advance(100);
@@ -128,7 +128,7 @@ public sealed class LocalDeviceControllerTests
         var wire = new FakeTransport { BlockOutput = true }; var clock = new ManualClock();
         await using var controller = new LocalDeviceController(() => new(() => wire), clock);
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        clock.Advance(100); controller.SetAudioLevel(1); await wire.OutputEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(100); SetFreshAudio(controller, clock, 1); await wire.OutputEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
         var stopping = controller.StopAsync(); controller.SetAudioLevel(1);
         Assert.False(stopping.IsCompleted); Assert.Equal(0, controller.ActivePulseCount);
         wire.Release.TrySetResult(); await stopping;
@@ -147,14 +147,21 @@ public sealed class LocalDeviceControllerTests
         await using var controller = new LocalDeviceController(() => new(() => { var wire = new FakeTransport(); wires.Add(wire); return wire; }), clock);
         controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        clock.Advance(100); controller.SetAudioLevel(.5); await wires[0].WaitForLevel(7);
+        clock.Advance(100); SetFreshAudio(controller, clock, .5); await wires[0].WaitForLevel(7);
         controller.Enabled = false; await controller.StopAsync(); controller.Enabled = true;
         await Task.Delay(150, TestContext.Current.CancellationToken); Assert.Equal(0, wires[0].Levels[^1]);
-        clock.Advance(401); controller.SetAudioLevel(.5); await wires[0].WaitForLevel(7);
+        clock.Advance(401); SetFreshAudio(controller, clock, .5); await wires[0].WaitForLevel(7);
         await controller.DisconnectAsync();
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
         var firstLevel = await wires[1].Sent.Reader.ReadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(0, firstLevel); Assert.Equal(0, controller.ActivePulseCount);
+    }
+
+    private static void SetFreshAudio(LocalDeviceController controller, ManualClock clock, double level)
+    {
+        // A previous zero pass can consume elapsed time before the first update.
+        // Advance after publishing, then refresh so freshness checks start at age zero.
+        controller.SetAudioLevel(level); clock.Advance(1); controller.SetAudioLevel(level);
     }
 
     private sealed class ManualClock : TimeProvider
