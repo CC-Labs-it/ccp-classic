@@ -8,13 +8,29 @@ continued M2-M8 production work with agents on 2026-11-03; that work is active.
 Source design: owner decisions and mockup dated 2026-11-03 in the CCP handoff.
 CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gate.
 
-Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.5-win-x64-setup.exe`.
-It includes the visual polish and playback hardening below, built from clean
-`19d97b4cc9e6020658633dfc031a0124a6ae2920`. All 583 Windows Release tests passed,
+Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.6-win-x64-setup.exe`.
+It includes the company/layout correction and CCP effect ports below, built from clean
+`88ce043e9b6c01ba00d13407eaaa405508bf43b2`. All 599 Windows Release tests passed,
 including real silent video pacing/caps and offline FFmpeg analysis, with no skips.
 The installer remains unsigned and has not been installed or published by agents.
-Final source PR 79 passed standard CI on both Windows and Ubuntu. Its isolated
-Linux native acceptance also passed every stage, including the live video cap.
+Prior playback source PR 79 passed standard CI on both Windows and Ubuntu. Its
+isolated Linux native acceptance passed every stage, including the live video cap.
+Current source is the small draft stack PRs 81-84; final PR 84 has Windows/Linux
+standard CI running. No native playback engine changes were made in this follow-up.
+
+Preview.6 artifacts, all adjacent SHA-256 files verified:
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| CCP.Classic-1.0.0-preview.6-win-x64-setup.exe | 187861602 | 1c5c58bed0c483a18da09e04a4afa5e665a20b3e365e1bbf60683a35c1802192 |
+| CCP.Classic-1.0.0-preview.6-win-x64.zip | 219545158 | 2f7b70cbda48e99d3209388450e6026686e0d4bcf49cbbe737d77fdc4f61e5df |
+| CCP.Classic-1.0.0-preview.6-analysis-sources.zip | 2258080548 | 1df33426c2f94415acf9cc4f14fc3c88a1c92d8fe1397949b4ad461edba7991a |
+
+Package company, installer and application version resources read `CC labs Srls`.
+The packaged MIT license matches the repository byte for byte. All five original
+icon payloads match in the application and installer. Metadata: dirty=false,
+signed=false, selfContained=true, ownerLocalReview=false,
+analysisSourceBundleComplete=true, externalDistributionBlocked=false.
 
 ## Visual polish continuation, 2026-11-03
 
@@ -42,8 +58,7 @@ The combined source passes all 599 Windows Release tests with no skips, includin
 native video and offline analysis. `preview6-release.trx` records this run.
 Rendered `bubble-faces.png` and all five `flash-outro-*.png` were reviewed.
 Source provenance is in `POLISH-ASSETS-BUBBLES.md` and `POLISH-ASSETS-EFFECTS.md`.
-The next package is `1.0.0-preview.6`; the older installer above remains available
-until the package rebuild completes.
+These changes are included in the verified `1.0.0-preview.6` installer above.
 
 The owner requested reuse of CCP's finished artwork and interactions after reviewing
 the functional preview. Three agents and the coordinator implemented this pass:
