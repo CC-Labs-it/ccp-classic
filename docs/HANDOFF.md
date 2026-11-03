@@ -1,5 +1,33 @@
 # CCP Classic handoff
 
+## 1.0.0-beta.2: Linux audio fix, 2026-11-03
+
+A headless test of the Linux 1.0.0-beta tarball (WSL Ubuntu 24.04, private Xvfb,
+picom, openbox, PulseAudio null sink, xdotool) found every sound silent: preview,
+Test audio and sessions. Cause: System default sent "" to SetOutputDevice; VLC3's
+PulseAudio output uses it as a sink name, the server refuses the stream and VLC
+falls through to a silent ALSA output. Reproduced with the system libvlc directly:
+no device = sound, "" = silence, explicit sink = sound. Fix e477527: Linux leaves
+the device unset for System default; Windows keeps the DirectSound reset. Not
+fixed: VLC's pulse enumeration still lists no Linux outputs, so the picker shows
+only System default. PipeWire was not tested.
+
+Built from clean de3a096 (dirty=false), 825 Release tests passed on both Windows
+and Ubuntu 24.04 (six opt-in skipped). Linux was built natively in WSL; Windows was
+built locally with -SignWindows (Git Bash's tar breaks analysis-helper.ps1: put
+System32 first on PATH). App exe and installer: Valid Authenticode, timestamped,
+CN=CC Labs Srls. Files in artifacts/packages, all checksums verified:
+- CCP.Classic-1.0.0-beta.2-linux-x64.tar.gz (83,286,318 bytes)
+  f1959e8cd8b5aeb1af016eb71f8fda3c12cc485e982391e3fe50e54e1e1e55e8
+- CCP.Classic-1.0.0-beta.2-win-x64-setup.exe (200,993,504 bytes)
+  572cd46ce5b304b132c60f090f28d4fc95e0babed6f56f0eb4d3f892630e6379
+- CCP.Classic-1.0.0-beta.2-win-x64.zip (232,743,083 bytes)
+  aa5e5656a30673d155d4c2933480cb7d2ddd820870da76cfab38dd919914d159
+- plus the matching analysis-sources ZIP.
+After the fix the headless rerun measured sound on all three paths: Test audio
+-15.4 dB peak, focus.mp3 preview -16.2 dB, a 20 s Daily session -11.4 dB (all
+-91 dB before). Nothing was published or pushed; the 1.0.0-beta files are kept.
+
 ## Linux 1.0.0 beta ready, 2026-11-03
 
 Linux x64 package: artifacts/packages/CCP.Classic-1.0.0-beta-linux-x64.tar.gz
