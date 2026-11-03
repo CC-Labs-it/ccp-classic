@@ -9,16 +9,18 @@ public sealed class LocalDeviceControllerTests
     [Fact]
     public async Task ConstructionIsIdleAndPulseBurstsStayBoundedAndExpireToZero()
     {
-        var wire = new FakeTransport(); var created = 0;
-        await using var controller = new LocalDeviceController(() => { created++; return new(() => wire); });
+        var wire = new FakeTransport(); var created = 0; var clock = new ManualClock();
+        await using var controller = new LocalDeviceController(() => { created++; return new(() => wire); }, clock);
         controller.Emit(LocalDeviceEvent.Manual, 1, TimeSpan.FromSeconds(1));
         controller.SetAudioLevel(1); controller.SetAudioLevel(0);
         Assert.Equal(0, created); Assert.Equal(0, controller.ActivePulseCount);
         Assert.True(await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken));
         for (var index = 0; index < 100; index++) controller.Emit(LocalDeviceEvent.BubblePop, 1, TimeSpan.FromMilliseconds(20));
         Assert.InRange(controller.ActivePulseCount, 1, 4);
-        await wire.Nonzero.Task.WaitAsync(TestContext.Current.CancellationToken);
-        await wire.ZeroAfterNonzero.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(100); controller.SetAudioLevel(0);
+        await wire.Nonzero.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        clock.Advance(1000); controller.SetAudioLevel(0);
+        await wire.ZeroAfterNonzero.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.All(wire.Levels, value => Assert.InRange(value, 0, 14));
         Assert.Equal(0, controller.ActivePulseCount);
     }

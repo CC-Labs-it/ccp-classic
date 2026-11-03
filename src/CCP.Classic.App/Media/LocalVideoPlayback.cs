@@ -127,11 +127,14 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
                 if (nextGain != appliedGain) { opened.SetGain(nextGain); appliedGain = nextGain; }
                 if (nextPause != appliedPause) { opened.SetPaused(nextPause); appliedPause = nextPause; }
                 opened.Refresh();
+                // Sample completion once, then observe any terminal error before releasing the decoder.
+                var completed = opened.IsFinished;
+                if (completed) opened.Refresh();
                 lock (gate) if (!disposed) audioSample = new(path, Math.Max(0, opened.PositionMilliseconds) / 1000d,
                     appliedGain, !nextPause && opened.IsPlaying, TimeProvider.System.GetTimestamp());
-                clock.Observe(opened.PositionMilliseconds, elapsed.ElapsedMilliseconds, !nextPause && (opened.IsPlaying || opened.IsFinished));
+                clock.Observe(opened.PositionMilliseconds, elapsed.ElapsedMilliseconds, !nextPause && (opened.IsPlaying || completed));
                 Interlocked.Exchange(ref playedMilliseconds, clock.PlayedMilliseconds);
-                if (opened.IsFinished || clock.PlayedMilliseconds >= capSeconds * 1000) break;
+                if (completed || clock.PlayedMilliseconds >= capSeconds * 1000) break;
                 signal.WaitOne(25);
             }
         }

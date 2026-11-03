@@ -207,6 +207,30 @@ public sealed class AudioPlaybackTests
     }
 
     [Fact]
+    public async Task AFailureAfterTheHealthyRefreshCheckStillPublishesTheTerminalError()
+    {
+        using var file = new LocalFile(".wav"); using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
+        var block = 0;
+        var device = new Device(refreshed: () =>
+        {
+            if (Interlocked.Exchange(ref block, 0) == 0) return;
+            entered.Set(); release.Wait(TestContext.Current.CancellationToken);
+        });
+        var playback = new LibVlcAudioPlayback(() => device);
+        try
+        {
+            var ticket = Assert.IsType<AudioPlaybackTicket>(playback.PlayTracked(file.Path, .5));
+            await Until(() => device.Voices.Any(voice => voice.Started)); var voice = Assert.Single(device.Voices);
+            Interlocked.Exchange(ref block, 1);
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            voice.Fail(); release.Set();
+            await Until(() => ticket.IsFinished && voice.Disposed);
+            Assert.False(ticket.WasSuccessful); Assert.Equal("Playback failed after starting", playback.LastError);
+        }
+        finally { release.Set(); playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
     public void LinearGainMappingAndLinuxRuntimeSonamesMatchThePort()
     {
         Assert.Equal(50, NativeAudioDevice.PlayerVolume(.125));
@@ -339,18 +363,18 @@ public sealed class AudioPlaybackTests
             Assert.InRange((int)BitConverter.ToInt16(pop, offset), -6554, 6554);
     }
 
-    private sealed class Device(Action? stopping = null, Action? opening = null, Action? refreshing = null) : IAudioDevice
+    private sealed class Device(Action? stopping = null, Action? opening = null, Action? refreshing = null, Action? refreshed = null) : IAudioDevice
     {
         public ConcurrentBag<Voice> Voices { get; } = new();
         public IAudioVoice Open(string path, double gain, Action wake)
         {
             opening?.Invoke();
-            var voice = new Voice(gain, stopping, refreshing); Voices.Add(voice); return voice;
+            var voice = new Voice(gain, stopping, refreshing, refreshed); Voices.Add(voice); return voice;
         }
         public void Dispose() { }
     }
 
-    private sealed class Voice(double initialGain, Action? stopping, Action? refreshing) : IAudioVoice
+    private sealed class Voice(double initialGain, Action? stopping, Action? refreshing, Action? refreshed) : IAudioVoice
     {
         private int started, disposed, failed, refreshCount, completed;
         private double gain = initialGain, startGain, playedSeconds;
@@ -374,6 +398,7 @@ public sealed class AudioPlaybackTests
             refreshing?.Invoke();
             Interlocked.Increment(ref refreshCount);
             if (Volatile.Read(ref failed) != 0) throw new InvalidOperationException("Playback failed after starting");
+            refreshed?.Invoke();
         }
         public void Stop() => stopping?.Invoke();
         public void Dispose() => Interlocked.Exchange(ref disposed, 1);

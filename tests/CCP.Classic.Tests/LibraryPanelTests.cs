@@ -54,7 +54,11 @@ public sealed class LibraryPanelTests
                 Assert.Single(panel!.GetLogicalDescendants().OfType<CheckBox>());
             });
         }
-        finally { await UiDispatcher.Run(() => { window?.Close(); panel?.Dispose(); }); Directory.Delete(folder, true); }
+        finally
+        {
+            await UiDispatcher.Run(() => { window?.Close(); panel?.Dispose(); });
+            await DeleteAfterThumbnailReadersFinish(folder);
+        }
     }
 
     [Fact]
@@ -84,4 +88,16 @@ public sealed class LibraryPanelTests
         finally { await UiDispatcher.Run(() => { window?.Close(); panel?.Dispose(); }); }
     }
     private static T Named<T>(Control root, string name) where T : Control => root.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+
+    private static async Task DeleteAfterThumbnailReadersFinish(string folder)
+    {
+        // A decoder already inside the native call releases its local read handle after cancellation.
+        var deadline = Environment.TickCount64 + 5000;
+        while (true)
+        {
+            try { Directory.Delete(folder, true); return; }
+            catch (IOException) when (Environment.TickCount64 < deadline)
+            { await Task.Delay(25, TestContext.Current.CancellationToken); }
+        }
+    }
 }

@@ -35,6 +35,9 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
 - All UiDispatcher-backed tests share the Avalonia UI collection. RunJobs can
   reenter another queued test; one dispatcher thread alone does not isolate input.
+- Native playback callbacks can finish between worker polls. Sample completion
+  once per pass and revalidate terminal errors before release; a healthy Refresh
+  does not prove that a subsequent completion succeeded.
 - Starter recordings use LFS; checkout in CI must fetch LFS. Audio playback uses local
   LibVLC only, forced DirectSound on Windows, never a mixer-wide fallback output.
 - Owner approval 2026-11-03: bundle offline FFmpeg for PCM/RMS analysis only.

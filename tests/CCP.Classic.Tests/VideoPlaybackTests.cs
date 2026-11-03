@@ -131,6 +131,33 @@ public sealed class VideoPlaybackTests
     }
 
     [Fact]
+    public async Task AFailureAfterTheHealthyRefreshCheckStillPublishesTheTerminalError()
+    {
+        using var file = new VideoFile();
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var block = 0;
+        var device = new Device(refreshed: () =>
+        {
+            if (Interlocked.Exchange(ref block, 0) == 0) return;
+            entered.Set(); release.Wait(TestContext.Current.CancellationToken);
+        });
+        var playback = new LocalVideoPlayback(file.Path, 60, _ => device);
+        try
+        {
+            playback.Start(); await Until(() => device.Starts == 1);
+            Interlocked.Exchange(ref block, 1);
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            device.Fail("decoder failed after refresh"); release.Set();
+            await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.True(playback.IsFinished);
+            Assert.True(device.Disposed);
+            Assert.Equal("decoder failed after refresh", playback.LastError);
+        }
+        finally { release.Set(); playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
     public async Task APlaylistDisguisedAsVideoFailsBeforeNativeInitialization()
     {
         using var file = new VideoFile();
@@ -204,10 +231,11 @@ public sealed class VideoPlaybackTests
         Assert.DoesNotContain(LocalVideoPlayback.Options(false, "mkv"), option => option.StartsWith("--aout=", StringComparison.Ordinal));
     }
 
-    private sealed class Device(Action? dispose = null, Action? refresh = null) : ILocalVideoDevice
+    private sealed class Device(Action? dispose = null, Action? refresh = null, Action? refreshed = null) : ILocalVideoDevice
     {
         private int starts, disposed, paused;
         private double gain;
+        private string? failure;
         public VideoFrame? Frame;
         public long SourcePosition;
         public int Starts => Volatile.Read(ref starts);
@@ -217,14 +245,20 @@ public sealed class VideoPlaybackTests
         public double StartGain { get; private set; }
         public int Width => 1;
         public int Height => 1;
-        public bool IsFinished => false;
+        public bool IsFinished => Volatile.Read(ref failure) is not null;
         public bool IsPlaying => !Paused;
         public long PositionMilliseconds => Interlocked.Read(ref SourcePosition);
         public void Start() { StartGain = Gain; Interlocked.Increment(ref starts); }
         public void SetGain(double value) => Volatile.Write(ref gain, value);
         public void SetPaused(bool value) => Interlocked.Exchange(ref paused, value ? 1 : 0);
         public bool TryCopyFrame(out VideoFrame? frame) { frame = Interlocked.Exchange(ref Frame, null); return frame is not null; }
-        public void Refresh() => refresh?.Invoke();
+        public void Fail(string error) => Volatile.Write(ref failure, error);
+        public void Refresh()
+        {
+            if (Volatile.Read(ref failure) is { } error) throw new IOException(error);
+            refresh?.Invoke();
+            refreshed?.Invoke();
+        }
         public void Dispose() { dispose?.Invoke(); Interlocked.Exchange(ref disposed, 1); }
     }
     private sealed class VideoFile : IDisposable

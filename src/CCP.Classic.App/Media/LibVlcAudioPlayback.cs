@@ -139,14 +139,18 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                 {
                     var playing = active[index];
                     var voice = playing.Voice;
+                    bool finished, successful;
                     try
                     {
                         if (updateGain) voice.SetGain(playing.PerSoundGain * master);
                         voice.Refresh();
                         playing.Ticket.UpdatePlayed(voice.PlayedSeconds);
+                        // Sample completion once. A failure after a healthy Refresh must still publish its error.
+                        finished = voice.IsFinished; successful = finished && voice.WasSuccessful;
+                        if (finished && !successful) voice.Refresh();
                     }
                     catch (Exception error) { Volatile.Write(ref lastError, error.Message); Finish(playing.Ticket, false); Release(voice); active.RemoveAt(index); continue; }
-                    if (voice.IsFinished) { Finish(playing.Ticket, voice.WasSuccessful, voice.PlayedSeconds); Release(voice); active.RemoveAt(index); }
+                    if (finished) { Finish(playing.Ticket, successful, voice.PlayedSeconds); Release(voice); active.RemoveAt(index); }
                 }
                 lock (gate)
                     Volatile.Write(ref audioSamples, disposed || stopRequested ? Array.Empty<AudioPlaybackSample>()

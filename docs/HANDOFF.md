@@ -43,8 +43,39 @@ scene stills. Review corrected badge framing, disabled-button contrast, source-s
 clipping and text opacity. The native Linux probe follow-up is separate from these
 Windows results; desktop feel and actual device/listening checks still need owner use.
 
-The next Windows package is `1.0.0-preview.4`, with complete offline-helper sources.
-Do not describe an unsigned preview as a signed production release.
+Windows `1.0.0-preview.4` was built from clean source
+`1e6b651fa0e47a27293bd0c1fd215723befb9516`, final polish draft
+[PR 75](https://github.com/CC-Labs-it/ccp-classic/pull/75). The final badge-framing
+and preset-motion corrections passed their focused checks, 2 and 6 tests.
+Packages are under `artifacts/packages`:
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| CCP.Classic-1.0.0-preview.4-win-x64-setup.exe | 187683322 | 15a7f1eb99ee3caea1dc1cd31c14017b64075d9f8ddbb1d467b20ed6ebad8e4c |
+| CCP.Classic-1.0.0-preview.4-win-x64.zip | 219367606 | f47a7b0ea7ece67290f4c72138d6b97cf0509ca907dbf2c424652cc6e1f53db7 |
+| CCP.Classic-1.0.0-preview.4-analysis-sources.zip | 2258080548 | cc6f48c1c9e03e7aa491b9da9cc7086594640ac903e448e71d115af56d6c390f |
+
+All adjacent checksum files match. The installer and packaged application each
+contain the five original ICO image payloads byte for byte. Package metadata:
+dirty=false, signed=false, selfContained=true, ownerLocalReview=false,
+analysisSourceBundleComplete=true, externalDistributionBlocked=false. Nothing was
+installed, launched or published. Do not call this unsigned preview a signed release.
+
+Final polish [standard CI](https://github.com/CC-Labs-it/ccp-classic/actions/runs/41651300704)
+passed on Windows and Linux. Native Linux follow-up at the same revision passed
+screen discovery, refusal without a compositor, real transparency/input regions,
+and global panic/keyword input. Its muted-video completion check still needs
+diagnosis; PR 76 adds probe-only measurements without changing the application.
+
+Post-preview hardening: a LibVLC callback can fail after a healthy worker Refresh
+but before the completion check. Audio and video workers now reuse a single
+completion snapshot and revalidate terminal errors before release. Deterministic
+barrier regressions preserve the original failure message and verify disposal.
+The audio follow-up passed 576 complete Windows Release checks including native
+FFmpeg; the matching video fix then passed 40 focused playback/window/preview
+checks. Library test cleanup now waits for canceled thumbnail readers to release
+their handle. The device pulse test uses its existing fake clock to prove expiry.
+These fixes do not change the already-built preview.4 artifacts listed above.
 
 ## Implemented
 
