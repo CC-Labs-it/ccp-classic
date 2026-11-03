@@ -36,3 +36,7 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   Deeper, using the approved starter recordings. Relax triggers a flash, Focus
   a whisper, Deeper a spiral pulse. The 27 neutral badge names and four legacy
   preset condition mappings are approved and recorded in docs/HANDOFF.md.
+- Native Loom correction: odd-arm tunnel layers need one full radial color cycle
+  as their loop span. The source's generic arm symmetry swaps colors at the seam.
+- Windows packaging: keep Inno staging paths below MAX_PATH. Short indexed notice
+  folders preserve package identities in components.json without long NuGet paths.
