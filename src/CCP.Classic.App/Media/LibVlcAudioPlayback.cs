@@ -3,6 +3,7 @@ namespace CCP.Classic.App.Media;
 public interface IAudioPlayback : IDisposable
 {
     bool Play(string localPath, double gain);
+    AudioPlaybackTicket? PlayTracked(string localPath, double gain) => null;
     void SetMasterGain(double gain);
     void StopAll();
 }
@@ -15,6 +16,8 @@ internal interface IAudioDevice : IDisposable
 internal interface IAudioVoice : IDisposable
 {
     bool IsFinished { get; }
+    bool WasSuccessful => false;
+    double PlayedSeconds => 0;
     void Start();
     void SetGain(double gain);
     void Refresh();
@@ -23,11 +26,12 @@ internal interface IAudioVoice : IDisposable
 
 public sealed class LibVlcAudioPlayback : IAudioPlayback
 {
-    private sealed record Request(string Path, double Gain, long Generation);
-    private sealed record ActiveVoice(IAudioVoice Voice, double PerSoundGain);
+    private sealed record Request(string Path, double Gain, long Generation, AudioPlaybackTicket Ticket);
+    private sealed record ActiveVoice(IAudioVoice Voice, double PerSoundGain, AudioPlaybackTicket Ticket);
     private readonly object gate = new();
     private readonly Queue<Request> pending = new();
     private readonly List<ActiveVoice> active = new();
+    private readonly HashSet<AudioPlaybackTicket> tickets = [];
     private readonly AutoResetEvent signal = new(false);
     private readonly Func<IAudioDevice> factory;
     private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -47,15 +51,18 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
         new Thread(Run) { IsBackground = true, Name = "CCP Classic audio" }.Start();
     }
 
-    public bool Play(string localPath, double gain)
+    public bool Play(string localPath, double gain) => PlayTracked(localPath, gain) is not null;
+
+    public AudioPlaybackTicket? PlayTracked(string localPath, double gain)
     {
-        if (!double.IsFinite(gain) || gain <= 0 || LocalAudioPath(localPath) is not { } path) return false;
+        if (!double.IsFinite(gain) || gain <= 0 || LocalAudioPath(localPath) is not { } path) return null;
         lock (gate)
         {
-            if (disposed || DateTime.UtcNow < retryAfter || pending.Count >= 32) return false;
-            pending.Enqueue(new(path, Math.Min(gain, 1), generation));
+            if (disposed || DateTime.UtcNow < retryAfter || pending.Count >= 32) return null;
+            var ticket = new AudioPlaybackTicket(); tickets.Add(ticket);
+            pending.Enqueue(new(path, Math.Min(gain, 1), generation, ticket));
             signal.Set();
-            return true;
+            return ticket;
         }
     }
 
@@ -71,19 +78,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
         }
     }
 
-    internal static string? LocalAudioPath(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path) || path.StartsWith(@"\\", StringComparison.Ordinal)
-            || path.StartsWith("//", StringComparison.Ordinal)) return null;
-        if (Uri.TryCreate(path, UriKind.Absolute, out var uri) && (!uri.IsFile || uri.IsUnc)) return null;
-        try
-        {
-            var full = Path.GetFullPath(path);
-            var extension = Path.GetExtension(full).ToLowerInvariant();
-            return extension is ".mp3" or ".wav" or ".ogg" or ".flac" && File.Exists(full) ? full : null;
-        }
-        catch (Exception e) when (e is ArgumentException or NotSupportedException or IOException) { return null; }
-    }
+    internal static string? LocalAudioPath(string? path) => LocalAudioInput.LocalPath(path);
 
     public void StopAll()
     {
@@ -91,6 +86,8 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
         {
             if (disposed) return;
             generation++;
+            foreach (var ticket in tickets) ticket.Complete(false);
+            tickets.Clear();
             pending.Clear();
             stopRequested = true;
             signal.Set();
@@ -104,6 +101,8 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
             if (disposed) return;
             disposed = true;
             generation++;
+            foreach (var ticket in tickets) ticket.Complete(false);
+            tickets.Clear();
             pending.Clear();
             signal.Set();
         }
@@ -138,9 +137,10 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                     {
                         if (updateGain) voice.SetGain(playing.PerSoundGain * master);
                         voice.Refresh();
+                        playing.Ticket.UpdatePlayed(voice.PlayedSeconds);
                     }
-                    catch (Exception error) { Volatile.Write(ref lastError, error.Message); Release(voice); active.RemoveAt(index); continue; }
-                    if (voice.IsFinished) { Release(voice); active.RemoveAt(index); }
+                    catch (Exception error) { Volatile.Write(ref lastError, error.Message); Finish(playing.Ticket, false); Release(voice); active.RemoveAt(index); continue; }
+                    if (voice.IsFinished) { Finish(playing.Ticket, voice.WasSuccessful, voice.PlayedSeconds); Release(voice); active.RemoveAt(index); }
                 }
                 Request? request = null;
                 // A stop received during Refresh belongs before any new-generation playback.
@@ -155,9 +155,11 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                     lock (gate)
                     {
                         retryAfter = DateTime.UtcNow.AddSeconds(30);
+                        foreach (var queued in pending) { queued.Ticket.Complete(false); tickets.Remove(queued.Ticket); }
                         pending.Clear();
                         Volatile.Write(ref lastError, error.Message);
                     }
+                    Finish(request.Ticket, false);
                     continue;
                 }
                 // Native loading can finish after panic. Never open the cancelled request.
@@ -171,7 +173,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                     // The master may have changed while the native output was opening.
                     opened.SetGain(EffectiveGain(request));
                     if (!Current(request)) { Release(opened); continue; }
-                    playingVoice = new(opened, request.Gain);
+                    playingVoice = new(opened, request.Gain, request.Ticket);
                     active.Add(playingVoice);
                     opened.Start();
                     if (!Current(request)) { Release(opened); active.Remove(playingVoice); }
@@ -180,6 +182,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                 catch (Exception error)
                 {
                     lastError = error.Message;
+                    Finish(request.Ticket, false);
                     if (opened is not null) { Release(opened); if (playingVoice is not null) active.Remove(playingVoice); }
                 }
             }
@@ -188,15 +191,24 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
         {
             StopVoices();
             try { device?.Dispose(); } catch (Exception error) { lastError = error.Message; }
-            lock (gate) signal.Dispose();
+            lock (gate)
+            {
+                foreach (var ticket in tickets) ticket.Complete(false);
+                tickets.Clear(); pending.Clear(); signal.Dispose();
+            }
             completion.TrySetResult();
         }
     }
 
     private void StopVoices()
     {
-        foreach (var playing in active) Release(playing.Voice);
+        foreach (var playing in active) { Finish(playing.Ticket, false); Release(playing.Voice); }
         active.Clear();
+    }
+
+    private void Finish(AudioPlaybackTicket ticket, bool successful, double seconds = 0)
+    {
+        lock (gate) { ticket.Complete(successful, seconds); tickets.Remove(ticket); }
     }
 
     private void Release(IAudioVoice voice)

@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using LibVLCSharp.Shared;
 
 namespace CCP.Classic.App.Media;
@@ -66,34 +67,51 @@ internal sealed class NativeAudioDevice : IAudioDevice
 
     private sealed class Voice : IAudioVoice
     {
-        private readonly LibVLCSharp.Shared.Media media;
-        private readonly MediaPlayer player;
+        private LocalAudioInput? local;
+        private StreamMediaInput? input;
+        private LibVLCSharp.Shared.Media? media;
+        private MediaPlayer? player;
+        private readonly VideoPlaybackAllowance allowance = new();
+        private readonly Stopwatch elapsed = new();
         private int volume;
-        private int finished, applyGain, failed;
+        private int finished, applyGain, failed, successful;
+        private long length;
+        private long lastPosition = -1, lastProgressAt;
         public bool IsFinished => Volatile.Read(ref finished) != 0;
+        public bool WasSuccessful => Volatile.Read(ref successful) != 0 && Volatile.Read(ref failed) == 0;
+        public double PlayedSeconds => Math.Max(allowance.PlayedMilliseconds, WasSuccessful ? Interlocked.Read(ref length) : 0) / 1000d;
 
         public Voice(LibVLC vlc, string path, double gain, Action wake)
         {
-            media = new LibVLCSharp.Shared.Media(vlc, path, FromType.FromPath);
-            media.AddOption(":no-video");
-            media.AddOption(":no-metadata-network-access");
-            try { player = new MediaPlayer(media); }
-            catch { media.Dispose(); throw; }
-            volume = PlayerVolume(gain);
-            player.Playing += (_, _) => { Interlocked.Exchange(ref applyGain, 1); wake(); };
-            player.EndReached += (_, _) => { Interlocked.Exchange(ref finished, 1); wake(); };
-            player.EncounteredError += (_, _) =>
+            try
             {
-                Interlocked.Exchange(ref failed, 1);
-                Interlocked.Exchange(ref finished, 1);
-                wake();
-            };
-            player.Stopped += (_, _) => { Interlocked.Exchange(ref finished, 1); wake(); };
+                local = new LocalAudioInput(path);
+                input = new StreamMediaInput(local.Stream);
+                media = new LibVLCSharp.Shared.Media(vlc, input);
+                media.AddOption(":no-video");
+                media.AddOption(":demux=" + local.Demux + ",none");
+                media.AddOption(":no-metadata-network-access");
+                media.SubItemAdded += (_, _) => { Interlocked.Exchange(ref failed, 1); Interlocked.Exchange(ref finished, 1); wake(); };
+                player = new MediaPlayer(media);
+                volume = PlayerVolume(gain);
+                player.Playing += (_, _) => { Interlocked.Exchange(ref applyGain, 1); wake(); };
+                player.LengthChanged += (_, e) => Interlocked.Exchange(ref length, e.Length);
+                player.EndReached += (_, _) => { Interlocked.Exchange(ref successful, 1); Interlocked.Exchange(ref finished, 1); wake(); };
+                player.EncounteredError += (_, _) =>
+                {
+                    Interlocked.Exchange(ref failed, 1);
+                    Interlocked.Exchange(ref finished, 1);
+                    wake();
+                };
+                player.Stopped += (_, _) => { Interlocked.Exchange(ref finished, 1); wake(); };
+            }
+            catch { Dispose(); throw; }
         }
 
         public void Start()
         {
-            player.Volume = volume;
+            elapsed.Start();
+            player!.Volume = volume;
             if (!player.Play())
             {
                 Interlocked.Exchange(ref failed, 1);
@@ -113,9 +131,20 @@ internal sealed class NativeAudioDevice : IAudioDevice
         public void Refresh()
         {
             if (Volatile.Read(ref failed) != 0) throw new InvalidOperationException("Audio playback failed.");
+            var position = player!.Time;
+            var now = elapsed.ElapsedMilliseconds;
+            if (position != lastPosition) { lastPosition = position; lastProgressAt = now; }
+            else if (elapsed.IsRunning && !IsFinished && now - lastProgressAt > 15_000)
+                throw new InvalidOperationException("Audio playback stopped making progress.");
+            allowance.Observe(position, now, player.State == VLCState.Playing || WasSuccessful);
             if (!IsFinished && Interlocked.Exchange(ref applyGain, 0) != 0) player.Volume = volume;
         }
-        public void Stop() { if (Interlocked.Exchange(ref finished, 1) == 0) player.Stop(); }
-        public void Dispose() { player.Dispose(); media.Dispose(); }
+        public void Stop() { if (Interlocked.Exchange(ref finished, 1) == 0) player?.Stop(); }
+        public void Dispose()
+        {
+            foreach (var resource in new IDisposable?[] { player, media, input, local })
+                try { resource?.Dispose(); } catch { }
+            player = null;
+        }
     }
 }

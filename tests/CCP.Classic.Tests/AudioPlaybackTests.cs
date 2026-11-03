@@ -225,6 +225,105 @@ public sealed class AudioPlaybackTests
         Assert.Contains("--no-metadata-network-access", NativeAudioDevice.Options(true));
     }
 
+    [Fact]
+    public async Task OnlyANaturalEndCompletesATicketSuccessfullyWithActualDuration()
+    {
+        using var file = new LocalFile(".wav");
+        var device = new Device();
+        var playback = new LibVlcAudioPlayback(() => device);
+        try
+        {
+            var ticket = Assert.IsType<AudioPlaybackTicket>(playback.PlayTracked(file.Path, .5));
+            await Until(() => device.Voices.Any(v => v.Started));
+            var voice = Assert.Single(device.Voices);
+            voice.Advance(1.25);
+            await Until(() => ticket.PlayedSeconds == 1.25);
+            Assert.False(ticket.IsFinished);
+            voice.Complete(2.75);
+            await Until(() => ticket.IsFinished);
+            Assert.True(ticket.WasSuccessful);
+            Assert.Equal(2.75, ticket.PlayedSeconds);
+        }
+        finally { playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
+    public async Task PanicImmediatelyCancelsActiveAndQueuedTicketsEvenDuringBlockedRefresh()
+    {
+        using var file = new LocalFile(".wav");
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var block = 0;
+        var device = new Device(refreshing: () =>
+        {
+            if (Interlocked.Exchange(ref block, 0) == 0) return;
+            entered.Set(); release.Wait(TestContext.Current.CancellationToken);
+        });
+        var playback = new LibVlcAudioPlayback(() => device);
+        try
+        {
+            var active = Assert.IsType<AudioPlaybackTicket>(playback.PlayTracked(file.Path, .5));
+            await Until(() => device.Voices.Any(v => v.Started));
+            Assert.Single(device.Voices).Advance(1.5);
+            await Until(() => active.PlayedSeconds == 1.5);
+            Interlocked.Exchange(ref block, 1);
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            var pending = Assert.IsType<AudioPlaybackTicket>(playback.PlayTracked(file.Path, .5));
+            playback.StopAll();
+            Assert.True(active.IsFinished); Assert.True(pending.IsFinished);
+            Assert.False(active.WasSuccessful); Assert.False(pending.WasSuccessful);
+            Assert.Single(device.Voices).Complete(10);
+            release.Set();
+            await Until(() => device.Voices.All(v => v.Disposed));
+            Assert.False(active.WasSuccessful);
+            Assert.Equal(1.5, active.PlayedSeconds);
+        }
+        finally { release.Set(); playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
+    public async Task NativeInitializationFailureFailsOpeningAndPendingTickets()
+    {
+        using var file = new LocalFile(".wav");
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var playback = new LibVlcAudioPlayback(() =>
+        {
+            entered.Set(); release.Wait(TestContext.Current.CancellationToken); throw new DllNotFoundException("no native runtime");
+        });
+        try
+        {
+            var first = Assert.IsType<AudioPlaybackTicket>(playback.PlayTracked(file.Path, .5));
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            var pending = Assert.IsType<AudioPlaybackTicket>(playback.PlayTracked(file.Path, .5));
+            release.Set();
+            await Until(() => first.IsFinished && pending.IsFinished);
+            Assert.False(first.WasSuccessful); Assert.False(pending.WasSuccessful);
+            Assert.Null(playback.PlayTracked(file.Path, .5));
+        }
+        finally { release.Set(); playback.Dispose(); await playback.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); }
+    }
+
+    [Fact]
+    public void LocalAudioSignaturesExcludeDisguisedPlaylistsAndPopIsBoundedPcm()
+    {
+        using var file = new LocalFile(".wav");
+        File.WriteAllText(file.Path, "#EXTM3U\nhttps://example.invalid/sound.mp3");
+        Assert.Throws<IOException>(() => new LocalAudioInput(file.Path));
+        Assert.Null(LocalAudioInput.DetectDemux("<asx><ref href='https://example.invalid/sound'/></asx>"u8));
+        Assert.Equal("wav", LocalAudioInput.DetectDemux("RIFF1234WAVE"u8));
+        Assert.Equal("ogg", LocalAudioInput.DetectDemux("OggS"u8));
+        Assert.Equal("flac", LocalAudioInput.DetectDemux("fLaC"u8));
+        Assert.Equal("mp3", LocalAudioInput.DetectDemux("ID3"u8));
+        Assert.Equal("aac", LocalAudioInput.DetectDemux(new byte[] { 0xff, 0xf1 }));
+        var pop = ProceduralAudio.PopWave();
+        Assert.True(pop.AsSpan(0, 4).SequenceEqual("RIFF"u8));
+        Assert.True(pop.AsSpan(8, 4).SequenceEqual("WAVE"u8));
+        Assert.Equal(4454, pop.Length);
+        for (var offset = 44; offset < pop.Length; offset += 2)
+            Assert.InRange((int)BitConverter.ToInt16(pop, offset), -6554, 6554);
+    }
+
     private sealed class Device(Action? stopping = null, Action? opening = null, Action? refreshing = null) : IAudioDevice
     {
         public ConcurrentBag<Voice> Voices { get; } = new();
@@ -238,22 +337,26 @@ public sealed class AudioPlaybackTests
 
     private sealed class Voice(double initialGain, Action? stopping, Action? refreshing) : IAudioVoice
     {
-        private int started, disposed, failed, refreshCount;
-        private double gain = initialGain, startGain;
+        private int started, disposed, failed, refreshCount, completed;
+        private double gain = initialGain, startGain, playedSeconds;
         public bool Started => Volatile.Read(ref started) != 0;
         public bool Disposed => Volatile.Read(ref disposed) != 0;
-        public bool IsFinished => Volatile.Read(ref failed) != 0;
+        public bool IsFinished => Volatile.Read(ref failed) != 0 || Volatile.Read(ref completed) != 0;
+        public bool WasSuccessful => Volatile.Read(ref completed) != 0 && Volatile.Read(ref failed) == 0;
+        public double PlayedSeconds => Volatile.Read(ref playedSeconds);
         public int RefreshCount => Volatile.Read(ref refreshCount);
         public double Gain => Volatile.Read(ref gain);
         public double StartGain => Volatile.Read(ref startGain);
         public void Start() { startGain = Gain; Interlocked.Exchange(ref started, 1); }
         public void SetGain(double value) => Volatile.Write(ref gain, value);
         public void Fail() => Interlocked.Exchange(ref failed, 1);
+        public void Advance(double seconds) => Volatile.Write(ref playedSeconds, seconds);
+        public void Complete(double seconds) { Advance(seconds); Interlocked.Exchange(ref completed, 1); }
         public void Refresh()
         {
             refreshing?.Invoke();
             Interlocked.Increment(ref refreshCount);
-            if (IsFinished) throw new InvalidOperationException("Playback failed after starting");
+            if (Volatile.Read(ref failed) != 0) throw new InvalidOperationException("Playback failed after starting");
         }
         public void Stop() => stopping?.Invoke();
         public void Dispose() => Interlocked.Exchange(ref disposed, 1);
