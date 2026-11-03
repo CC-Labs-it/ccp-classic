@@ -33,12 +33,12 @@ public sealed class CompanionPlacementTests
     [Fact]
     public void TheTubeScaleFollowsThePanelWithinItsBounds()
     {
-        // The owner's panel: 800 DIP visible, so the painted art is 45% of it (about 360 DIP).
+        // The owner's panel: 800 DIP visible, so the painted art is 38% of it (about 304 DIP).
         var scale = TubeLayout.Scale(800, 1104);
         Assert.Equal(800 * TubeLayout.ArtToPanelHeight / TubeLayout.ArtHeight, scale, 6);
-        Assert.InRange(scale, .66, .67);
-        Assert.InRange(TubeLayout.ArtHeight * scale, 359, 361);
-        Assert.InRange(TubeLayout.WindowSize(scale).Height, 675, 678);
+        Assert.InRange(scale, .55, .57);
+        Assert.InRange(TubeLayout.ArtHeight * scale, 303, 305);
+        Assert.InRange(TubeLayout.WindowSize(scale).Height, 570, 573);
         // Clamp bounds before the player's size, and an unknown panel uses the largest scale.
         Assert.Equal(TubeLayout.MinScale, TubeLayout.Scale(200, 1104));
         Assert.Equal(TubeLayout.MaxScale, TubeLayout.Scale(3000, 4000));
