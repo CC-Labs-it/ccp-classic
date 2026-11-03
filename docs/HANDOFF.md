@@ -1,5 +1,31 @@
 # CCP Classic handoff
 
+## 1.0.0-beta.3: Linux audio output picker, 2026-11-03
+
+Owner asked for output selection on Linux (Windows already listed DirectSound devices).
+VLC3's instance-level AudioOutputDevices("pulse") is always empty; a MediaPlayer's
+AudioOutputDeviceEnum reports the server's sinks at once (WSLg: "RDP Sink"). Commit
+a77649b lists Linux outputs from the player, sanitized like Configure, with a test.
+Headless proof on the beta.3 tarball, two PulseAudio null sinks: picking Headphones
+sent Test audio only there (-15.5 dB, other sink -91 dB) and picking Null Output
+reversed it; after the main Save and a restart the choice held (settings.json
+OutputDeviceId "headphones", sound on that sink). Effect editor changes reach disk
+only on the main Save, on every platform; unchanged here.
+Known gaps: returning to System default on Linux applies from the next sound; .NET
+returns "" for LocalApplicationData when ~/.local/share does not exist, so settings
+then land in a "CCP Classic" folder under the working directory (seen in a bare test
+profile; normal desktops have the folder). PipeWire not tested.
+
+Built from clean a77649b, 826 Release tests passed on Windows and Ubuntu 24.04.
+App exe and installer: Valid Authenticode, timestamped, CN=CC Labs Srls.
+- CCP.Classic-1.0.0-beta.3-linux-x64.tar.gz (83,285,161 bytes)
+  e17b42c099e8f3bafeb4109836f78be4543a658f9f51d6ff58a19c9120dc3a12
+- CCP.Classic-1.0.0-beta.3-win-x64-setup.exe (200,993,016 bytes)
+  f2ebb4e5e74596c59ccb7ca9f6e89a4792434dd7479f873e6c890fa939094b29
+- CCP.Classic-1.0.0-beta.3-win-x64.zip (232,743,307 bytes)
+  2f54dcba5c4da3d6ac586b84ca9c13be08884535babf41458a54877a4e44f7f9
+- plus the matching analysis-sources ZIP. Nothing published or pushed.
+
 ## 1.0.0-beta.2: Linux audio fix, 2026-11-03
 
 A headless test of the Linux 1.0.0-beta tarball (WSL Ubuntu 24.04, private Xvfb,
