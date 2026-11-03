@@ -1,8 +1,8 @@
 # Existing feature parity review
 
 Audit date: 2026-11-03. This is a gap inventory, not a completion claim.
-Classic baseline: preview.6, `88ce043e9b6c01ba00d13407eaaa405508bf43b2`,
-plus the explicitly named in-progress patches below. Update rows as owners land changes.
+Packaged baseline: preview.7, `902f32b9fdccbf036f09805d48c23c8dc31605bf`,
+plus the explicitly named later checkpoints and working-tree ports below.
 Reference: public [CCP commit fe40ea7587ac0b09e47d0724e59d7178db3336da](https://github.com/CC-Labs-it/Conditioning-Control-Panel/tree/fe40ea7587ac0b09e47d0724e59d7178db3336da/ConditioningControlPanel).
 Every source path below is relative to that commit's `ConditioningControlPanel/`.
 Initial files were read through the public connector; subsequent ports use git show
@@ -21,11 +21,24 @@ local advanced controls. Owners are assignments, not claims of completion.
 
 ## Current validation and remaining work
 
-All main controls below are integrated. All 774 Windows Release checks pass with
-zero skips (`artifacts/test-results/parity-release-verified.trx`), including native
-Remix and wallpaper renders, actual desktop capture, selected/default audio output
-identity and offline FFmpeg analysis. Linux CI is pending for this checkpoint.
-The remaining gaps are recorded below. Preview.6 does not contain these changes.
+Preview.7's committed source passed all 774 Windows Release checks with zero skips
+(`artifacts/test-results/parity-release-verified.trx`), including native Remix and
+wallpaper renders, actual desktop capture, selected/default output identity and
+offline FFmpeg analysis. Its Windows CI and isolated Linux native/package pipeline
+passed. The [Linux run](https://github.com/CC-Labs-it/ccp-classic/actions/runs/41676725882)
+belongs to that packaged checkpoint, before the later audio additions.
+
+Post-preview.7 multi-monitor Bouncing Text has native offscreen seam proof and
+standard Windows/Ubuntu CI. Consistent local audio formats and Intiface input
+passed 37 focused Windows checks, including actual zero-gain WMA playback and
+PCM analysis. Extended Linux WMA playback/analysis passed in run 41680210118.
+
+The layered editor, service and integration are implemented. All 828 Windows
+Release checks pass with zero skips (`parity-preview8-release.trx`), including
+the actual silent layered service, native WMA, analysis, lifecycle/error/reentry,
+editor checks and the final input-reconnect regressions. The extended Linux
+probe builds cleanly; its final native run and preview.8 packaging are next.
+These later changes are not in preview.7. Scope distinctions stay visible below.
 
 ## Flash Images
 
@@ -166,13 +179,18 @@ Source: `Views/Controls/Studio/BrainDrainFeatureControl.xaml:161-399`, its `.xam
 
 ## Audio
 
-Source: `Views/Controls/AppSettings/AudioSettingsSection.xaml:82-275`.
+Source: `Views/Controls/AppSettings/AudioSettingsSection.xaml:82-275`,
+`Windows/LayeredAudioWindow.xaml`, its `.xaml.cs`, and
+`Services/Audio/LayeredAudioService.cs`.
 
 | Source properties / behavior | Classic state and concrete gap | Priority / owner |
 |---|---|---|
 | Master and video gain; ducking toggle/amount | Independent duck-enable setting implemented and wired across existing audio lanes. | Implemented / production_audit + Root |
 | Output device list/refresh; test playback | Real DirectSound GUID enumeration and LibVLC selection/default reset verified on Windows with exact native output identity and muted recorded playback. Linux retains the existing Pulse path. DirectSound remains forced; no mixer fallback. | Implemented / production_audit + Root |
-| Layered audio editor | Missing local layered playback/mix editor. Existing separate internal cue lanes are not a user editor. | P2 / unassigned |
+| Layered audio editor; master/per-track enable and gain | Native Audio More editor adds/removes up to eight local tracks with the source 70% defaults, independent track switches, master and per-track volumes, empty-state warning and translated preparation/partial-failure status. Opening remains idle. Structural changes are explicit apply actions; gain changes update the active graph without restarting stopped audio. Ten-language controls/help and styled headless proof are implemented. | Implemented / Roadmap + Root; focused checks pass |
+| Layered sample-domain loops and one output | File-backed bounded PCM tracks feed one paced mix/output with unequal seamless loop boundaries and live sample gains. Playback remains LibVLC; silent first-pass decoding and actual output are separate. Stop clears samples and awaits owned teardown; last-wins replacement cannot overlap outputs. Failed tracks leave healthy tracks playing. Error-status, reentrant-dispose and actual full-tail native playback checks pass with one output, live gain changes and cache cleanup. | Verified Windows / local_library; full suite passes, final Linux native run pending |
+| AudioOnlySession | Captured when the next session starts and forces the selected layer mix even if its standalone master switch is off. Scheduled flash, subliminal, main spiral/filter, video, bubble, bounce, lock/wipe and drain lanes do not start. Companion/typed triggers, corner GIFs, wallpaper and toys retain their separate source controls. Stop, reset and app close keep the shared gate and cleanup policy. | Implemented / Root; independent source/wiring review complete, owner interaction remains manual |
+| Local audio file formats | One shared MP3/WAV/FLAC/OGG/M4A/AAC/Opus/WMA list drives scans, clip settings and pickers. WMA needs the complete 16-byte ASF Header Object GUID and forced asf demux; renamed ASX/M3U/PLS and nonlocal native inputs are rejected. Actual muted Windows WMA playback and leading-silence/two-level PCM analysis pass. Details are in PARITY-AUDIO-FORMATS.md. | Verified Windows / Roadmap; extended Linux probe pending |
 | AudioSync latency and intensity | Source-time offset, live intensity and four-pass source DSP implemented in Toys. | Implemented / production_audit |
 | Cloud-specific duck exclusion | Excluded with cloud/network providers, not a missing local control. | Scope exception |
 
@@ -227,6 +245,25 @@ Source: `Views/Tabs/HapticsTabView.xaml:749-886,958-1221,1341-1605`.
 | FunScript; luminance; band split; device input/attention | Local script/brightness/band split and advertised Intiface Button Subscribe implemented with a bounded receive pump, held edges/source 350 ms debounce, removal/stop generations and optional one-target video attention. All input/attention/editor checks passed in the coordinated 37-check run; independent review passed. Real hardware remains a manual check. Lovense speculative handshake is not functioning parity evidence. | Implemented and checked local path / production_audit |
 | Pattern graph/preview and per-toy manual play | Each connected card has actual six-pattern graph, intensity/duration and bounded targeted test. Stop delegates shared policy. Pure mixer, offscreen graph and fake-wire tests added. | Implemented / production_audit |
 | Auto-connect | Missing by prior explicit-connect policy. Reconcile user opt-in policy before adding it; never enable automatically. | Policy review / Root |
+
+## Retained exceptions
+
+- Typed completion remains the owner-selected input scope. Microphone, OCR and
+  camera/gaze are excluded. Windows Brain Drain captures only its visual effect;
+  it does not read text or save desktop images. Linux has no Brain Drain desktop
+  capture or wallpaper implementation.
+- Accounts, cloud/network providers, downloads and unrelated games/programs are
+  outside the retained Classic features. Approved neutral defaults and user-authored
+  text remain the content boundary. No synthetic speech is introduced.
+- Shared panic and app-close behavior remains authoritative over source strict
+  Escape grace. Explicit local toy connection remains the policy; auto-connect is
+  still the unresolved policy row above. Physical toy acceptance remains manual.
+- Typed application identification is Windows-only, and trigger Test currently
+  requires a running session. These limits are recorded rather than presented as
+  complete cross-platform/source behavior.
+- Native Remix and glyph raster differences are documented in their specific
+  provenance records. Passing prior Linux or Windows checks does not establish
+  acceptance of the new layered native output or an installer still being built.
 
 ## Acceptance and ownership
 

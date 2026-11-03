@@ -2,6 +2,15 @@
 
 ## Active parity work, 2026-11-03
 
+Final preview.8 validation checkpoint: all 828 Windows Release tests pass with
+zero skips in `artifacts/test-results/parity-preview8-release.trx`. This includes
+the real silent layered-audio service, WMA, FFmpeg analysis, native video timing,
+desktop capture, source renders and deterministic input-reconnect regressions.
+The extended Linux probe builds with zero warnings/errors and now includes eight
+simultaneous looping audio tracks, live gains, cancellation and cache cleanup.
+Cross-platform CI and final preview.8 packaging are next; preview.7 below remains
+the most recent completed local installer until those finish.
+
 Owner requested full behavior/customization parity for the existing features, using
 public CCP source and assets. Typed input only: microphone and OCR are excluded.
 Source is pinned at public `fe40ea7587ac0b09e47d0724e59d7178db3336da`.
@@ -45,20 +54,35 @@ Real desktop-capture tests keep their tiny buffers in memory, never saving the s
 No toy hardware was connected. Desktop wallpaper and the installed application
 were not changed. The native audio check plays the approved recording at zero gain.
 
-Concrete remaining work is recorded in `docs/PARITY-REVIEW.md`. Layered audio still
-needs a true sample-domain mixer. An isolated LibVLC-only prototype lives under
-ignored `artifacts/audio-layers-probe`; transcode loses 20 ms, while direct decoded
-audio callbacks preserve the complete stream. The paced prototype also verified
-sample-domain looping and live gains, with less than 120 ms read-ahead. Decoding
-is paced at 1x, so long tracks still need a bounded streaming/spool design. This
-remains an isolated prototype, not production implementation. Intiface button input needs a bounded receive pump and
-advertised feature subscriptions; Classic already uses protocol v4. Its design is
-under ignored `artifacts/parity-source/INTIFACE-INPUT-DESIGN.md`. Multi-monitor
-Bouncing Text was ported after preview.7: one or two global text objects now cross
-the selected desktop union with mixed-DPI projection and outer-wall rewards.
-Its geometry, motion and native seam-render checks pass; it is not in preview.7.
-The remaining audio/input ports are not completion claims. Microphone, OCR and camera/gaze
-remain outside the retained input scope. Brain Drain is explicitly Windows only.
+Post-preview.7 checkpoints are not in that installer:
+
+- `eaa5253`: multi-monitor Bouncing Text crosses the selected desktop union with
+  mixed-DPI projection and outer-wall rewards. Geometry, motion, native seam render
+  and standard Windows/Ubuntu CI pass.
+- `2df6735` through `cedc665`: consistent local audio formats including verified
+  ASF/WMA, a helper-exit monitoring race fix, bounded Intiface v4 receive/subscription
+  handling and optional button attention. All 37 focused Release checks pass,
+  including actual muted WMA playback and analysis. Button timestamps preserve the
+  physical edge; hidden-period and old-generation presses cannot hit later targets.
+  Linux native/package run 41680210118 passed, including actual WMA playback and
+  analysis. Standard CI exposed an input subscription race under device reuse;
+  its generation guards and stop-resume correction pass the final full suite.
+- `2010037`: bounded PCM storage, sample-domain looping/mixing and pacing. Six
+  focused checks pass, including tiny-loop caching, starvation recovery, gain
+  changes and owned-cache cleanup.
+- `c06cd8a` and `c6dce23`: native layered playback, one output, latest-wins control
+  worker, editor, ten-language help, captured audio-only session mode and shared
+  stop/reset/close integration. The focused integrated run passed 46/46. The
+  first complete native run exposed the Intiface stop-resume race. Checkpoint
+  `0ed3e63` fixes it and the final run passes all 828 cases. Native playback has full
+  16,317/148,617-frame tails, live gains, decoder pause/resume and cache cleanup.
+
+The native layered prototype under ignored `artifacts/audio-layers-probe` proved
+complete direct callback decoding at 4x with a 176400 Hz callback format and a
+separate 44100 Hz/1x output. Repeated decoder pause/resume preserves the tail.
+The output read-ahead remains bounded at 120 ms. Fast transcode/smem loses its last
+packet and must not replace this path. Microphone, OCR and camera/gaze remain
+outside scope. Brain Drain is explicitly Windows only.
 
 Original neutral public spiral GIFs were copied, without overwriting other files,
 to the user's existing image folder `C:/Users/Admin/Documents/ShareX/Backup` as
@@ -66,12 +90,10 @@ to the user's existing image folder `C:/Users/Admin/Documents/ShareX/Backup` as
 settings were not changed. Use literal profile paths when inspecting them because
 the sandbox LOCALAPPDATA points to a different profile.
 
-Agents: local_library owns Remix and the isolated layered-audio investigation;
-roadmap owns video/bubbles/bounce/animated wallpaper review; production_audit owns
-native audio output and Toys. Root owns shared integration, live image selections,
-coordinated builds, source checkpoints and packaging. Preview.7 source is frozen
-in its committed checkpoint. The three remaining parity ports are now active in
-the working tree for a later preview. Do not run competing main-solution builds.
+Agents completed native audio evidence, integration review, editor, lifecycle
+tests, translations, Intiface fixes and the extended Linux probe. Root coordinates
+cross-platform CI and preview.8 packaging. Preview.7 remains the last completed
+installer until packaging finishes. Do not run competing builds.
 
 ## Scope
 
