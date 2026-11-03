@@ -17,6 +17,8 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   with the animated CCP logo in its central 2x2 cells. Image tiles open owned
   settings windows, replacing the flat mockup grid and slide-in sheets.
   Fit the main window around the grid, nearly square, with a compact two-row header.
+- Owner correction 2026-11-03: use CCP's original Bouncing Text tile artwork
+  unchanged, including its baked-in wording. It replaces the vector placeholder.
 - Studio / Presets / Progress; Library / Companion / Toys / Settings windows.
   At most three primary controls per editor. Video concurrency goes under More.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.
