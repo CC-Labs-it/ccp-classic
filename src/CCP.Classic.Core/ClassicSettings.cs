@@ -18,7 +18,7 @@ public sealed class ClassicSettings
     public bool StartHidden { get; set; }
     public bool AutoRun { get; set; }
     public bool KeywordTriggersEnabled { get; set; }
-    public bool CompanionEnabled { get; set; }
+    public bool CompanionEnabled { get; set; } = true;
     public bool BarksEnabled { get; set; }
     public bool TriggerPhrasesEnabled { get; set; }
     public int BarkIntervalSeconds { get; set; } = 60;

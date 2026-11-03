@@ -69,3 +69,16 @@ The files use LFS. All three are 192 x 309 transparent GIFs with 120 frames.
 
 The fresh native host decodes one frame at a time and honors the session's motion
 gates. Only the five owner-approved words can enter its bark display.
+
+The glass tube art around the avatar is CCP's `ConditioningControlPanel/Resources/tube.png`,
+reused unchanged (identical bytes at `fe40ea7587ac0b09e47d0724e59d7178db3336da` and
+public main `c21d38193746fcc61c2406186ae1936a14571906`). It is a 2048 x 2048 RGBA PNG,
+stored as a plain binary (not LFS).
+
+| Classic asset | Public source | SHA-256 | Bytes |
+|---|---|---|---:|
+| `Assets/Companion/tube.png` | `Resources/tube.png` | `c7452e21815caa275d4c7048271bf2da285e1aa3b904c366fd1322e090ceafae` | 855613 |
+
+Classic draws it on CCP's tube design canvas (780 x 1020 units, tube at y 150,
+780 x 780; avatar feet at y 870, centred at x 329.5) and shows the band x 229 to 430
+that holds the art, the avatar and her bubble.

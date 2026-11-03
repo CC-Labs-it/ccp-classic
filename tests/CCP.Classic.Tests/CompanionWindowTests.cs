@@ -49,14 +49,23 @@ public sealed class CompanionWindowTests
         {
             await UiDispatcher.Run(() =>
             {
-                owner = new(); owner.Show(); owner.Activate();
+                owner = new() { Position = new PixelPoint(800, 100) }; owner.Show(); owner.Activate();
                 companion = new(owner, settings, _ => { }, requireTransparency: false); companion.Update(null, 0);
             });
             await Until(() => companion.DecodedFrames > 0, () => companion.Update(null, .1));
             await UiDispatcher.Run(() =>
             {
                 companion.Update(null, .2); Assert.True(companion.IsVisible); Assert.Same(owner, companion.Owner);
-                Assert.True(companion.IsMotionActive); settings.GentleVisuals = true;
+                Assert.True(companion.IsMotionActive);
+                // The tube sits beside main with her art clear of it, and she bobs within four canvas units.
+                Assert.Equal(TubeDockSide.Left, companion.DockSide);
+                Assert.True(companion.Position.X + companion.Width * owner.DesktopScaling <= owner.Position.X + 1);
+                var bobs = Enumerable.Range(0, 8).Select(step => { companion.Update(null, .25 + step * .25); return companion.BobOffset; }).ToArray();
+                Assert.All(bobs, offset => Assert.InRange(offset, -4, 4)); Assert.Contains(bobs, offset => Math.Abs(offset) > 1);
+                var docked = companion.Position;
+                owner.Position = new PixelPoint(owner.Position.X + 40, owner.Position.Y + 30); Dispatcher.UIThread.RunJobs();
+                Assert.Equal(new PixelPoint(docked.X + 40, docked.Y + 30), companion.Position);
+                settings.GentleVisuals = true;
             });
             var frozen = 0;
             await UiDispatcher.Run(() => { companion.Update(null, .3); frozen = companion.DecodedFrames; });
@@ -64,6 +73,7 @@ public sealed class CompanionWindowTests
             await UiDispatcher.Run(() =>
             {
                 companion.Update(null, 1); Assert.False(companion.IsMotionActive); Assert.Equal(frozen, companion.DecodedFrames);
+                Assert.Equal(0, companion.BobOffset);
                 settings.GentleVisuals = false; settings.ReducedMotion = true;
                 companion.Update(null, 2); Assert.False(companion.IsMotionActive);
                 settings.ReducedMotion = false; settings.PerformanceMode = true;
@@ -98,12 +108,13 @@ public sealed class CompanionWindowTests
                 var words = companion.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "CompanionBark");
                 Assert.Equal("Focus", words.Text);
                 companion.Update(new(2, "Unapproved", 0, 1), .2); Assert.Equal("", words.Text);
-                companion.MouseDown(new Point(120, 200), MouseButton.Left); companion.MouseUp(new Point(120, 200), MouseButton.Left);
-                companion.MouseDown(new Point(120, 200), MouseButton.Right); companion.MouseUp(new Point(120, 200), MouseButton.Right);
+                var point = HitPoint(companion);
+                companion.MouseDown(point, MouseButton.Left); companion.MouseUp(point, MouseButton.Left);
+                companion.MouseDown(point, MouseButton.Right); companion.MouseUp(point, MouseButton.Right);
                 Assert.Equal(1, clicked); Assert.Equal(1, stops); Assert.True(companion.IsVisible);
                 companion.Close(); Dispatcher.UIThread.RunJobs(); Assert.Equal(2, stops); Assert.True(companion.IsVisible);
                 companion.FinishImmediately(); Assert.False(companion.IsVisible);
-                Assert.All(companion.GetVisualDescendants().OfType<Image>(), image => Assert.Null(image.Source));
+                Assert.All(Portraits(companion), image => Assert.Null(image.Source));
             });
         }
         finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
@@ -152,7 +163,7 @@ public sealed class CompanionWindowTests
             await UiDispatcher.Run(() =>
             {
                 Assert.Equal(0, companion.DecodedFrames); Assert.False(companion.IsVisible);
-                Assert.All(companion.GetVisualDescendants().OfType<Image>(), image => Assert.Null(image.Source));
+                Assert.All(Portraits(companion), image => Assert.Null(image.Source));
                 for (var index = 0; index < 100; index++)
                 {
                     companion.Update(null, 1 + index * .1);
@@ -199,11 +210,57 @@ public sealed class CompanionWindowTests
             {
                 Dispatcher.UIThread.RunJobs(); Assert.Equal(0, stops); Assert.Equal(0, companion.DecodedFrames);
                 Assert.False(companion.IsVisible);
-                Assert.All(companion.GetVisualDescendants().OfType<Image>(), image => Assert.Null(image.Source));
+                Assert.All(Portraits(companion), image => Assert.Null(image.Source));
             });
         }
         finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
     }
+
+    [Fact]
+    public async Task TheTubeIdlesWithoutASessionAndAStopEndsBarksButKeepsIt()
+    {
+        Window owner = null!; CompanionHost host = null!; var settings = new ClassicSettings(); var stops = 0;
+        try
+        {
+            await UiDispatcher.Run(() =>
+            {
+                owner = new(); owner.Show(); owner.Activate();
+                host = new(owner, settings, window => new(window, settings, _ => { }, requireTransparency: false));
+                host.StopRequested += () => stops++;
+                Assert.True(settings.CompanionEnabled); host.Refresh();
+                Assert.NotNull(host.Window); Assert.True(host.IdleRunning);
+            });
+            await Until(() => host.Window!.DecodedFrames > 0 && host.Window.IsVisible, host.IdleTick);
+            await UiDispatcher.Run(() =>
+            {
+                var companion = host.Window!;
+                var words = companion.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "CompanionBark");
+                host.BeginSession(); Assert.False(host.IdleRunning);
+                host.SessionFrame(new(1, "Focus", 0, 1)); Assert.Equal("Focus", words.Text);
+                // Right-click still asks the owner to stop; the stop itself is the owner's panic path.
+                var point = HitPoint(companion);
+                companion.MouseDown(point, MouseButton.Right); companion.MouseUp(point, MouseButton.Right);
+                Assert.Equal(1, stops);
+                host.EndSession();
+                Assert.Same(companion, host.Window); Assert.True(companion.IsVisible);
+                Assert.Equal("", words.Text); Assert.True(host.IdleRunning);
+                settings.CompanionEnabled = false; host.Refresh();
+                Assert.Null(host.Window); Assert.False(companion.IsVisible); Assert.False(host.IdleRunning);
+                Assert.All(Portraits(companion), image => Assert.Null(image.Source));
+                settings.CompanionEnabled = true; host.Refresh(); Assert.NotNull(host.Window); Assert.NotSame(companion, host.Window);
+                host.Dispose(); Assert.Null(host.Window); Assert.Equal(1, stops);
+            });
+        }
+        finally { await UiDispatcher.Run(() => { host?.Dispose(); owner?.Close(); }); }
+    }
+
+    private static Point HitPoint(CompanionWindow companion)
+    {
+        var hit = companion.GetVisualDescendants().OfType<Border>().Single(border => border.Name == "CompanionHit");
+        return hit.TranslatePoint(new Point(hit.Bounds.Width / 2, hit.Bounds.Height / 2), companion)!.Value;
+    }
+    private static IEnumerable<Image> Portraits(CompanionWindow companion) =>
+        companion.GetVisualDescendants().OfType<Image>().Where(image => image.Name != "CompanionTube");
 
     private static async Task Until(Func<bool> ready, Action update)
     {

@@ -1,5 +1,20 @@
 # CCP Classic handoff
 
+## Companion tube, 2026-11-03 (branch feat/companion-tube)
+
+Owner expected CCP's look: the avatar inside CCP's glass tube, docked beside the main
+window and present whenever the app is open. Avatar is now on by default (barks stay
+off). `Companion/CompanionHost` keeps the tube while Avatar is on: idle frames at about
+20 fps while motion is allowed (still frame otherwise), session frames and barks from
+the effects tick. A stop or panic ends barks and talk at once and returns the tube to
+idle; turning Avatar off or closing the app releases it. Window size comes from the
+monitor (`TubeLayout.Scale`, 0.4 to 1.0); attached docking is the pure
+`TubeLayout.Dock` and re-runs on main's PositionChanged and size changes. The window
+shows only the art's band of the 780 x 1020 canvas: Avalonia windows take clicks on
+transparent pixels, so a full-width canvas would cover the left of the main window.
+Existing settings files keep their saved Avatar value; only fresh profiles and
+Reset get the new default. Headless visual check and X11 docking still owed.
+
 ## 1.0.0-beta.3: Linux audio output picker, 2026-11-03
 
 Owner asked for output selection on Linux (Windows already listed DirectSound devices).

@@ -11,17 +11,23 @@ using SkiaSharp;
 
 namespace CCP.Classic.App.Companion;
 
-// Original tube clips, one decoded frame in flight. The session owner supplies the shared clock.
+// Original tube clips inside CCP's glass tube art, one decoded frame in flight. The effects service
+// supplies one monotonic clock for idle and session frames.
 internal sealed class CompanionWindow : Window
 {
+    private static Bitmap? tubeArt;
     private readonly Window owner;
     private readonly ClassicSettings settings;
     private readonly bool requireTransparency;
     private readonly Action? beforeDecode;
-    private readonly Image portrait = new() { Stretch = Stretch.Uniform };
-    private readonly Image previousPortrait = new() { Stretch = Stretch.Uniform };
+    private readonly Image portrait = Portrait("CompanionPortrait"), previousPortrait = Portrait("CompanionPrevious");
+    private readonly Image tube = new() { Name = "CompanionTube", Width = TubeLayout.TubeSize, Height = TubeLayout.TubeSize,
+        Stretch = Stretch.Uniform, IsHitTestVisible = false,
+        RenderTransformOrigin = new RelativePoint(TubeLayout.AvatarCentre / TubeLayout.TubeSize, .5, RelativeUnit.Relative) };
+    private readonly ScaleTransform mirror = new();
+    private readonly TranslateTransform bob = new();
     private readonly TextBlock words = new() { Name = "CompanionBark", TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
-        Foreground = Brushes.White, FontSize = 18 };
+        Foreground = Brushes.White, FontSize = 26 };
     private readonly Border speech;
     private readonly Fade entrance = new(), dissolve = new();
     private WriteableBitmap? bitmap, previous;
@@ -33,11 +39,16 @@ internal sealed class CompanionWindow : Window
     private Point? dragStart;
     private PixelPoint dragPosition;
     private bool dragged, placing;
-    private double appliedScale = double.NaN;
     private bool? detached;
     public string? LastError { get; private set; }
     public int DecodedFrames { get; private set; }
     internal bool IsDecodePending => pending is not null;
+    internal TubeDockSide DockSide { get; private set; }
+    internal bool IsMirrored => mirror.ScaleX < 0;
+    internal double BobOffset => bob.Y;
+    // Idle callers poll quickly only while something moves or is still loading.
+    internal bool WantsFrames => !closed && (IsMotionActive || pending is not null || Opacity is > 0 and < 1
+        || portrait.Opacity < 1 || bitmap is null && CanBootstrap);
     private bool CanBootstrap => !closed && settings.CompanionEnabled && WindowState != WindowState.Minimized
         && owner.IsVisible && owner.WindowState != WindowState.Minimized
         && (owner.IsActive || owner.OwnedWindows.Any(window => window.IsActive));
@@ -51,50 +62,63 @@ internal sealed class CompanionWindow : Window
         Action? beforeDecode = null)
     {
         this.owner = owner; this.settings = settings; this.requireTransparency = requireTransparency; this.beforeDecode = beforeDecode;
-        Title = "CCP Classic"; Width = 240; Height = 390;
+        Title = "CCP Classic"; var initial = TubeLayout.WindowSize(1); Width = initial.Width; Height = initial.Height;
         WindowStartupLocation = WindowStartupLocation.Manual; WindowDecorations = WindowDecorations.None;
         CanResize = false; ShowInTaskbar = false; ShowActivated = false; Topmost = true;
         Background = Brushes.Transparent; TransparencyBackgroundFallback = Brushes.Transparent;
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
-        var images = new Grid(); images.Children.Add(previousPortrait); images.Children.Add(portrait);
-        images.PointerPressed += (_, args) =>
+        var images = new Grid { Width = TubeLayout.AvatarWidth, Height = TubeLayout.AvatarHeight, RenderTransform = bob, IsHitTestVisible = false };
+        images.Children.Add(previousPortrait); images.Children.Add(portrait);
+        tube.RenderTransform = mirror; tube.Source = tubeArt ??= LoadTube();
+        // Clicks land on the painted art's box, avatar included.
+        var hit = new Border { Name = "CompanionHit", Background = Brushes.Transparent, Width = TubeLayout.BandWidth, Height = 540 };
+        hit.PointerPressed += (_, args) =>
         {
-            var pointer = args.GetCurrentPoint(images).Properties;
+            var pointer = args.GetCurrentPoint(hit).Properties;
             if (pointer.IsLeftButtonPressed)
             {
                 if (settings.CompanionPlacement.Detached)
-                { dragStart = args.GetPosition(this); dragPosition = Position; dragged = false; args.Pointer.Capture(images); }
+                { dragStart = args.GetPosition(this); dragPosition = Position; dragged = false; args.Pointer.Capture(hit); }
                 else { reaction = 7.2; AvatarClicked?.Invoke(); }
                 args.Handled = true;
             }
             else if (pointer.IsRightButtonPressed) { StopRequested?.Invoke(); args.Handled = true; }
         };
-        images.PointerMoved += (_, args) =>
+        hit.PointerMoved += (_, args) =>
         {
-            if (dragStart is not { } start || !args.GetCurrentPoint(images).Properties.IsLeftButtonPressed) return;
+            if (dragStart is not { } start || !args.GetCurrentPoint(hit).Properties.IsLeftButtonPressed) return;
             var point = args.GetPosition(this); var delta = point - start;
             if (!dragged && delta.X * delta.X + delta.Y * delta.Y < 25) return;
             dragged = true;
             var scaling = Screens.ScreenFromWindow(this)?.Scaling ?? 1;
             Position = ClampPosition(new(Position.X + (int)(delta.X * scaling), Position.Y + (int)(delta.Y * scaling)));
         };
-        images.PointerReleased += (_, args) =>
+        hit.PointerReleased += (_, args) =>
         {
             if (dragStart is null) return; dragStart = null; args.Pointer.Capture(null);
             if (dragged) PersistPlacement(); else { Position = dragPosition; reaction = 7.2; AvatarClicked?.Invoke(); }
             dragged = false; args.Handled = true;
         };
-        images.PointerCaptureLost += (_, _) => { if (dragged) PersistPlacement(); dragStart = null; dragged = false; };
-        images.PointerWheelChanged += (_, args) =>
+        hit.PointerCaptureLost += (_, _) => { if (dragged) PersistPlacement(); dragStart = null; dragged = false; };
+        hit.PointerWheelChanged += (_, args) =>
         {
             if (!settings.CompanionPlacement.Detached || !args.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
             settings.CompanionPlacement.Scale = Math.Clamp(settings.CompanionPlacement.Scale + Math.Sign(args.Delta.Y) * .25, .5, 1.5);
             ApplyPlacement(); PersistPlacement(); args.Handled = true;
         };
         speech = new Border { Child = words, Background = new SolidColorBrush(Color.Parse("#E61C1C35")),
-            CornerRadius = new(12), Padding = new(12, 8), Margin = new(0, 0, 0, 8), IsHitTestVisible = false, Opacity = 0 };
-        var layout = new Grid { RowDefinitions = new("Auto,*") };
-        layout.Children.Add(speech); Grid.SetRow(images, 1); layout.Children.Add(images); Content = layout;
+            CornerRadius = new(16), Padding = new(16, 10), IsHitTestVisible = false, Opacity = 0, MaxWidth = TubeLayout.BandWidth - 8,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom };
+        // CCP's 780 x 1020 design canvas, cropped to the band that holds the art.
+        var stage = new Canvas { Width = TubeLayout.BandWidth, Height = TubeLayout.CanvasHeight, ClipToBounds = true };
+        Place(stage, tube, -TubeLayout.BandLeft, TubeLayout.TubeTop);
+        Place(stage, images, TubeLayout.AvatarCentre - TubeLayout.AvatarWidth / 2 - TubeLayout.BandLeft,
+            TubeLayout.AvatarFeet - TubeLayout.AvatarHeight);
+        Place(stage, new Panel { Width = TubeLayout.BandWidth, Height = TubeLayout.AvatarFeet - TubeLayout.AvatarHeight - 12,
+            Children = { speech } }, 0, 0);
+        Place(stage, hit, 0, TubeLayout.TubeTop + 230);
+        Content = new Viewbox { Stretch = Stretch.Uniform, Child = stage };
+        owner.PositionChanged += OwnerMoved; owner.PropertyChanged += OwnerChanged;
         configureInput(this);
         Closing += (_, args) =>
         {
@@ -111,6 +135,31 @@ internal sealed class CompanionWindow : Window
             { LastError = "Companion transparency is unavailable."; Hide(); }
         };
         Closed += (_, _) => Release();
+    }
+
+    private static Image Portrait(string name) => new() { Name = name, Stretch = Stretch.Uniform,
+        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom };
+    private static void Place(Canvas stage, Control child, double left, double top)
+    { Canvas.SetLeft(child, left); Canvas.SetTop(child, top); stage.Children.Add(child); }
+    private static Bitmap LoadTube()
+    {
+        using var source = AssetLoader.Open(new Uri("avares://CCP.Classic.App/Assets/Companion/tube.png"));
+        return Bitmap.DecodeToWidth(source, 1024, BitmapInterpolationMode.HighQuality);
+    }
+    private void OwnerMoved(object? sender, PixelPointEventArgs args) => FollowOwner();
+    private void OwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
+    {
+        if (args.Property == BoundsProperty || args.Property == ClientSizeProperty || args.Property == WindowStateProperty
+            || args.Property == IsVisibleProperty) FollowOwner();
+    }
+    // The tube leaves with a hidden or minimized main window and returns with it.
+    private void FollowOwner()
+    {
+        if (closed) return;
+        if (!owner.IsVisible || owner.WindowState == WindowState.Minimized) { Hide(); return; }
+        if (!prepared) return;
+        if (IsVisible) ApplyPlacement();
+        else if (settings.CompanionEnabled && bitmap is not null && LastError is null && Opacity > 0) EnsureShown();
     }
 
     public void Update(CompanionBarkCue? bark, double seconds)
@@ -137,6 +186,7 @@ internal sealed class CompanionWindow : Window
             var clip = approved ? "talkA" : reaction > 0 ? "greeting" : "idle";
             if (clip != wantedClip) { wantedClip = clip; animationTime = 0; lastRequest = double.NegativeInfinity; }
         }
+        bob.Y = IsMotionActive && IsVisible ? 4 * Math.Sin(now * Math.PI) : 0;
         if (pending is null && settings.CompanionEnabled && LastError is null
             && (bitmap is null ? CanBootstrap : IsMotionActive && now - lastRequest >= .05)) RequestFrame(now);
     }
@@ -161,19 +211,32 @@ internal sealed class CompanionWindow : Window
         try
         {
             var options = settings.CompanionPlacement;
-            var scale = options.Detached ? Math.Clamp(options.Scale, .5, 1.5) : 1;
-            if (appliedScale != scale) { Width = 240 * scale; Height = 390 * scale; appliedScale = scale; }
-            Topmost = options.AlwaysOnTop;
+            var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
+            var scaling = screen is { Scaling: > 0 } ? screen.Scaling : 1;
+            var scale = screen is null ? 1 : TubeLayout.Scale(screen.WorkingArea, scaling);
+            if (options.Detached) scale *= Math.Clamp(options.Scale, .5, 1.5);
+            var size = TubeLayout.WindowSize(scale);
+            if (Width != size.Width) Width = size.Width;
+            if (Height != size.Height) Height = size.Height;
+            if (Topmost != options.AlwaysOnTop) Topmost = options.AlwaysOnTop;
             if (options.Detached)
             {
-                if (options.Left is { } left && options.Top is { } top) Position = ClampPosition(new(left, top));
+                mirror.ScaleX = 1; DockSide = TubeDockSide.Float;
+                if (options.Left is { } left && options.Top is { } top) MoveTo(ClampPosition(new(left, top)));
                 else if (detached != true) Anchor();
             }
-            else Anchor();
+            else if (screen is not null)
+            {
+                var frame = owner.FrameSize ?? owner.ClientSize;
+                var ownerScale = owner.DesktopScaling > 0 ? owner.DesktopScaling : scaling;
+                var dock = TubeLayout.Dock(new(owner.Position, PixelSize.FromSize(frame, ownerScale)), screen.WorkingArea, scaling, scale);
+                MoveTo(dock.Position); mirror.ScaleX = dock.Mirrored ? -1 : 1; DockSide = dock.Side;
+            }
             detached = options.Detached;
         }
         finally { placing = false; }
     }
+    private void MoveTo(PixelPoint point) { if (Position != point) Position = point; }
     private PixelPoint ClampPosition(PixelPoint point)
     {
         var screen = Screens.ScreenFromPoint(point) ?? owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
@@ -232,7 +295,8 @@ internal sealed class CompanionWindow : Window
     private void Release()
     {
         if (closed) return;
-        closed = true; Hide(); portrait.Source = previousPortrait.Source = null; speech.IsVisible = false;
+        closed = true; owner.PositionChanged -= OwnerMoved; owner.PropertyChanged -= OwnerChanged;
+        Hide(); portrait.Source = previousPortrait.Source = tube.Source = null; speech.IsVisible = false; bob.Y = 0;
         bitmap?.Dispose(); previous?.Dispose(); bitmap = previous = null;
         if (pending is { } work) _ = work.ContinueWith(_ => decoder?.Dispose(), TaskScheduler.Default);
         else decoder?.Dispose();

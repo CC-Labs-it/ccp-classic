@@ -7,7 +7,7 @@ namespace CCP.Classic.App.Effects;
 public sealed partial class DesktopEffectsService
 {
     private CompanionTimeline companion = null!;
-    private CompanionWindow? companionWindow;
+    private CompanionHost companionHost = null!;
     private long lastBark;
     private readonly TimedEffectTimeline timedChanges = new();
     public bool GlobalTextAvailable => panic.IsTextAvailable;
@@ -18,9 +18,14 @@ public sealed partial class DesktopEffectsService
     {
         companion = new(settings);
         InitializeKeywords();
+        companionHost = new(owner, settings, window => new(window, settings, configureInput), clock);
+        companionHost.StopRequested += () => session.Stop();
+        companionHost.PlacementChanged += () => CompanionPlacementChanged?.Invoke();
+        companionHost.AvatarClicked += () => { AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion); };
     }
     private void StartCompanion()
     {
+        companionHost.BeginSession();
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         companion.Start(); keywords.Start(); lastBark = 0;
         timedChanges.Start(settings.TimedChanges);
@@ -37,14 +42,7 @@ public sealed partial class DesktopEffectsService
         foreach (var change in timedChanges.Step(elapsed)) settings.Effects[change.EffectId].Enabled = change.Enabled;
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         var frame = companion.Step(elapsed);
-        if (settings.CompanionEnabled && companionWindow is null)
-        {
-            companionWindow = new(owner, settings, configureInput);
-            companionWindow.StopRequested += () => session.Stop();
-            companionWindow.PlacementChanged += () => CompanionPlacementChanged?.Invoke();
-            companionWindow.AvatarClicked += () => { AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion); };
-        }
-        companionWindow?.Update(frame.Bark, elapsed);
+        companionHost.SessionFrame(frame.Bark);
         if (frame.Bark is { } bark && bark.Id != lastBark)
         {
             lastBark = bark.Id;
@@ -64,8 +62,10 @@ public sealed partial class DesktopEffectsService
             if (triggered && trigger.Source == CompanionTriggerSource.Keyword) DeviceEvent?.Invoke(LocalDeviceEvent.Keyword);
         }
     }
+    // A stop ends barks and talk at once; the tube stays and returns to idle.
     private void StopCompanion()
     {
-        StopKeywords(); timedChanges.Stop(); companion.Stop(); companionWindow?.FinishImmediately(); companionWindow = null;
+        StopKeywords(); timedChanges.Stop(); companion.Stop();
+        if (disposed) companionHost.Dispose(); else companionHost.EndSession();
     }
 }

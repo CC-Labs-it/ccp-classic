@@ -33,7 +33,9 @@ current dynamic mode plays a selected local video through the existing cover.
 
 The companion now supports explicit detached placement, drag, Ctrl+wheel scale,
 topmost preference and reset. Physical saved positions are clamped to a current
-monitor working area; attached placement continues to anchor to the owner.
+monitor working area. Attached placement follows CCP's `TubeDockPlacement`: the
+tube art docks 3 DIP left of the main window, mirrors onto its right side when the
+left has no room, and otherwise floats fully on screen; main is never moved.
 Machine placement is kept outside effect presets.
 
 Tests use fake static writers/covers and temporary generated test images. They

@@ -21,6 +21,7 @@ public sealed class ProductionRuntimeTests
     {
         var settings = new ClassicSettings();
         foreach (var effect in settings.Effects.Values) effect.Enabled = false;
+        settings.CompanionEnabled = false;
         Assert.Equal(TimeSpan.FromMilliseconds(250), DesktopEffectsService.FrameInterval(settings, false, false));
         Assert.True(DesktopEffectsService.FrameInterval(settings, true, false).TotalMilliseconds < 34);
         settings.CompanionEnabled = true;

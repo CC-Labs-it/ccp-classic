@@ -83,12 +83,13 @@ public sealed partial class DesktopEffectsService : IDisposable
         timer = new(TimeSpan.FromSeconds(1d / 30), DispatcherPriority.Background, (_, _) => Tick());
         session.Changed += SessionChanged;
         session.StopRequested += Stop;
+        companionHost.Refresh();
     }
 
     public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
         or "bubble" or "bounce" or "lock" or "wipe" or "drain" || id == "wall" && OperatingSystem.IsWindows();
 
-    public void RefreshSettings() { AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); TickLayeredAudio(); Tick(); }
+    public void RefreshSettings() { AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); TickLayeredAudio(); companionHost.Refresh(); Tick(); }
     public void ReloadLibrary() { RefreshInteractiveLibrary(force: true); videos.RefreshLibrary(force: true); Tick(); }
     public void ReloadCustomSpiral() { loom.Reload(); Tick(); }
 
@@ -129,9 +130,9 @@ public sealed partial class DesktopEffectsService : IDisposable
             if (audioOnlySession)
             {
                 TickWipe(); TickSpiralMedia(elapsed); TickCompanion(elapsed); TickWallpaper(); TickHaptics(elapsed);
-                timer.Interval = FrameInterval(settings, false, false, companionWindow?.IsVisible == true);
+                timer.Interval = FrameInterval(settings, false, false, companionHost.Window?.IsVisible == true);
                 Report(SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? LayeredAudioStatus
-                    ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null)
+                    ?? (companionHost.Window?.LastError is not null ? "CompanionUnavailable" : null)
                     ?? (!panic.IsAvailable ? "GlobalPanicUnavailable" : "Running"));
                 return;
             }
@@ -159,7 +160,7 @@ public sealed partial class DesktopEffectsService : IDisposable
                 CloseWindows();
             var needsHost = anyVisual || snapshot.Flashes.Count > 0 || snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity > 0
                 || interactiveFrame.Bubbles.Count > 0 || interactiveFrame.BouncingText is not null || interactiveFrame.ImageVisuals.Count > 0;
-            timer.Interval = FrameInterval(settings, videos.IsPlaying, lockFrame.LockCard is not null, needsHost || companionWindow?.IsVisible == true);
+            timer.Interval = FrameInterval(settings, videos.IsPlaying, lockFrame.LockCard is not null, needsHost || companionHost.Window?.IsVisible == true);
             if (needsHost && !useFallback && !ReconcileWindows())
             {
                 windows.Clear(CloseWindow); useFallback = true;
@@ -195,7 +196,7 @@ public sealed partial class DesktopEffectsService : IDisposable
                 settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking) ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1, snapshot.ManualSubliminal);
             TickHaptics(elapsed);
             Report(videos.Status ?? BrainDrainStatus ?? SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? LayeredAudioStatus ?? (useFallback ? "EffectsInWindow" : null)
-                ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
+                ?? (companionHost.Window?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
                 : audio.LastError is not null ? "AudioUnavailable" : "Running"));
         }
         catch (Exception e) when (e is InvalidOperationException or IOException or ArgumentException)
