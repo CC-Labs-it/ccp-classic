@@ -8,7 +8,7 @@ CCP's box and owner-nudged, right-click menu, CCP avatar0 emote set at 80% speed
 neutral Circe barks (106 rules, 281 clips), keyword triggers removed. 828 Release tests pass.
 Windows exe + setup Authenticode signed and timestamped; SHA256SUMS + .asc GPG signed (Good
 signature); analysis sources split in .001/.002 and rejoin to the listed hash. Linux tarball
-151 MB (was 84: clips + barks). The beta.4 draft was deleted; the owner posts the Discord text
+151 MB (was 84: clips + barks). Uploaded as a DRAFT, every asset digest matches; publishing is owner-run (agents are refused). The beta.4 draft is kept hidden; the owner posts the Discord text
 on their Desktop (ccp-classic-discord-post.txt, now pointing at beta.5) by hand.
 SHA256: linux a0c436e8..., setup dd59274b..., zip bd8b20d7..., sources e3f0d61c...
 
