@@ -115,7 +115,7 @@ internal sealed class CompanionWindow : Window
         // CCP's 780 x 1020 design canvas, cropped to the band that holds the art.
         var stage = new Canvas { Width = TubeLayout.BandWidth, Height = TubeLayout.CanvasHeight, ClipToBounds = true };
         Place(stage, tube, -TubeLayout.BandLeft, TubeLayout.TubeTop);
-        Place(stage, images, TubeLayout.AvatarCentre - TubeLayout.AvatarWidth / 2 - TubeLayout.BandLeft,
+        Place(stage, images, TubeLayout.AvatarBoxCentre - TubeLayout.AvatarWidth / 2 - TubeLayout.BandLeft,
             TubeLayout.AvatarFeet - TubeLayout.AvatarHeight);
         Place(stage, new Panel { Width = TubeLayout.BandWidth, Height = TubeLayout.AvatarFeet - TubeLayout.AvatarHeight - 12,
             Children = { speech } }, 0, 0);
