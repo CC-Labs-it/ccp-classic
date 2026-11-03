@@ -21,6 +21,9 @@ internal sealed class CompanionHost : IDisposable
     public event Action? StopRequested, AvatarClicked, PlacementChanged;
     // A new idle word to voice. Session words are voiced by the session itself.
     public event Action<CompanionBarkCue>? IdleBark;
+    // Right-click menu work for the panel, and the panel's answer for the menu's session row.
+    public event Action<CompanionMenuCommand>? MenuCommand;
+    public Func<CompanionSessionState>? SessionState { get; set; }
     // One monotonic clock for idle and session frames; session time restarts at zero.
     public double Now => clock.GetElapsedTime(epoch).TotalSeconds;
     internal bool IdleRunning => idle.IsEnabled;
@@ -49,6 +52,8 @@ internal sealed class CompanionHost : IDisposable
                 AvatarClicked?.Invoke();
             };
             Window.PlacementChanged += () => PlacementChanged?.Invoke();
+            Window.MenuCommand += command => MenuCommand?.Invoke(command);
+            Window.SessionState = () => SessionState?.Invoke() ?? CompanionSessionState.Unavailable;
         }
         if (!session) IdleTick();
     }
