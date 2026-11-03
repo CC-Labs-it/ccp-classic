@@ -20,6 +20,8 @@ public sealed class EffectCard : Border
     private readonly Action changed;
 
     public int PrimaryControlCount => definition.Primary.Count;
+    public event Action<string>? ActionRequested;
+    public event Action<string>? ValueChanged;
 
     public EffectCard(EffectDefinition definition, EffectSettings settings,
         LocalizationService text, Action changed)
@@ -129,10 +131,13 @@ public sealed class EffectCard : Border
             case KnobKind.Choice:
                 return Choice(knob, label, value);
             case KnobKind.Action:
-                var action = new Button { Content = text[knob.Label], IsEnabled = false,
+                var supported = definition.Id == "spiral" && knob.Key == "loom";
+                var action = new Button { Content = text[knob.Label], IsEnabled = supported,
+                    Name = "Action_" + definition.Id + "_" + knob.Key,
                     HorizontalAlignment = HorizontalAlignment.Right, FontSize = 11 };
                 action.Classes.Add("pill");
-                ToolTip.SetTip(action, text["Unavailable"]);
+                action.Click += (_, _) => ActionRequested?.Invoke(knob.Key);
+                if (!supported) ToolTip.SetTip(action, text["Unavailable"]);
                 return action;
             default:
                 throw new ArgumentOutOfRangeException(nameof(knob));
@@ -201,7 +206,7 @@ public sealed class EffectCard : Border
         return toggle;
     }
 
-    private void Save(string key, double value) { settings.Values[key] = value; changed(); }
+    private void Save(string key, double value) { settings.Values[key] = value; ValueChanged?.Invoke(key); changed(); }
     private IBrush LampBrush() => Brush(settings.Enabled ? "#FF69B4" : "#2E2E4A");
     private string Format(double value, string unit)
     {

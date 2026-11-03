@@ -12,6 +12,7 @@ using CCP.Classic.App.Controls;
 using CCP.Classic.App.Effects;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
+using CCP.Classic.Core.LocalDevices;
 
 namespace CCP.Classic.App;
 
@@ -40,45 +41,50 @@ public sealed partial class MainWindow : Window
     public bool SettingsRecovered { get; set; }
 
     public MainWindow(ClassicSettings? settings = null, SettingsStore? store = null, bool? windows = null,
-        bool desktopEffects = false, Func<bool>? globalPanicAvailable = null, PresetStore? presetStore = null)
+        bool desktopEffects = false, Func<bool>? globalPanicAvailable = null, PresetStore? presetStore = null,
+        bool startupLaunch = false, StartupRegistration? startupRegistration = null, LocalDeviceController? deviceController = null)
     {
         Settings = settings ?? new();
         Settings.Normalize();
         Settings.PanicKey = PanicKeys.Normalize(Settings.PanicKey);
         this.store = store;
         this.presetStore = presetStore ?? new(PresetStore.DefaultDirectory);
+        this.startupRegistration = startupRegistration;
+        haptics = deviceController ?? new();
         this.windows = windows ?? OperatingSystem.IsWindows();
         text = new(Settings.Language);
         Settings.Language = text.Language;
         Session = new(Settings);
         InitializeProgress();
         input = new(Session, globalPanicAvailable ?? (() => effects?.GlobalPanicAvailable == true));
+        InitializeToys();
         Title = "CCP Classic";
         ClosingBehavior = WindowClosingBehavior.OwnerWindowOnly;
+        Closing += AwaitLocalCleanup;
         Width = 724; Height = 760; MinWidth = 700; MinHeight = 700;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         BuildShell();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(TextInputEvent, (_, args) =>
-        {
-            if (effects?.GlobalTextAvailable != true && args.Text is { } characters) effects?.FeedText(characters);
-        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel, handledEventsToo: true);
         Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         Session.Changed += UpdateSession;
         Session.StopRequested += () => { statusKey = "Stopped"; UpdateSession(); };
         timer = new(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) =>
         {
             Session.Tick();
+            TickStartup();
             TickProgress();
             elapsed.Text = Session.Elapsed.ToString(@"hh\:mm\:ss");
         });
         Opened += (_, _) =>
         {
-            if (desktopEffects)
+            if (desktopEffects && effects is null)
             {
                 effects = new(this, Settings, Session, ConfigureEffectInput, HandleGlobalKey);
                 effects.StatusChanged += SetStatus;
+                effects.DeviceEvent += EmitToys;
+                effects.AudioLevelChanged += ToysAudioLevel;
                 effects.InteractiveEvent += value =>
                 {
                     if (value.Kind == InteractiveEffectEventKind.BubblePopped) Progress.BubblePopped();
@@ -95,11 +101,12 @@ public sealed partial class MainWindow : Window
                     if (correct) Progress.AddXp(10);
                 };
                 SetStatus("Idle");
+                InitializeStartup(startupLaunch);
             }
             if (SettingsRecovered) SetStatus("SettingsRecovered");
             timer.Start();
         };
-        Closed += (_, _) => { libraryScan?.Cancel(); libraryScan?.Dispose(); timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
+        Closed += (_, _) => { DisposeToys(); DisposeStartup(); libraryScan?.Cancel(); libraryScan?.Dispose(); timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
     }
 
     private void BuildShell()
@@ -219,7 +226,7 @@ public sealed partial class MainWindow : Window
         return panel;
     }
 
-    private void PresetChanged() { SaveSettings(); BuildShell(); }
+    private void PresetChanged() { SaveSettings(); BuildShell(); effects?.RefreshSettings(); }
 
     private Control Studio()
     {
@@ -233,6 +240,7 @@ public sealed partial class MainWindow : Window
     {
         text.SetLanguage(code); Settings.Language = text.Language;
         BuildShell();
+        RefreshTrayMenu();
         if (sheet is not null) OpenSheet(sheet);
     }
 
@@ -276,6 +284,7 @@ public sealed partial class MainWindow : Window
     {
         window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
+        window.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
     }
 
@@ -284,8 +293,14 @@ public sealed partial class MainWindow : Window
         if (input.GlobalChanged(key, down)) { Progress.PanicPressed(); SetStatus("PanicStopped"); CloseSheet(); }
     }
 
+    private void OnTextInput(object? sender, TextInputEventArgs args)
+    {
+        if (effects?.GlobalTextAvailable != true && args.Text is { } characters) effects?.FeedText(characters);
+    }
+
     private void UpdateSession()
     {
+        RefreshTrayMenu();
         startStop.Content = text[Session.IsRunning ? "Stop" : "Start"];
         elapsed.IsVisible = Session.IsRunning;
         status.Text = text[statusKey];
@@ -304,6 +319,7 @@ public sealed partial class MainWindow : Window
         Settings.GentleVisuals = value; gentle.IsChecked = value;
         if (SettingsWindow?.GetVisualDescendants().OfType<ToggleButton>().FirstOrDefault(c => c.Name == "SettingsGentle") is { } other)
             other.IsChecked = value;
+        effects?.RefreshSettings();
     }
     private static Border Chrome(Control child, bool bottom) => new() { Child = child, Padding = new(12, 0),
         Background = Brush("#1C1C35"), BorderBrush = Brush("#26263F"), BorderThickness = bottom ? new(0, 1, 0, 0) : new(0, 0, 0, 1) };

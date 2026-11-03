@@ -31,10 +31,7 @@ public sealed partial class MainWindow
                 FillCompanion(content);
                 break;
             case "Toys":
-                foreach (var provider in new[] { "Intiface", "LovenseConnect" })
-                    content.Children.Add(Row(provider, PendingButton("Connect"), "NotConnected"));
-                content.Children.Add(Note("LocalhostOnly"));
-                content.Children.Add(Note("ToysPending"));
+                FillToys(content);
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(key));
         }
@@ -47,10 +44,14 @@ public sealed partial class MainWindow
         var definition = EffectCatalog.All.Single(d => d.Id == id && (!d.WindowsOnly || windows));
         sheet = null;
         var content = new StackPanel { Spacing = 12, Margin = new(14, 12) };
-        content.Children.Add(new EffectCard(definition, Settings.Effects[id], text, () =>
+        var card = new EffectCard(definition, Settings.Effects[id], text, () =>
         {
             foreach (var tile in this.GetVisualDescendants().OfType<EffectTile>()) tile.Refresh();
-        }));
+            effects?.RefreshSettings();
+        });
+        card.ActionRequested += key => { if (id == "spiral" && key == "loom") OpenLoom(); };
+        card.ValueChanged += key => { if (id == "spiral" && key == "spiral") Settings.CustomSpiralId = null; };
+        content.Children.Add(card);
         content.Children.Add(Note(DesktopEffectsService.IsPlayable(id) ? "LiveSettings" : "Unavailable"));
         ShowSettingsWindow(definition.Title, content);
     }
@@ -95,8 +96,10 @@ public sealed partial class MainWindow
                 RefreshLanguage(selected.Code);
         };
         content.Children.Add(Row("Language", language));
-        foreach (var key in new[] { "StartWithSystem", "StartHidden", "AutoRun" })
-            content.Children.Add(Row(key, DisabledToggle()));
+        var startup = Toggle(Settings.StartWithSystem, text["StartWithSystem"], ChangeStartupPreference); startup.Name = "StartWithSystem";
+        content.Children.Add(Row("StartWithSystem", startup));
+        content.Children.Add(Row("StartHidden", Toggle(Settings.StartHidden, text["StartHidden"], value => Settings.StartHidden = value), "StartHiddenHelp"));
+        content.Children.Add(Row("AutoRun", Toggle(Settings.AutoRun, text["AutoRun"], value => Settings.AutoRun = value)));
         content.Children.Add(Row("FillAllMonitors", Toggle(Settings.FillAllMonitors, text["FillAllMonitors"], value => Settings.FillAllMonitors = value)));
         var panicKey = Button("Change", () => { capturePanic = true; SetStatus("CapturePanicKey"); });
         panicKey.Content = PanicName() + " · " + text["Change"];
@@ -106,7 +109,7 @@ public sealed partial class MainWindow
         content.Children.Add(Row("Performance", Toggle(Settings.PerformanceMode, text["Performance"], value => Settings.PerformanceMode = value)));
         content.Children.Add(Row("ReducedMotion", Toggle(Settings.ReducedMotion, text["ReducedMotion"], value => Settings.ReducedMotion = value)));
         content.Children.Add(Row("Export", Button("Export", ExportSettings)));
-        content.Children.Add(Row("Reset", PendingButton("Reset")));
+        content.Children.Add(Row("Reset", Button("Reset", ResetSettings)));
         var warning = new StackPanel { Spacing = 10, IsVisible = false };
         warning.Children.Add(Note("NoPanicWarning"));
         var confirm = Button("ConfirmNoPanic", () => { Session.SetPanicEnabled(false, true); OpenSheet("Settings"); });
