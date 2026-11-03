@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using CCP.Classic.App.Input;
 using CCP.Classic.App.Media;
@@ -17,8 +18,9 @@ public sealed class DesktopEffectsService : IDisposable
     private readonly SessionController session;
     private readonly StarterPack starter = new();
     private readonly List<Bitmap> images = [];
-    private readonly List<EffectOverlayWindow> windows = [];
+    private readonly OverlayHostSet<MonitorTarget, EffectOverlayWindow> windows = new();
     private readonly LibVlcAudioPlayback audio = new();
+    private readonly RecordedWhisperPlayback whispers;
     private readonly GlobalPanicMonitor panic;
     private readonly EffectsTimeline timeline;
     private readonly DispatcherTimer timer;
@@ -27,7 +29,7 @@ public sealed class DesktopEffectsService : IDisposable
     private EffectsSnapshot? snapshot;
     private string? lastStatus;
     private long started;
-    private bool running, lastAudioEnabled, disposed;
+    private bool running, disposed;
     public bool GlobalPanicAvailable => panic.IsAvailable;
     public event Action<string>? StatusChanged;
 
@@ -35,6 +37,7 @@ public sealed class DesktopEffectsService : IDisposable
         Action<Window> configureInput, Action<string, bool> keyChanged)
     {
         this.owner = owner; this.settings = settings; this.session = session; this.configureInput = configureInput;
+        whispers = new(audio);
         foreach (var path in starter.Images)
         {
             try { images.Add(new Bitmap(path)); }
@@ -60,7 +63,6 @@ public sealed class DesktopEffectsService : IDisposable
         if (disposed) return;
         running = true; lastStatus = null;
         timeline.Start(); started = clock.GetTimestamp();
-        lastAudioEnabled = settings.Effects["audio"].Enabled;
         timer.Start();
         Tick();
     }
@@ -76,7 +78,7 @@ public sealed class DesktopEffectsService : IDisposable
             timer.Interval = TimeSpan.FromSeconds(anyVisual ? 1d / (settings.PerformanceMode ? 15 : 30) : .25);
             if (!anyVisual && snapshot.Flashes.Count == 0 && snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity == 0)
                 CloseWindows();
-            if (anyVisual && windows.Count == 0 && !CreateWindows())
+            if (anyVisual && !ReconcileWindows())
             {
                 session.Dispose(); Report("EffectsUnavailable"); return;
             }
@@ -85,16 +87,12 @@ public sealed class DesktopEffectsService : IDisposable
             var frame = EffectsFrameBuilder.Build(snapshot, settings, images, phrases);
             var input = settings.Effects["flash"].Values["dismiss"] != 0
                 ? frame.Flashes.Where(f => f.Opacity > .01).Select(f => f.Bounds).ToArray() : [];
-            foreach (var window in windows)
+            foreach (var window in windows.Hosts)
             {
                 if (!window.SetInputBounds(input)) { session.Dispose(); Report("EffectsUnavailable"); return; }
                 window.View.UpdateFrame(frame);
             }
-            var audioEnabled = settings.Effects["audio"].Enabled;
-            if (lastAudioEnabled && !audioEnabled) audio.StopAll();
-            lastAudioEnabled = audioEnabled;
-            if (snapshot.Whisper && spoken?.AudioPath is { } clip)
-                audio.Play(clip, settings.Effects["audio"].Values["master"] / 100);
+            whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath);
             Report(!panic.IsAvailable ? "GlobalPanicUnavailable"
                 : audio.LastError is not null ? "AudioUnavailable" : "Running");
         }
@@ -104,19 +102,25 @@ public sealed class DesktopEffectsService : IDisposable
         }
     }
 
-    private bool CreateWindows()
+    private bool ReconcileWindows()
     {
-        var selected = settings.FillAllMonitors ? owner.Screens.All
-            : owner.Screens.All.Where(s => s.Bounds.Contains(owner.Position)).Take(1).ToArray();
+        IReadOnlyList<Screen> selected = settings.FillAllMonitors ? owner.Screens.All
+            : owner.Screens.ScreenFromWindow(owner) is { } current ? [current] : [];
         if (selected.Count == 0 && owner.Screens.Primary is { } primary) selected = [primary];
-        foreach (var screen in selected)
+        var targets = selected.GroupBy(screen => new MonitorTarget(screen.Bounds, screen.Scaling))
+            .ToDictionary(group => group.Key, group => group.First());
+        return windows.Reconcile(targets.Keys, target =>
         {
             var window = new EffectOverlayWindow(configureInput);
-            windows.Add(window);
             window.FlashPressed += DismissAt;
-            if (!window.Prepare(screen)) { CloseWindows(); return false; }
-        }
-        return windows.Count > 0;
+            var prepared = false;
+            try
+            {
+                prepared = window.Prepare(targets[target]);
+                return prepared ? window : null;
+            }
+            finally { if (!prepared) CloseWindow(window); }
+        }, CloseWindow);
     }
 
     private void DismissAt(Point point)
@@ -133,16 +137,18 @@ public sealed class DesktopEffectsService : IDisposable
         lastStatus = key; StatusChanged?.Invoke(key);
     }
 
-    private void CloseWindows()
+    private static void CloseWindow(EffectOverlayWindow window)
     {
-        foreach (var window in windows) { window.View.UpdateFrame(EffectFrame.Empty); window.Close(); }
-        windows.Clear();
+        window.View.UpdateFrame(EffectFrame.Empty);
+        window.Close();
     }
+
+    private void CloseWindows() => windows.Clear(CloseWindow);
 
     public void Stop()
     {
         timer.Stop(); running = false; timeline.Stop(); snapshot = null;
-        CloseWindows(); audio.StopAll();
+        CloseWindows(); whispers.Stop();
     }
 
     public void Dispose()

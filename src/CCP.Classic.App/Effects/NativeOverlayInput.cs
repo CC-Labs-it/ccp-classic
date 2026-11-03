@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using CCP.Classic.App.Input;
 
 namespace CCP.Classic.App.Effects;
 
@@ -129,14 +130,7 @@ internal sealed class NativeOverlayInput : IDisposable
     internal static uint WindowsStyle(uint extended, bool through) =>
         (extended | NoActivate | Layered | Tool) & ~Transparent | (through ? Transparent : 0);
 
-    internal static bool IsLocalDisplay(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return false;
-        var address = value.StartsWith("unix:", StringComparison.Ordinal) ? value[5..]
-            : value.StartsWith(':') ? value[1..] : "";
-        if (address.Length == 0 || address[0] == '.' || address[^1] == '.' || address.IndexOf('.') != address.LastIndexOf('.')) return false;
-        return address.All(character => char.IsAsciiDigit(character) || character == '.');
-    }
+    internal static bool IsLocalDisplay(string? value) => NativePanicKeys.IsLocalDisplay(value);
 
     internal static PixelRect[] PixelBounds(IReadOnlyList<Rect> bounds, PixelSize size)
     {

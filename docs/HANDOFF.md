@@ -40,6 +40,13 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
   223,763 bytes total. Missing clips stay silent text. Recorded whispers are opt-in.
 - Native local audio uses per-player DirectSound on Windows and system LibVLC on
   Linux. Queue cancellation and native loading/teardown stay off the UI thread.
+- Review fixes capture each cue's timing and keep Gentle entrances, exits and live
+  opacity changes continuous. Expired words stay expired when Gentle is enabled.
+- Master gain updates active recordings. Disabling Audio, Subliminals, Whispers
+  or master volume stops recorded playback; a pending old stop cannot cancel a new run.
+- Fill all monitors changes reconcile desktop hosts live, retaining unchanged
+  layouts and replacing removed, resized or rescaled displays without restarting cues.
+  Overlay input and global panic share one local-X11 DISPLAY parser, including unix/:0.
 - Passive Windows global panic and local X11 polling feed the same panic policy.
   Native input owns both key edges while available, preventing duplicate stops
   from reordered global and local window events. In-app input remains the fallback.
@@ -62,10 +69,12 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 
 ## Validation
 
-`dotnet test -c Release`: 122 tests passed locally. The suite covers the existing
+`dotnet test -c Release`: 148 tests passed locally. The suite covers the existing
 48 M0 tests plus M1 scheduling, real starter
 hashes, native drawing pixels, media cancellation, input mappings/rebinding,
 native/local event ordering and a composed first-playable frame with no stop ghosts.
+The 26 review regressions cover live Gentle transitions, active-recording gain/mute,
+stop/restart ordering, monitor host reconciliation and local-display parser parity.
 Windows and Linux CI run for each PR and retrieve the starter recordings through LFS.
 The Windows native offscreen probe confirmed real transparency, input pass-through,
 global Esc listener availability and clean disposal without audio or synthetic keys.
@@ -95,7 +104,7 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 
 ### M1 review stack
 
-All five PRs are drafts, each based on its predecessor. Review in order; each
+All seven PRs are drafts, each based on its predecessor. Review in order; each
 contains fewer than 600 changed text lines. Retarget children before merging parents.
 
 | PR | Change |
@@ -105,6 +114,8 @@ contains fewer than 600 changed text lines. Retarget children before merging par
 | [14](https://github.com/CC-Labs-it/ccp-classic/pull/14) | verified starter media and cancellable local audio |
 | [15](https://github.com/CC-Labs-it/ccp-classic/pull/15) | transparent desktop hosts and native input regions |
 | [16](https://github.com/CC-Labs-it/ccp-classic/pull/16) | connect the first playable session and shared panic routing |
+| [17](https://github.com/CC-Labs-it/ccp-classic/pull/17) | review fixes for captured cue timing and continuous Gentle opacity |
+| [18](https://github.com/CC-Labs-it/ccp-classic/pull/18) | review fixes for live audio, monitor selection and X11 parser parity |
 
 Review the M1 first-playable stack and try a local session. M2 adds Mandatory
 Videos: fullscreen/floating, Strict Lock, attention checks, length caps and curtain.

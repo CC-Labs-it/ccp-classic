@@ -1,5 +1,6 @@
 using Avalonia;
 using CCP.Classic.App.Effects;
+using CCP.Classic.App.Input;
 using Xunit;
 
 namespace CCP.Classic.Tests;
@@ -10,16 +11,25 @@ public sealed class OverlayInputTests
     [InlineData(":0", true)]
     [InlineData(":12.1", true)]
     [InlineData("unix:0.0", true)]
+    [InlineData("unix/:0", true)]
+    [InlineData("unix/:12.1", true)]
     [InlineData("localhost:10.0", false)]
     [InlineData("192.0.2.1:0", false)]
     [InlineData("host:0", false)]
     [InlineData("unix/host:0", false)]
+    [InlineData("tcp/localhost:0", false)]
     [InlineData(":0.1.2", false)]
     [InlineData(":.1", false)]
     [InlineData(":0.", false)]
+    [InlineData(":0;remote", false)]
+    [InlineData(":", false)]
+    [InlineData("", false)]
     [InlineData(null, false)]
-    public void OnlyLocalDisplayAddressesAreAccepted(string? display, bool accepted) =>
+    public void OverlaysAndPanicUseTheSameLocalDisplayPolicy(string? display, bool accepted)
+    {
+        Assert.Equal(accepted, NativePanicKeys.IsLocalDisplay(display));
         Assert.Equal(accepted, NativeOverlayInput.IsLocalDisplay(display));
+    }
 
     [Fact]
     public void InputRegionsClipToTheMonitorAndUsePhysicalPixels()

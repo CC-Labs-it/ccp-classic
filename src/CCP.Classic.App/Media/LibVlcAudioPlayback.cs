@@ -3,6 +3,7 @@ namespace CCP.Classic.App.Media;
 public interface IAudioPlayback : IDisposable
 {
     bool Play(string localPath, double gain);
+    void SetMasterGain(double gain);
     void StopAll();
 }
 
@@ -15,6 +16,7 @@ internal interface IAudioVoice : IDisposable
 {
     bool IsFinished { get; }
     void Start();
+    void SetGain(double gain);
     void Refresh();
     void Stop();
 }
@@ -22,14 +24,16 @@ internal interface IAudioVoice : IDisposable
 public sealed class LibVlcAudioPlayback : IAudioPlayback
 {
     private sealed record Request(string Path, double Gain, long Generation);
+    private sealed record ActiveVoice(IAudioVoice Voice, double PerSoundGain);
     private readonly object gate = new();
     private readonly Queue<Request> pending = new();
-    private readonly List<IAudioVoice> active = new();
+    private readonly List<ActiveVoice> active = new();
     private readonly AutoResetEvent signal = new(false);
     private readonly Func<IAudioDevice> factory;
     private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private long generation;
-    private bool stopRequested, disposed;
+    private bool stopRequested, disposed, gainChanged;
+    private double masterGain = 1;
     private DateTime retryAfter;
     private string? lastError;
     internal Task Completion => completion.Task;
@@ -52,6 +56,18 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
             pending.Enqueue(new(path, Math.Min(gain, 1), generation));
             signal.Set();
             return true;
+        }
+    }
+
+    public void SetMasterGain(double gain)
+    {
+        var next = double.IsFinite(gain) ? Math.Clamp(gain, 0, 1) : 0;
+        lock (gate)
+        {
+            if (disposed || next == masterGain) return;
+            masterGain = next;
+            gainChanged = true;
+            signal.Set();
         }
     }
 
@@ -95,6 +111,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
 
     private void Wake() { lock (gate) { if (!disposed) signal.Set(); } }
     private bool Current(Request request) { lock (gate) return !disposed && request.Generation == generation; }
+    private double EffectiveGain(Request request) { lock (gate) return request.Gain * masterGain; }
 
     private void Run()
     {
@@ -104,19 +121,30 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
             while (true)
             {
                 signal.WaitOne(25);
-                bool stop, quit;
-                lock (gate) { stop = stopRequested; stopRequested = false; quit = disposed; }
+                bool stop, quit, updateGain;
+                double master;
+                lock (gate)
+                {
+                    stop = stopRequested; stopRequested = false; quit = disposed;
+                    updateGain = gainChanged; gainChanged = false; master = masterGain;
+                }
                 if (stop || quit) StopVoices();
                 if (quit) break;
                 for (var index = active.Count - 1; index >= 0; index--)
                 {
-                    var voice = active[index];
-                    try { voice.Refresh(); }
+                    var playing = active[index];
+                    var voice = playing.Voice;
+                    try
+                    {
+                        if (updateGain) voice.SetGain(playing.PerSoundGain * master);
+                        voice.Refresh();
+                    }
                     catch (Exception error) { Volatile.Write(ref lastError, error.Message); Release(voice); active.RemoveAt(index); continue; }
                     if (voice.IsFinished) { Release(voice); active.RemoveAt(index); }
                 }
                 Request? request = null;
-                lock (gate) if (active.Count < 10 && pending.Count > 0) request = pending.Dequeue();
+                // A stop received during Refresh belongs before any new-generation playback.
+                lock (gate) if (!stopRequested && active.Count < 10 && pending.Count > 0) request = pending.Dequeue();
                 if (request is null || !Current(request)) continue;
                 try
                 {
@@ -135,19 +163,24 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
                 // Native loading can finish after panic. Never open the cancelled request.
                 if (!Current(request)) continue;
                 IAudioVoice? opened = null;
+                ActiveVoice? playingVoice = null;
                 try
                 {
-                    opened = device.Open(request.Path, request.Gain, Wake);
+                    opened = device.Open(request.Path, EffectiveGain(request), Wake);
                     if (!Current(request)) { Release(opened); continue; }
-                    active.Add(opened);
+                    // The master may have changed while the native output was opening.
+                    opened.SetGain(EffectiveGain(request));
+                    if (!Current(request)) { Release(opened); continue; }
+                    playingVoice = new(opened, request.Gain);
+                    active.Add(playingVoice);
                     opened.Start();
-                    if (!Current(request)) { Release(opened); active.Remove(opened); }
+                    if (!Current(request)) { Release(opened); active.Remove(playingVoice); }
                     else if (!opened.IsFinished) Volatile.Write(ref lastError, null);
                 }
                 catch (Exception error)
                 {
                     lastError = error.Message;
-                    if (opened is not null) { Release(opened); active.Remove(opened); }
+                    if (opened is not null) { Release(opened); if (playingVoice is not null) active.Remove(playingVoice); }
                 }
             }
         }
@@ -162,7 +195,7 @@ public sealed class LibVlcAudioPlayback : IAudioPlayback
 
     private void StopVoices()
     {
-        foreach (var voice in active) Release(voice);
+        foreach (var playing in active) Release(playing.Voice);
         active.Clear();
     }
 

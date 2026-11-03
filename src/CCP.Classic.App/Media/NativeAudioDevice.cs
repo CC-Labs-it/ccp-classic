@@ -63,7 +63,7 @@ internal sealed class NativeAudioDevice : IAudioDevice
     {
         private readonly LibVLCSharp.Shared.Media media;
         private readonly MediaPlayer player;
-        private readonly int volume;
+        private int volume;
         private int finished, applyGain, failed;
         public bool IsFinished => Volatile.Read(ref finished) != 0;
 
@@ -95,6 +95,13 @@ internal sealed class NativeAudioDevice : IAudioDevice
                 Interlocked.Exchange(ref finished, 1);
                 throw new InvalidOperationException("Audio playback could not start.");
             }
+        }
+
+        public void SetGain(double gain)
+        {
+            volume = PlayerVolume(gain);
+            Interlocked.Exchange(ref applyGain, 1);
+            Refresh();
         }
 
         // PulseAudio applies a volume reliably only after Playing, away from its callback.
