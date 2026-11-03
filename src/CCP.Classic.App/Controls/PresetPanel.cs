@@ -40,6 +40,7 @@ public sealed class PresetPanel : UserControl
         }
         body.Children.Add(builtIns);
         body.Children.Add(Duration());
+        body.Children.Add(TimedChanges());
         body.Children.Add(Title(text["NewPreset"]));
         name.PlaceholderText = text["MyPreset"];
         AutomationProperties.SetName(name, text["NewPreset"]);
@@ -72,6 +73,38 @@ public sealed class PresetPanel : UserControl
     private void UpdateDurations()
     {
         foreach (var button in durations) button.IsChecked = button.Tag is int minutes && settings.RunMinutes == minutes;
+    }
+
+    private Control TimedChanges()
+    {
+        var content = new StackPanel { Spacing = 10 };
+        content.Children.Add(new TextBlock { Text = text["TimedNextSession"], FontSize = 11, TextWrapping = TextWrapping.Wrap });
+        var minutes = new NumericUpDown { Minimum = 0, Maximum = 1440, Value = 5, Width = 100, Name = "TimedMinute" };
+        var effects = EffectCatalog.All.Where(effect => !effect.WindowsOnly || OperatingSystem.IsWindows()).ToArray();
+        var selected = new ComboBox { ItemsSource = effects, SelectedIndex = 0, Width = 180, Name = "TimedEffect",
+            ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<EffectDefinition>((effect, _) =>
+                new TextBlock { Text = effect is null ? "" : text[effect.Title] }) };
+        var enabled = new CheckBox { IsChecked = true, Content = text["EnableEffect"], Name = "TimedEnabled" };
+        var row = new WrapPanel();
+        row.Children.Add(new TextBlock { Text = text["AtMinute"], VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 8, 0) });
+        row.Children.Add(minutes); row.Children.Add(selected); row.Children.Add(enabled);
+        row.Children.Add(Button("Add", "TimedAdd", () =>
+        {
+            if (selected.SelectedItem is not EffectDefinition effect || settings.TimedChanges.Count >= 64) return;
+            settings.TimedChanges.Add(new((double)(minutes.Value ?? 5) * 60, effect.Id, enabled.IsChecked == true));
+            settings.TimedChanges = TimedEffectChange.Normalize(settings.TimedChanges); changed();
+        }));
+        content.Children.Add(row);
+        foreach (var change in settings.TimedChanges)
+        {
+            var line = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 8 };
+            var definition = EffectCatalog.All.First(effect => effect.Id == change.EffectId);
+            line.Children.Add(new CheckBox { Content = (change.AtSeconds / 60).ToString("0.#") + " " + text["MinutesUnit"] + " · " + text[definition.Title],
+                IsChecked = change.Enabled, IsEnabled = false });
+            var delete = Button("Delete", "TimedDelete_" + content.Children.Count, () => { settings.TimedChanges.Remove(change); changed(); });
+            Grid.SetColumn(delete, 1); line.Children.Add(delete); content.Children.Add(line);
+        }
+        return new Expander { Header = text["TimedChanges"], Content = content };
     }
 
     private void Load(PresetDefinition preset)

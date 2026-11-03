@@ -17,6 +17,19 @@ namespace CCP.Classic.Tests;
 public sealed class ProductionRuntimeTests
 {
     [Fact]
+    public void VideoOnlyAndCompanionOnlySessionsKeepTheNativeFrameCadence()
+    {
+        var settings = new ClassicSettings();
+        foreach (var effect in settings.Effects.Values) effect.Enabled = false;
+        Assert.Equal(TimeSpan.FromMilliseconds(250), DesktopEffectsService.FrameInterval(settings, false, false));
+        Assert.True(DesktopEffectsService.FrameInterval(settings, true, false).TotalMilliseconds < 34);
+        settings.CompanionEnabled = true;
+        Assert.True(DesktopEffectsService.FrameInterval(settings, false, false).TotalMilliseconds < 34);
+        settings.PerformanceMode = true;
+        Assert.InRange(DesktopEffectsService.FrameInterval(settings, false, false).TotalMilliseconds, 66, 67);
+    }
+
+    [Fact]
     public Task PresetPickerStartProgressAndPanicAreConnected() => UiDispatcher.Run(() =>
     {
         var folder = Path.Combine(Path.GetTempPath(), "classic-profile-" + Guid.NewGuid().ToString("N"));

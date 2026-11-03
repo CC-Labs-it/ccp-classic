@@ -77,7 +77,9 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
   bridge/hook setup passed an offscreen probe; an owner-driven desktop session and
   actual audio listening remain manual review gates. No unexpected desktop effects
   or sounds were played during implementation.
-- Timed preset changes, autostart/hidden startup, haptics, Loom, wallpaper and installers.
+- Final integration and validation of haptics/audio sync, native Loom, wallpaper,
+  startup and Linux native fallback/probes. Their foundations and native controls
+  are implemented in the continuing small stack; production readiness is not claimed.
   Their unimplemented controls are disabled with a localized explanation.
 - LibVLCSharp 3.10.1 supplies the cross-platform recorded-audio backend; NAudio is
   not required by this implementation. Linux needs LibVLC plus audio/codec plugins.
@@ -86,7 +88,9 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 ## Validation
 
 Latest integrated `dotnet test -c Release -m:4 --no-restore --disable-build-servers`:
-351 tests passed locally, zero failures or skips. The suite covers the existing
+Latest fully green integrated checkpoint: 442 tests passed, zero failures/skips.
+Subsequent suppression regressions pass 26 focused tests; the full suite is being
+rerun as the remaining integrations land. The suite covers the existing
 48 M0 tests plus M1 scheduling, real starter
 hashes, native drawing pixels, media cancellation, input mappings/rebinding,
 native/local event ordering and a composed first-playable frame with no stop ghosts.
@@ -97,7 +101,10 @@ The Windows native offscreen probe confirmed real transparency, input pass-throu
 global Esc listener availability and clean disposal without audio or synthetic keys.
 Muted native probes decoded exact 320 x 180 video frames at rate 1 and verified
 WAV/MP3 completion durations, panic cancellation and cleanup without sound/windows.
-Production PRs #19-#22 passed Windows and Linux CI. New slices continue the linear stack.
+Production PRs #19-#35 passed Windows and Linux CI. New slices continue the linear stack.
+An unsigned preview Windows ZIP and Inno installer passed a packaging smoke check;
+the manifest records dirty source at 7a78390. Those are intermediate artifacts and
+must be rebuilt from the final validated source before delivery.
 The source CCP, server and port branches were not modified. Each change is kept
 under roughly 600 changed text lines in a linear review stack.
 
@@ -124,8 +131,19 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 
 ### Conversation checkpoint, 2026-11-03
 
-- Current integration branch: `codex/production-15-playable-runtime`. Foundations
-  through `codex/production-14-bounded-local-images` are committed in small slices.
+- Current integration branch: `codex/production-24-live-policy-review`. The original
+  tube, native keywords and companion runtime are committed, followed by native
+  Loom model/renderer/translations, timed preset storage and owner-exit fixes.
+- Review fixed app exit under NoPanic/strict children using OwnerWindowOnly, exact
+  bubble geometry and 16 input regions, separate cancellable bark/pop audio lanes,
+  video/companion frame cadence, and correct normal completion of Until stopped.
+  Explicit Stop completes an untimed run; panic, child dismissal and app close
+  remain interruptions, preserving the original three-hour completion condition.
+- Startup registration and tray/reset UI are ready; hidden startup applies only
+  to an idle system launch, and a session restores the panel for owned windows.
+  Local device providers/mixer and wallpaper services use injected native tests.
+  Audio-sync PCM metering is still under native timestamp alignment investigation.
+  No actual hardware connections, startup registration or wallpaper writes were sent.
 - All six M1 review findings are fixed in PRs #17 and #18. Three agents implemented
   and cross-reviewed the fixes. Both new PRs passed Windows and Linux Release CI.
   The complete suite passed 148 tests, with zero failures or skips, including 26 new cases.

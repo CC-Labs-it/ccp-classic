@@ -63,6 +63,8 @@ public sealed partial class DesktopEffectsService : IDisposable
     public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
         or "bubble" or "bounce" or "lock" or "wipe" or "drain";
 
+    public void RefreshSettings() => Tick();
+
     private void SessionChanged()
     {
         if (session.IsRunning && !running) Start();
@@ -93,12 +95,12 @@ public sealed partial class DesktopEffectsService : IDisposable
             var anyVisual = settings.Effects["flash"].Enabled || settings.Effects["sub"].Enabled
                 || settings.Effects["spiral"].Enabled || settings.Effects["pink"].Enabled
                 || settings.Effects["bubble"].Enabled || settings.Effects["bounce"].Enabled || settings.Effects["drain"].Enabled;
-            timer.Interval = TimeSpan.FromSeconds(anyVisual ? 1d / (settings.PerformanceMode ? 15 : 30) : .25);
             if (!anyVisual && snapshot.Flashes.Count == 0 && snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity == 0
                 && interactiveFrame.Bubbles.Count == 0 && interactiveFrame.BouncingText is null && lockFrame.BrainDrain is null)
                 CloseWindows();
             var needsHost = anyVisual || snapshot.Flashes.Count > 0 || snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity > 0
                 || interactiveFrame.Bubbles.Count > 0 || interactiveFrame.BouncingText is not null || lockFrame.BrainDrain is not null;
+            timer.Interval = FrameInterval(settings, videos.IsPlaying, lockFrame.LockCard is not null, needsHost || companionWindow?.IsVisible == true);
             if (needsHost && !ReconcileWindows())
             {
                 session.Dispose(); Report("EffectsUnavailable"); return;
@@ -110,10 +112,10 @@ public sealed partial class DesktopEffectsService : IDisposable
                 with { Interactive = interactiveFrame, BrainDrain = lockFrame.BrainDrain };
             var flashInput = settings.Effects["flash"].Values["dismiss"] != 0
                 ? frame.Flashes.Where(f => f.Opacity > .01).Select(f => f.Bounds) : [];
-            var input = flashInput.Concat(interactiveFrame.Bubbles.Where(b => b.CanPop)
-                .Select(b => new Rect(b.X, b.Y, b.Size, b.Size))).ToArray();
             foreach (var window in windows.Hosts)
             {
+                var input = flashInput.Concat(interactiveFrame.Bubbles.Where(b => b.CanPop)
+                    .Select(b => BubbleGeometry.NormalizedBounds(b, window.ClientSize.Width, window.ClientSize.Height))).ToArray();
                 if (!window.SetInputBounds(input)) { session.Dispose(); Report("EffectsUnavailable"); return; }
                 window.View.UpdateFrame(frame);
             }
@@ -128,6 +130,13 @@ public sealed partial class DesktopEffectsService : IDisposable
         }
     }
 
+    internal static TimeSpan FrameInterval(ClassicSettings settings, bool videoPlaying, bool lockShowing, bool transientSurface = false)
+    {
+        var hasSurface = transientSurface || videoPlaying || lockShowing || settings.CompanionEnabled
+            || new[] { "flash", "sub", "spiral", "pink", "bubble", "bounce", "drain" }.Any(id => settings.Effects[id].Enabled);
+        return TimeSpan.FromSeconds(hasSurface ? 1d / (settings.PerformanceMode ? 15 : 30) : .25);
+    }
+
     private bool ReconcileWindows()
     {
         IReadOnlyList<Screen> selected = settings.FillAllMonitors ? owner.Screens.All
@@ -138,7 +147,7 @@ public sealed partial class DesktopEffectsService : IDisposable
         return windows.Reconcile(targets.Keys, target =>
         {
             var window = new EffectOverlayWindow(configureInput);
-            window.FlashPressed += DismissAt;
+            window.FlashPressed += point => DismissAt(window, point);
             var prepared = false;
             try
             {
@@ -149,9 +158,10 @@ public sealed partial class DesktopEffectsService : IDisposable
         }, CloseWindow);
     }
 
-    private void DismissAt(Point point)
+    private void DismissAt(EffectOverlayWindow window, Point point)
     {
-        var bubble = interactiveFrame.Bubbles.LastOrDefault(b => b.CanPop && new Rect(b.X, b.Y, b.Size, b.Size).Contains(point));
+        var bubble = interactiveFrame.Bubbles.LastOrDefault(b => b.CanPop
+            && BubbleGeometry.HitTest(b, point, window.ClientSize.Width, window.ClientSize.Height));
         if (bubble is not null && interactive.Pop(bubble.Id)) return;
         if (snapshot is null) return;
         var flash = snapshot.Flashes.LastOrDefault(f => f.Opacity > .01

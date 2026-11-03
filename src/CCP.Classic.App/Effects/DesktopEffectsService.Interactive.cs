@@ -17,7 +17,8 @@ public sealed partial class DesktopEffectsService
     private TextBlock? lockPhrase, lockCount;
     private long lockId;
     private bool closingLock;
-    private readonly LibVlcAudioPlayback wipeAudio = new(), cueAudio = new();
+    private readonly LibVlcAudioPlayback wipeAudio = new(), cueAudio = new(), barkAudio = new();
+    private AudioPlaybackGate cueGate = null!, barkGate = null!;
     private AudioPlaybackTicket? wipeTicket;
     private Task<MediaLibrarySnapshot>? audioLibrary;
     private LocalImageLibrary? selectedImages;
@@ -35,10 +36,11 @@ public sealed partial class DesktopEffectsService
     private void InitializeInteractive()
     {
         interactive = new(settings); lockEffects = new(settings);
+        cueGate = new(cueAudio); barkGate = new(barkAudio);
         interactive.EventOccurred += value =>
         {
             if (value.PlaySound && settings.Effects["audio"].Enabled && popSound?.IsCompletedSuccessfully == true
-                && popSound.Result is { } path) cueAudio.Play(path, .7);
+                && popSound.Result is { } path) cueGate.Play(path, .7);
             InteractiveEvent?.Invoke(value);
         };
         lockEffects.EventOccurred += value => InteractiveEvent?.Invoke(value);
@@ -126,7 +128,7 @@ public sealed partial class DesktopEffectsService
     {
         interactiveScan?.Cancel(); interactiveScan?.Dispose(); interactiveScan = null;
         selectedImages?.Dispose(); selectedImages = null; timeline.SetImageCount(images.Count);
-        wipeAudio.StopAll(); cueAudio.StopAll(); wipeTicket = null; playingWipe = 0; SetWipePlaying(false);
+        wipeAudio.StopAll(); cueGate.Stop(); barkGate.Stop(); wipeTicket = null; playingWipe = 0; SetWipePlaying(false);
         interactive.Stop(); lockEffects.Stop(); interactiveFrame = InteractiveEffectsFrame.Empty;
         lockFrame = LockEffectsFrame.Empty; CloseLock();
     }
@@ -136,7 +138,8 @@ public sealed partial class DesktopEffectsService
         var audioEnabled = settings.Effects["audio"].Enabled && settings.Effects["audio"].Values["master"] > 0;
         var gain = audioEnabled ? settings.Effects["audio"].Values["master"] / 100 : 0;
         if (videos.IsPlaying) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
-        cueAudio.SetMasterGain(gain);
+        cueGate.Update(audioEnabled, gain);
+        barkGate.Update(audioEnabled && settings.CompanionEnabled && settings.BarksEnabled, gain);
         var cue = lockFrame.MindWipe;
         wipeAudio.SetMasterGain(gain * (cue?.Volume ?? 0));
         if (cue is null || !audioEnabled || cue.Volume <= 0)
@@ -170,7 +173,7 @@ public sealed partial class DesktopEffectsService
 
     private void DisposeInteractiveAudio()
     {
-        wipeAudio.Dispose(); cueAudio.Dispose();
+        wipeAudio.Dispose(); cueAudio.Dispose(); barkAudio.Dispose();
         if (popSound is { } task) _ = task.ContinueWith(result =>
         {
             if (result.IsCompletedSuccessfully && result.Result is { } path)

@@ -83,8 +83,10 @@ public sealed class VisualEffectsControl : Control
         }
         foreach (var bubble in Frame.Interactive.Bubbles)
         {
-            var size = Math.Min(bounds.Width, bounds.Height) * bubble.Size;
-            var rect = new Rect(bounds.X + bubble.X * bounds.Width, bounds.Y + bubble.Y * bounds.Height, size, size);
+            var normalized = BubbleGeometry.NormalizedBounds(bubble, bounds.Width, bounds.Height);
+            var rect = new Rect(bounds.X + normalized.X * bounds.Width, bounds.Y + normalized.Y * bounds.Height,
+                normalized.Width * bounds.Width, normalized.Height * bounds.Height);
+            var size = rect.Width;
             using (context.PushOpacity(Alpha(bubble.Opacity)))
             {
                 context.DrawEllipse(new SolidColorBrush(Color.Parse("#20FF69B4")), new Pen(Pink, 2), rect);

@@ -8,6 +8,7 @@ namespace CCP.Classic.App.Effects;
 // Simplified from CCP's Win32Overlay/X11Overlay. All calls and disposal stay on the owning UI thread.
 internal sealed class NativeOverlayInput : IDisposable
 {
+    internal const int MaximumInputRegions = 16;
     private const int ExStyle = -20;
     private const uint Transparent = 0x20, NoActivate = 0x08000000, Layered = 0x80000, Tool = 0x80;
     private readonly Window window;
@@ -134,8 +135,8 @@ internal sealed class NativeOverlayInput : IDisposable
 
     internal static PixelRect[] PixelBounds(IReadOnlyList<Rect> bounds, PixelSize size)
     {
-        var result = new List<PixelRect>(Math.Min(bounds.Count, 8));
-        foreach (var rect in bounds.Take(8))
+        var result = new List<PixelRect>(Math.Min(bounds.Count, MaximumInputRegions));
+        foreach (var rect in bounds.Take(MaximumInputRegions))
         {
             if (!double.IsFinite(rect.X + rect.Y + rect.Width + rect.Height) || rect.Width <= 0 || rect.Height <= 0) continue;
             var clipped = rect.Intersect(new Rect(0, 0, 1, 1));

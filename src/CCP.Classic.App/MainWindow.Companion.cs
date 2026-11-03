@@ -7,8 +7,8 @@ public sealed partial class MainWindow
 {
     private void FillCompanion(StackPanel content)
     {
-        content.Children.Add(Row("Avatar", Toggle(Settings.CompanionEnabled, text["Avatar"], value => Settings.CompanionEnabled = value)));
-        content.Children.Add(Row("Barks", Toggle(Settings.BarksEnabled, text["Barks"], value => Settings.BarksEnabled = value)));
+        content.Children.Add(Row("Avatar", Toggle(Settings.CompanionEnabled, text["Avatar"], value => { Settings.CompanionEnabled = value; effects?.RefreshSettings(); })));
+        content.Children.Add(Row("Barks", Toggle(Settings.BarksEnabled, text["Barks"], value => { Settings.BarksEnabled = value; effects?.RefreshSettings(); })));
         var interval = new NumericUpDown { Minimum = 1, Maximum = 3600, Value = Settings.BarkIntervalSeconds,
             Increment = 5, Width = 120, FormatString = "0", Name = "BarkInterval" };
         interval.ValueChanged += (_, _) => Settings.BarkIntervalSeconds = (int)(interval.Value ?? 60);

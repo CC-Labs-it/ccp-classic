@@ -8,6 +8,7 @@ public sealed partial class DesktopEffectsService
     private CompanionTimeline companion = null!;
     private CompanionWindow? companionWindow;
     private long lastBark;
+    private readonly TimedEffectTimeline timedChanges = new();
     public bool GlobalTextAvailable => panic.IsTextAvailable;
     public event Action? AvatarClicked;
 
@@ -20,6 +21,7 @@ public sealed partial class DesktopEffectsService
     {
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         companion.Start(); lastBark = 0;
+        timedChanges.Start(settings.TimedChanges);
     }
     public void FeedText(string characters) => companion.FeedText(characters);
     public bool TriggerPhrase(string phrase)
@@ -29,6 +31,7 @@ public sealed partial class DesktopEffectsService
     }
     private void TickCompanion(double elapsed)
     {
+        foreach (var change in timedChanges.Step(elapsed)) settings.Effects[change.EffectId].Enabled = change.Enabled;
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         var frame = companion.Step(elapsed);
         if (settings.CompanionEnabled && companionWindow is null)
@@ -42,7 +45,7 @@ public sealed partial class DesktopEffectsService
         {
             lastBark = bark.Id;
             if (settings.Effects["audio"].Enabled && starter.Phrases[bark.AudioIndex].AudioPath is { } path)
-                cueAudio.Play(path, 1);
+                barkGate.Play(path, 1);
         }
         foreach (var trigger in frame.Triggers)
         {
@@ -56,6 +59,6 @@ public sealed partial class DesktopEffectsService
     }
     private void StopCompanion()
     {
-        companion.Stop(); companionWindow?.FinishImmediately(); companionWindow = null;
+        timedChanges.Stop(); companion.Stop(); companionWindow?.FinishImmediately(); companionWindow = null;
     }
 }

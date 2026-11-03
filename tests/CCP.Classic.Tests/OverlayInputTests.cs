@@ -58,4 +58,19 @@ public sealed class OverlayInputTests
         Assert.NotEqual(0u, interactive & 0x80);
         Assert.NotEqual(0u, interactive & 0x100);
     }
+
+    [Fact]
+    public void EightFlashesAndEightBubblesAllRetainTheirOwnInputRegion()
+    {
+        var flashes = Enumerable.Range(0, 8).Select(index => new Rect(index % 4 * .25, index / 4 * .25, .1, .1));
+        var bubbles = Enumerable.Range(0, 8).Select(index => new Rect(index % 4 * .25, .5 + index / 4 * .25, .1, .1));
+        var combined = flashes.Concat(bubbles).ToArray();
+        var pixels = NativeOverlayInput.PixelBounds(combined, new PixelSize(1000, 1000));
+        Assert.Equal(16, pixels.Length);
+        foreach (var region in combined)
+            Assert.True(NativeOverlayInput.Hits(pixels, (int)((region.X + .05) * 1000), (int)((region.Y + .05) * 1000)));
+        var bounded = NativeOverlayInput.PixelBounds(combined.Append(new Rect(.95, .95, .04, .04)).ToArray(), new PixelSize(1000, 1000));
+        Assert.Equal(NativeOverlayInput.MaximumInputRegions, bounded.Length);
+        Assert.False(NativeOverlayInput.Hits(bounded, 960, 960));
+    }
 }
