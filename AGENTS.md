@@ -40,3 +40,5 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   as their loop span. The source's generic arm symmetry swaps colors at the seam.
 - Windows packaging: keep Inno staging paths below MAX_PATH. Short indexed notice
   folders preserve package identities in components.json without long NuGet paths.
+- Main-window closing uses OwnerWindowOnly. Avalonia's default asks owned children
+  first, allowing strict video/card/companion windows to veto the app-close escape.

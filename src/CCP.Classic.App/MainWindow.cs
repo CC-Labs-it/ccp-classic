@@ -54,6 +54,7 @@ public sealed partial class MainWindow : Window
         InitializeProgress();
         input = new(Session, globalPanicAvailable ?? (() => effects?.GlobalPanicAvailable == true));
         Title = "CCP Classic";
+        ClosingBehavior = WindowClosingBehavior.OwnerWindowOnly;
         Width = 724; Height = 760; MinWidth = 700; MinHeight = 700;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         BuildShell();
@@ -170,7 +171,7 @@ public sealed partial class MainWindow : Window
         {
             if (Session.IsRunning)
             {
-                if (!Session.Stop()) SetStatus("DisabledByPanic");
+                if (!Session.Stop(finishUntilStopped: true)) SetStatus("DisabledByPanic");
             }
             else { statusKey = "ShellOnly"; Session.Start(); }
         });

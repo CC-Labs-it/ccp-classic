@@ -29,7 +29,7 @@ public sealed partial class MainWindow
         Session.Changed += () => { if (Session.IsRunning) Progress.StartSession(Settings.Preset); };
         Session.StopRequested += () =>
         {
-            Progress.EndSession(Session.EndedBySchedule, !Session.PanicEnabled,
+            Progress.EndSession(Session.CompletedNormally, !Session.PanicEnabled,
                 Settings.Effects["video"].Enabled && Settings.Effects["video"].Values["strict"] != 0);
             SaveProgress();
         };

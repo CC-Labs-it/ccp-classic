@@ -9,6 +9,7 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
     public bool IsRunning { get; private set; }
     public bool PanicEnabled { get; private set; } = true;
     public bool EndedBySchedule { get; private set; }
+    public bool CompletedNormally { get; private set; }
     public TimeSpan Elapsed => IsRunning ? time.GetElapsedTime(started) : TimeSpan.Zero;
     public event Action? Changed;
     public event Action? StopRequested;
@@ -18,14 +19,17 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
         if (IsRunning) return;
         started = time.GetTimestamp();
         EndedBySchedule = false;
+        CompletedNormally = false;
         IsRunning = true;
         Changed?.Invoke();
     }
 
-    public bool Stop()
+    public bool Stop() => Stop(finishUntilStopped: false);
+
+    public bool Stop(bool finishUntilStopped)
     {
         if (!PanicEnabled) return false;
-        StopAll();
+        StopAll(finished: finishUntilStopped && settings.RunMinutes == 0);
         return true;
     }
 
@@ -53,9 +57,10 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
         if (IsRunning && settings.RunMinutes > 0 && Elapsed >= TimeSpan.FromMinutes(settings.RunMinutes)) StopAll(timed: true);
     }
 
-    private void StopAll(bool timed = false)
+    private void StopAll(bool timed = false, bool finished = false)
     {
         EndedBySchedule = timed;
+        CompletedNormally = timed || finished;
         IsRunning = false;
         settings.KeywordTriggersEnabled = false;
         StopRequested?.Invoke();
