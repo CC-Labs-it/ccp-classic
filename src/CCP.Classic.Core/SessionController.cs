@@ -8,6 +8,7 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
     private long started;
     public bool IsRunning { get; private set; }
     public bool PanicEnabled { get; private set; } = true;
+    public bool EndedBySchedule { get; private set; }
     public TimeSpan Elapsed => IsRunning ? time.GetElapsedTime(started) : TimeSpan.Zero;
     public event Action? Changed;
     public event Action? StopRequested;
@@ -16,6 +17,7 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
     {
         if (IsRunning) return;
         started = time.GetTimestamp();
+        EndedBySchedule = false;
         IsRunning = true;
         Changed?.Invoke();
     }
@@ -48,11 +50,12 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
     public void Tick()
     {
         // A preset's scheduled end remains valid even after its owner disables manual panic.
-        if (IsRunning && settings.RunMinutes > 0 && Elapsed >= TimeSpan.FromMinutes(settings.RunMinutes)) StopAll();
+        if (IsRunning && settings.RunMinutes > 0 && Elapsed >= TimeSpan.FromMinutes(settings.RunMinutes)) StopAll(timed: true);
     }
 
-    private void StopAll()
+    private void StopAll(bool timed = false)
     {
+        EndedBySchedule = timed;
         IsRunning = false;
         settings.KeywordTriggersEnabled = false;
         StopRequested?.Invoke();

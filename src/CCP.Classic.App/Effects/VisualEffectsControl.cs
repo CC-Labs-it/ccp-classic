@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using CCP.Classic.Core;
 
 namespace CCP.Classic.App.Effects;
 
@@ -23,6 +24,8 @@ public sealed record EffectFrame
     public Color SubliminalColour { get; init; } = Color.Parse("#FF69B4");
     public double SubliminalOpacity { get; init; }
     public bool ReducedMotion { get; init; }
+    public InteractiveEffectsFrame Interactive { get; init; } = InteractiveEffectsFrame.Empty;
+    public BrainDrainCue? BrainDrain { get; init; }
 }
 
 public sealed class VisualEffectsControl : Control
@@ -60,6 +63,42 @@ public sealed class VisualEffectsControl : Control
             DrawSpiral(context, bounds);
             if (Alpha(Frame.PinkOpacity) > 0)
                 using (context.PushOpacity(Alpha(Frame.PinkOpacity))) context.DrawRectangle(Pink, null, bounds);
+            DrawInteractive(context, bounds);
+        }
+    }
+
+    private void DrawInteractive(DrawingContext context, Rect bounds)
+    {
+        if (Frame.BrainDrain is { Opacity: > 0 } drain)
+        {
+            using (context.PushOpacity(Alpha(drain.Opacity)))
+            {
+                var centre = bounds.Center;
+                for (var ring = 0; ring < 8; ring++)
+                {
+                    var radius = (ring + drain.Pulse) / 8 * Math.Max(bounds.Width, bounds.Height);
+                    context.DrawEllipse(null, new Pen(Pink, Math.Max(1, bounds.Width * .004)), centre, radius, radius * .65);
+                }
+            }
+        }
+        foreach (var bubble in Frame.Interactive.Bubbles)
+        {
+            var size = Math.Min(bounds.Width, bounds.Height) * bubble.Size;
+            var rect = new Rect(bounds.X + bubble.X * bounds.Width, bounds.Y + bubble.Y * bounds.Height, size, size);
+            using (context.PushOpacity(Alpha(bubble.Opacity)))
+            {
+                context.DrawEllipse(new SolidColorBrush(Color.Parse("#20FF69B4")), new Pen(Pink, 2), rect);
+                context.DrawEllipse(Brushes.White, null, new Rect(rect.X + size * .2, rect.Y + size * .15, size * .12, size * .12));
+            }
+        }
+        if (Frame.Interactive.BouncingText is { Opacity: > 0 } bounce)
+        {
+            var fontSize = Math.Clamp(Math.Min(bounds.Width, bounds.Height) * bounce.Size * .2, 16, 120);
+            var text = new FormattedText(bounce.Text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                new Typeface("Arial", FontStyle.Normal, FontWeight.Bold), fontSize, Pink);
+            var origin = new Point(bounds.X + bounce.X * Math.Max(0, bounds.Width - text.Width),
+                bounds.Y + bounce.Y * Math.Max(0, bounds.Height - text.Height));
+            using (context.PushOpacity(Alpha(bounce.Opacity))) context.DrawText(text, origin);
         }
     }
 

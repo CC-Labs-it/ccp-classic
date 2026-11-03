@@ -10,8 +10,8 @@ using CCP.Classic.Core;
 
 namespace CCP.Classic.App.Effects;
 
-// One shared frame clock, one transparent host per selected monitor, one audio worker.
-public sealed class DesktopEffectsService : IDisposable
+// One shared frame clock, one transparent host per monitor, independently cancellable audio lanes.
+public sealed partial class DesktopEffectsService : IDisposable
 {
     private readonly Window owner;
     private readonly ClassicSettings settings;
@@ -21,6 +21,7 @@ public sealed class DesktopEffectsService : IDisposable
     private readonly OverlayHostSet<MonitorTarget, EffectOverlayWindow> windows = new();
     private readonly LibVlcAudioPlayback audio = new();
     private readonly RecordedWhisperPlayback whispers;
+    private readonly VideoSessionService videos;
     private readonly GlobalPanicMonitor panic;
     private readonly EffectsTimeline timeline;
     private readonly DispatcherTimer timer;
@@ -30,14 +31,22 @@ public sealed class DesktopEffectsService : IDisposable
     private string? lastStatus;
     private long started;
     private bool running, disposed;
+    private long lastFlash;
     public bool GlobalPanicAvailable => panic.IsAvailable;
     public event Action<string>? StatusChanged;
+    public event Action<double>? VideoFinished;
+    public event Action<bool>? CountAnswered;
+    public event Action? FlashShown;
 
     public DesktopEffectsService(Window owner, ClassicSettings settings, SessionController session,
         Action<Window> configureInput, Action<string, bool> keyChanged)
     {
         this.owner = owner; this.settings = settings; this.session = session; this.configureInput = configureInput;
         whispers = new(audio);
+        videos = new(owner, settings, session, configureInput);
+        videos.VideoFinished += seconds => VideoFinished?.Invoke(seconds);
+        videos.CountAnswered += correct => CountAnswered?.Invoke(correct);
+        InitializeInteractive();
         foreach (var path in starter.Images)
         {
             try { images.Add(new Bitmap(path)); }
@@ -50,7 +59,8 @@ public sealed class DesktopEffectsService : IDisposable
         session.StopRequested += Stop;
     }
 
-    public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio";
+    public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
+        or "bubble" or "bounce" or "lock" or "wipe" or "drain";
 
     private void SessionChanged()
     {
@@ -62,7 +72,7 @@ public sealed class DesktopEffectsService : IDisposable
     {
         if (disposed) return;
         running = true; lastStatus = null;
-        timeline.Start(); started = clock.GetTimestamp();
+        timeline.Start(); videos.Start(); StartInteractive(); lastFlash = 0; started = clock.GetTimestamp();
         timer.Start();
         Tick();
     }
@@ -72,11 +82,18 @@ public sealed class DesktopEffectsService : IDisposable
         if (!running || disposed) return;
         try
         {
-            snapshot = timeline.Step(clock.GetElapsedTime(started).TotalSeconds);
+            var elapsed = clock.GetElapsedTime(started).TotalSeconds;
+            videos.Tick(elapsed);
+            TickInteractive(elapsed);
+            snapshot = timeline.Step(elapsed);
+            foreach (var flash in snapshot.Flashes.Where(flash => flash.Id > lastFlash).OrderBy(flash => flash.Id))
+            { lastFlash = flash.Id; FlashShown?.Invoke(); }
             var anyVisual = settings.Effects["flash"].Enabled || settings.Effects["sub"].Enabled
-                || settings.Effects["spiral"].Enabled || settings.Effects["pink"].Enabled;
+                || settings.Effects["spiral"].Enabled || settings.Effects["pink"].Enabled
+                || settings.Effects["bubble"].Enabled || settings.Effects["bounce"].Enabled || settings.Effects["drain"].Enabled;
             timer.Interval = TimeSpan.FromSeconds(anyVisual ? 1d / (settings.PerformanceMode ? 15 : 30) : .25);
-            if (!anyVisual && snapshot.Flashes.Count == 0 && snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity == 0)
+            if (!anyVisual && snapshot.Flashes.Count == 0 && snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity == 0
+                && interactiveFrame.Bubbles.Count == 0 && interactiveFrame.BouncingText is null && lockFrame.BrainDrain is null)
                 CloseWindows();
             if (anyVisual && !ReconcileWindows())
             {
@@ -84,17 +101,22 @@ public sealed class DesktopEffectsService : IDisposable
             }
             var phrases = starter.Phrases;
             var spoken = snapshot.Phrase >= 0 ? phrases[snapshot.Phrase] : null;
-            var frame = EffectsFrameBuilder.Build(snapshot, settings, images, phrases);
-            var input = settings.Effects["flash"].Values["dismiss"] != 0
-                ? frame.Flashes.Where(f => f.Opacity > .01).Select(f => f.Bounds).ToArray() : [];
+            IReadOnlyList<IImage> frameImages = selectedImages is { } library ? library : images;
+            var frame = EffectsFrameBuilder.Build(snapshot, settings, frameImages, phrases)
+                with { Interactive = interactiveFrame, BrainDrain = lockFrame.BrainDrain };
+            var flashInput = settings.Effects["flash"].Values["dismiss"] != 0
+                ? frame.Flashes.Where(f => f.Opacity > .01).Select(f => f.Bounds) : [];
+            var input = flashInput.Concat(interactiveFrame.Bubbles.Where(b => b.CanPop)
+                .Select(b => new Rect(b.X, b.Y, b.Size, b.Size))).ToArray();
             foreach (var window in windows.Hosts)
             {
                 if (!window.SetInputBounds(input)) { session.Dispose(); Report("EffectsUnavailable"); return; }
                 window.View.UpdateFrame(frame);
             }
-            whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath);
-            Report(!panic.IsAvailable ? "GlobalPanicUnavailable"
-                : audio.LastError is not null ? "AudioUnavailable" : "Running");
+            whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath,
+                videos.IsPlaying ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1);
+            Report(videos.Status ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
+                : audio.LastError is not null ? "AudioUnavailable" : "Running"));
         }
         catch (Exception e) when (e is InvalidOperationException or IOException or ArgumentException)
         {
@@ -125,6 +147,8 @@ public sealed class DesktopEffectsService : IDisposable
 
     private void DismissAt(Point point)
     {
+        var bubble = interactiveFrame.Bubbles.LastOrDefault(b => b.CanPop && new Rect(b.X, b.Y, b.Size, b.Size).Contains(point));
+        if (bubble is not null && interactive.Pop(bubble.Id)) return;
         if (snapshot is null) return;
         var flash = snapshot.Flashes.LastOrDefault(f => f.Opacity > .01
             && new Rect(f.X, f.Y, f.Size, f.Size).Contains(point));
@@ -148,7 +172,7 @@ public sealed class DesktopEffectsService : IDisposable
     public void Stop()
     {
         timer.Stop(); running = false; timeline.Stop(); snapshot = null;
-        CloseWindows(); whispers.Stop();
+        CloseWindows(); whispers.Stop(); videos.Stop(); StopInteractive();
     }
 
     public void Dispose()
@@ -156,7 +180,7 @@ public sealed class DesktopEffectsService : IDisposable
         if (disposed) return;
         disposed = true; Stop();
         session.Changed -= SessionChanged; session.StopRequested -= Stop;
-        panic.Dispose(); audio.Dispose();
+        panic.Dispose(); audio.Dispose(); DisposeInteractiveAudio();
         foreach (var image in images) image.Dispose();
         images.Clear();
     }

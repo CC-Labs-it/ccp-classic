@@ -33,22 +33,25 @@ public sealed partial class MainWindow : Window
     private bool capturePanic;
     private DesktopEffectsService? effects;
     private readonly PanicInputRouter input;
+    private readonly PresetStore presetStore;
     public ClassicSettings Settings { get; }
     public SessionController Session { get; }
     public Window? SettingsWindow { get; private set; }
     public bool SettingsRecovered { get; set; }
 
     public MainWindow(ClassicSettings? settings = null, SettingsStore? store = null, bool? windows = null,
-        bool desktopEffects = false, Func<bool>? globalPanicAvailable = null)
+        bool desktopEffects = false, Func<bool>? globalPanicAvailable = null, PresetStore? presetStore = null)
     {
         Settings = settings ?? new();
         Settings.Normalize();
         Settings.PanicKey = PanicKeys.Normalize(Settings.PanicKey);
         this.store = store;
+        this.presetStore = presetStore ?? new(PresetStore.DefaultDirectory);
         this.windows = windows ?? OperatingSystem.IsWindows();
         text = new(Settings.Language);
         Settings.Language = text.Language;
         Session = new(Settings);
+        InitializeProgress();
         input = new(Session, globalPanicAvailable ?? (() => effects?.GlobalPanicAvailable == true));
         Title = "CCP Classic";
         Width = 724; Height = 760; MinWidth = 700; MinHeight = 700;
@@ -62,6 +65,7 @@ public sealed partial class MainWindow : Window
         timer = new(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) =>
         {
             Session.Tick();
+            TickProgress();
             elapsed.Text = Session.Elapsed.ToString(@"hh\:mm\:ss");
         });
         Opened += (_, _) =>
@@ -70,12 +74,26 @@ public sealed partial class MainWindow : Window
             {
                 effects = new(this, Settings, Session, ConfigureEffectInput, HandleGlobalKey);
                 effects.StatusChanged += SetStatus;
+                effects.InteractiveEvent += value =>
+                {
+                    if (value.Kind == InteractiveEffectEventKind.BubblePopped) Progress.BubblePopped();
+                    if (value.Kind == InteractiveEffectEventKind.CornerHit) Progress.CornerHit();
+                };
+                effects.VideoFinished += seconds => Progress.VideoFinished(seconds);
+                effects.FlashShown += Progress.FlashShown;
+                effects.LockCompleted += (errors, phrases, seconds) => Progress.LockResult(errors, phrases, seconds);
+                effects.WipePlayingChanged += playing => { if (playing) Progress.WipeStarted(); else Progress.WipeEnded(); };
+                effects.CountAnswered += correct =>
+                {
+                    Progress.BubbleCountAnswer(correct); Progress.AttentionAnswer(correct);
+                    if (correct) Progress.AddXp(10);
+                };
                 SetStatus("Idle");
             }
             if (SettingsRecovered) SetStatus("SettingsRecovered");
             timer.Start();
         };
-        Closed += (_, _) => { libraryScan?.Cancel(); libraryScan?.Dispose(); timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); };
+        Closed += (_, _) => { libraryScan?.Cancel(); libraryScan?.Dispose(); timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
     }
 
     private void BuildShell()
@@ -97,9 +115,19 @@ public sealed partial class MainWindow : Window
             VerticalAlignment = VerticalAlignment.Center };
         grid.Children.Add(new TextBlock { Text = "● CCP Classic", Foreground = Brush("#FF69B4"),
             FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
-        var preset = new ComboBox { ItemsSource = new[] { text["Gentle"], text["Daily"], text["Deep"] },
-            SelectedIndex = 1, IsEnabled = false, MinHeight = 26, FontSize = 12 };
-        ToolTip.SetTip(preset, text["Unavailable"]);
+        var presets = PresetStore.BuiltIns.Concat(presetStore.LoadAll(out _)).ToArray();
+        var preset = new ComboBox { ItemsSource = presets,
+            SelectedItem = presets.FirstOrDefault(item => item.Name == Settings.Preset), MinHeight = 26, FontSize = 12,
+            ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<PresetDefinition>((item, _) =>
+                new TextBlock { Text = item is null ? "" : item.Id.StartsWith("builtin-", StringComparison.Ordinal) ? text[item.Name] : item.Name,
+                    TextTrimming = TextTrimming.CharacterEllipsis }) };
+        preset.Name = "PresetPicker";
+        AutomationProperties.SetName(preset, text["Presets"]);
+        preset.SelectionChanged += (_, _) =>
+        {
+            if (preset.SelectedItem is not PresetDefinition selected || selected.Name == Settings.Preset) return;
+            PresetStore.Apply(selected, Settings); PresetChanged();
+        };
         Grid.SetColumn(preset, 1); grid.Children.Add(preset);
         var tabs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4,
             HorizontalAlignment = HorizontalAlignment.Left };
@@ -113,8 +141,9 @@ public sealed partial class MainWindow : Window
         navigation.Children.Add(tabs);
         Grid.SetRow(navigation, 1); Grid.SetColumnSpan(navigation, 3); grid.Children.Add(navigation);
         var level = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-        level.Children.Add(Label(text["Level"] + " 1     0 " + text["XP"], 11));
-        level.Children.Add(new ProgressBar { Value = 0, Height = 3, MinHeight = 0, Maximum = 100 });
+        var levelText = Label(text["Level"] + " " + Progress.Level + "     " + (int)Progress.XpIntoLevel + " " + text["XP"], 11);
+        levelText.Name = "HeaderLevel"; level.Children.Add(levelText);
+        level.Children.Add(new ProgressBar { Name = "HeaderXp", Value = Progress.XpIntoLevel, Height = 3, MinHeight = 0, Maximum = Progress.XpForNextLevel });
         Grid.SetColumn(level, 2); grid.Children.Add(level);
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         foreach (var name in new[] { "Library", "Companion", "Toys", "Settings" })
@@ -163,8 +192,8 @@ public sealed partial class MainWindow : Window
         tab = key;
         Control body = key switch
         {
-            "Presets" => SecondaryTabs.Presets(Settings, text, () => { }),
-            "Progress" => SecondaryTabs.Progress(text),
+            "Presets" => CreatePresetPanel(),
+            "Progress" => new ProgressPanel(Progress, text),
             _ => Studio()
         };
         page.Content = new ScrollViewer { Content = body, Padding = new(12),
@@ -176,6 +205,15 @@ public sealed partial class MainWindow : Window
                 button.Foreground = Brush(name == key ? "#1A0A12" : "#C9C9DE");
             }
     }
+
+    private PresetPanel CreatePresetPanel()
+    {
+        var panel = new PresetPanel(Settings, text, presetStore, PresetChanged);
+        panel.StatusChanged += SetStatus;
+        return panel;
+    }
+
+    private void PresetChanged() { SaveSettings(); BuildShell(); }
 
     private Control Studio()
     {
@@ -197,12 +235,13 @@ public sealed partial class MainWindow : Window
         if (capturePanic)
         {
             if (!PanicKeys.IsBindable(e.Key)) return;
-            if (Session.KeyDown(e.Key.ToString())) SetStatus("PanicStopped");
+            if (Session.KeyDown(e.Key.ToString())) { Progress.PanicPressed(); SetStatus("PanicStopped"); }
             Settings.PanicKey = e.Key.ToString(); capturePanic = false;
             RefreshLanguage(Settings.Language); e.Handled = true; return;
         }
         if (input.LocalDown(e.Key.ToString()))
         {
+            Progress.PanicPressed();
             SetStatus("PanicStopped"); CloseSheet(); e.Handled = true;
         }
         if (input.ConsumesKey(e.Key.ToString())) e.Handled = true;
@@ -219,7 +258,11 @@ public sealed partial class MainWindow : Window
         // Let an owned window finish activating before deciding that Classic lost focus.
         Dispatcher.UIThread.Post(() =>
         {
-            if (!input.GlobalAvailable && !IsActive && !OwnedWindows.Any(window => window.IsActive)) Session.ReleaseKeys();
+            if (!IsActive && !OwnedWindows.Any(window => window.IsActive))
+            {
+                Progress.SwitchedToOtherApplication();
+                if (!input.GlobalAvailable) Session.ReleaseKeys();
+            }
         }, DispatcherPriority.Background);
     }
 
@@ -232,7 +275,7 @@ public sealed partial class MainWindow : Window
 
     private void HandleGlobalKey(string key, bool down)
     {
-        if (input.GlobalChanged(key, down)) { SetStatus("PanicStopped"); CloseSheet(); }
+        if (input.GlobalChanged(key, down)) { Progress.PanicPressed(); SetStatus("PanicStopped"); CloseSheet(); }
     }
 
     private void UpdateSession()

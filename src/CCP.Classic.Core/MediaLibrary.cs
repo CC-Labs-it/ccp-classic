@@ -108,13 +108,13 @@ public static class MediaLibrary
 
     private static bool LocalDirectory(string path)
     {
-        if (OperatingSystem.IsWindows() && new DriveInfo(Path.GetPathRoot(path)!).DriveType == DriveType.Network) return false;
         // Inspect ancestors from the volume down, before following a junction into a selected root.
         var ancestors = new Stack<string>();
         for (string? current = path; current is not null; current = Path.GetDirectoryName(current))
             ancestors.Push(current);
         try
         {
+            if (OperatingSystem.IsWindows() && new DriveInfo(Path.GetPathRoot(path)!).DriveType == DriveType.Network) return false;
             foreach (var ancestor in ancestors)
             {
                 var attributes = File.GetAttributes(ancestor);

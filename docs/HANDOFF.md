@@ -2,13 +2,29 @@
 
 ## Scope
 
-M0 is merged into main. M1 adds the first playable effects in a new review stack:
-Flash Images, Subliminals with recorded whispers, Spiral, Pink Filter and Audio.
+M0 is merged into main. M1 is complete in a draft review stack. The owner authorized
+continued M2-M8 production work with agents on 2026-11-03; that work is active.
 
 Source design: owner decisions and mockup dated 2026-11-03 in the CCP handoff.
 CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gate.
 
 ## Implemented
+
+- Production continuation: local Library folder pickers and file checkboxes, bounded
+  recursive indexing and a 12-image lazy cache. Files remain in their selected folders.
+- Local video decoding at 1x, fullscreen/floating owned windows, Strict Lock, count
+  attention checks, actual-playback caps and continuous Gentle entrances and exits.
+  Loading stays hidden, and panic cancels both pending players and visible windows.
+- Bubble Pop, Bouncing Text, Lock Card, Mind Wipe and Brain Drain state models and
+  native drawing/windows. Mind Wipe uses tracked local audio, approved fallback
+  clips and bounded looping. Bubble sound is a soft procedural non-speech pop.
+- Gentle, Daily, Deep and atomic local user presets. Native save/load/delete controls
+  and the header picker preserve language, panic, startup, folders and audio output.
+- Offline stats, the original v1 XP curve, live Progress and all 27 approved neutral
+  achievement rules. Classic awards 1 XP per 5 seconds, 2 per popped bubble,
+  50 per finished video and 10 per correct attention answer. There are no unlock gates.
+- Five-word companion/keyword scheduling is ready; avatar and global typing input
+  integration are active work. Haptics remains explicit-connect localhost work.
 
 - Current CCP image mosaic with twelve perimeter tiles and the native animated logo
   in its central 2x2 area. The owner replaced the flat card mockup on 2026-11-03.
@@ -60,8 +76,7 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
   bridge/hook setup passed an offscreen probe; an owner-driven desktop session and
   actual audio listening remain manual review gates. No unexpected desktop effects
   or sounds were played during implementation.
-- Strict Lock, presets loading/saving, achievements, companion clips/phrases,
-  folder/file selection, autostart/hidden startup, haptics, Loom and wallpaper.
+- Companion runtime, autostart/hidden startup, haptics, Loom, wallpaper and installers.
   Their unimplemented controls are disabled with a localized explanation.
 - LibVLCSharp 3.10.1 supplies the cross-platform recorded-audio backend; NAudio is
   not required by this implementation. Linux needs LibVLC plus audio/codec plugins.
@@ -69,7 +84,8 @@ CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gat
 
 ## Validation
 
-`dotnet test -c Release`: 148 tests passed locally. The suite covers the existing
+Latest integrated `dotnet test -c Release -m:4 --no-restore --disable-build-servers`:
+343 tests passed locally, zero failures or skips. The suite covers the existing
 48 M0 tests plus M1 scheduling, real starter
 hashes, native drawing pixels, media cancellation, input mappings/rebinding,
 native/local event ordering and a composed first-playable frame with no stop ghosts.
@@ -78,6 +94,9 @@ stop/restart ordering, monitor host reconciliation and local-display parser pari
 Windows and Linux CI run for each PR and retrieve the starter recordings through LFS.
 The Windows native offscreen probe confirmed real transparency, input pass-through,
 global Esc listener availability and clean disposal without audio or synthetic keys.
+Muted native probes decoded exact 320 x 180 video frames at rate 1 and verified
+WAV/MP3 completion durations, panic cancellation and cleanup without sound/windows.
+Production PRs #19-#22 passed Windows and Linux CI. New slices continue the linear stack.
 The source CCP, server and port branches were not modified. Each change is kept
 under roughly 600 changed text lines in a linear review stack.
 
@@ -104,8 +123,8 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 
 ### Conversation checkpoint, 2026-11-03
 
-- Current branch: `codex/m1-07-live-session-review-fixes`. The implementation tip
-  is `246f6b08ce87e141dcb4ad6daab197287542393d`; subsequent checkpoint changes are docs only.
+- Current integration branch: `codex/production-15-playable-runtime`. Foundations
+  through `codex/production-14-bounded-local-images` are committed in small slices.
 - All six M1 review findings are fixed in PRs #17 and #18. Three agents implemented
   and cross-reviewed the fixes. Both new PRs passed Windows and Linux Release CI.
   The complete suite passed 148 tests, with zero failures or skips, including 26 new cases.
@@ -113,10 +132,10 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
   The owner authorized continued production work and agent delegation on 2026-11-03.
   M2 and the remaining milestones are now in scope. All PR titles and descriptions
   reflect the seven-part stack. Each slice remains below 600 changed text lines.
-- Latest request before this checkpoint: open the app. A native CCP Classic window
-  was created successfully; the launch process subsequently exited with code 0.
-  Confirm whether the owner still needs it open when resuming. Native desktop feel
-  and actual audio listening are still manual checks, not covered by headless CI.
+- Latest request: keep building until production ready, using agents. Continue
+  independent work; approvals for the companion words and 27 badges are recorded below.
+  Native desktop feel and actual listening remain manual checks. The app was closed
+  gracefully for builds; no unexpected desktop playback or hardware commands were sent.
 - Use `C:\Users\Admin\.dotnet10\dotnet.exe`, not the global .NET 9 SDK.
   Launch from `src/CCP.Classic.App/bin/Release/net10.0` with that executable and
   `CCP.Classic.App.dll`. The latest Release build already exists. For tests, run
@@ -138,8 +157,10 @@ contains fewer than 600 changed text lines. Retarget children before merging par
 | [17](https://github.com/CC-Labs-it/ccp-classic/pull/17) | review fixes for captured cue timing and continuous Gentle opacity |
 | [18](https://github.com/CC-Labs-it/ccp-classic/pull/18) | review fixes for live audio, monitor selection and X11 parser parity |
 
-Review the M1 first-playable stack and try a local session. M2 adds Mandatory
-Videos: fullscreen/floating, Strict Lock, attention checks, length caps and curtain.
+Continue companion/global keyword integration, local haptics, native Loom, Windows
+wallpaper, startup behavior and installers. Keep cross-platform CI and the small
+review stack current. The owner-approved tube GIFs are being verified from public
+source; never substitute private assets or new companion identity/copy.
 
 ## Owner questions
 

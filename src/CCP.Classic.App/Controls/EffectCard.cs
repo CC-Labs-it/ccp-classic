@@ -96,7 +96,7 @@ public sealed class EffectCard : Border
                 row.Children.Add(label);
                 var toggle = Switch(value != 0, text[knob.Label], state => Save(knob.Key, state ? 1 : 0));
                 toggle.Name = "Knob_" + definition.Id + "_" + knob.Key;
-                if (knob.Key.Contains("strict", StringComparison.OrdinalIgnoreCase))
+                if (knob.Key.Contains("strict", StringComparison.OrdinalIgnoreCase) && definition.Id is not ("video" or "lock"))
                 {
                     toggle.IsEnabled = false;
                     ToolTip.SetTip(toggle, text["Unavailable"]);

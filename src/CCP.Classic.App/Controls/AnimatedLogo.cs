@@ -70,7 +70,7 @@ public sealed class AnimatedLogo : Control
         _ = pending.ContinueWith(result => Dispatcher.UIThread.Post(() =>
         {
             pending = null;
-            if (result.IsFaulted || !attached || !ReferenceEquals(target, buffer)) return;
+            if (result.IsFaulted || !IsMotionActive || !ReferenceEquals(target, buffer)) return;
             if (frame?.PixelSize.Width != size)
             {
                 frame?.Dispose(); frame = new(new PixelSize(size, size), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
