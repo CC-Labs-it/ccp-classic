@@ -6,6 +6,16 @@ namespace CCP.Classic.Tests;
 public sealed class SafetyTests
 {
     [Fact]
+    public void DisposalCannotResurrectButARecoveredBackendCanRestartAfterAbort()
+    {
+        var session = new SessionController(new());
+        session.Start(); session.Abort(); Assert.False(session.IsRunning);
+        session.Start(); Assert.True(session.IsRunning);
+        session.Dispose(); session.Start(); Assert.False(session.IsRunning);
+        Assert.False(session.Stop());
+    }
+
+    [Fact]
     public void PanicStopsImmediatelyDisablesKeywordsAndDoesNotRepeat()
     {
         var settings = new ClassicSettings { KeywordTriggersEnabled = true };

@@ -32,6 +32,9 @@ public sealed partial class DesktopEffectsService : IDisposable
     private long started;
     private bool running, disposed;
     private long lastFlash;
+    private InAppEffectWindow? fallback;
+    private bool useFallback;
+    private readonly LiveLoom loom;
     public bool GlobalPanicAvailable => panic.IsAvailable;
     public event Action<string>? StatusChanged;
     public event Action<double>? VideoFinished;
@@ -42,11 +45,13 @@ public sealed partial class DesktopEffectsService : IDisposable
         Action<Window> configureInput, Action<string, bool> keyChanged)
     {
         this.owner = owner; this.settings = settings; this.session = session; this.configureInput = configureInput;
+        loom = new(settings, new LoomStore(LoomStore.DefaultDirectory));
         whispers = new(audio);
         videos = new(owner, settings, session, configureInput);
         videos.VideoFinished += seconds => VideoFinished?.Invoke(seconds);
         videos.CountAnswered += correct => CountAnswered?.Invoke(correct);
         InitializeInteractive();
+        InitializeHaptics();
         foreach (var path in starter.Images)
         {
             try { images.Add(new Bitmap(path)); }
@@ -55,15 +60,17 @@ public sealed partial class DesktopEffectsService : IDisposable
         timeline = new(settings, images.Count, starter.Phrases.Count);
         panic = new(() => settings.PanicKey, keyChanged, () => settings.KeywordTriggersEnabled && session.IsRunning);
         InitializeCompanion();
+        InitializeWallpaper();
         timer = new(TimeSpan.FromSeconds(1d / 30), DispatcherPriority.Background, (_, _) => Tick());
         session.Changed += SessionChanged;
         session.StopRequested += Stop;
     }
 
     public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
-        or "bubble" or "bounce" or "lock" or "wipe" or "drain";
+        or "bubble" or "bounce" or "lock" or "wipe" or "drain" || id == "wall" && OperatingSystem.IsWindows();
 
     public void RefreshSettings() => Tick();
+    public void ReloadCustomSpiral() { loom.Reload(); Tick(); }
 
     private void SessionChanged()
     {
@@ -74,8 +81,9 @@ public sealed partial class DesktopEffectsService : IDisposable
     private void Start()
     {
         if (disposed) return;
-        running = true; lastStatus = null;
+        running = true; useFallback = false; lastStatus = null;
         timeline.Start(); videos.Start(); StartInteractive(); StartCompanion(); lastFlash = 0; started = clock.GetTimestamp();
+        StartHaptics();
         timer.Start();
         Tick();
     }
@@ -89,7 +97,9 @@ public sealed partial class DesktopEffectsService : IDisposable
             videos.Tick(elapsed);
             TickInteractive(elapsed);
             TickCompanion(elapsed);
+            TickWallpaper();
             snapshot = timeline.Step(elapsed);
+            loom.Update(elapsed);
             foreach (var flash in snapshot.Flashes.Where(flash => flash.Id > lastFlash).OrderBy(flash => flash.Id))
             { lastFlash = flash.Id; FlashShown?.Invoke(); }
             var anyVisual = settings.Effects["flash"].Enabled || settings.Effects["sub"].Enabled
@@ -101,32 +111,43 @@ public sealed partial class DesktopEffectsService : IDisposable
             var needsHost = anyVisual || snapshot.Flashes.Count > 0 || snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity > 0
                 || interactiveFrame.Bubbles.Count > 0 || interactiveFrame.BouncingText is not null || lockFrame.BrainDrain is not null;
             timer.Interval = FrameInterval(settings, videos.IsPlaying, lockFrame.LockCard is not null, needsHost || companionWindow?.IsVisible == true);
-            if (needsHost && !ReconcileWindows())
+            if (needsHost && !useFallback && !ReconcileWindows())
             {
-                session.Dispose(); Report("EffectsUnavailable"); return;
+                windows.Clear(CloseWindow); useFallback = true;
             }
             var phrases = starter.Phrases;
             var spoken = snapshot.Phrase >= 0 ? phrases[snapshot.Phrase] : null;
             IReadOnlyList<IImage> frameImages = selectedImages is { } library ? library : images;
             var frame = EffectsFrameBuilder.Build(snapshot, settings, frameImages, phrases)
-                with { Interactive = interactiveFrame, BrainDrain = lockFrame.BrainDrain };
+                with { Interactive = interactiveFrame, BrainDrain = lockFrame.BrainDrain, CustomSpiral = loom.Image };
             var flashInput = settings.Effects["flash"].Values["dismiss"] != 0
                 ? frame.Flashes.Where(f => f.Opacity > .01).Select(f => f.Bounds) : [];
+            if (useFallback && needsHost)
+            {
+                if (fallback is null)
+                {
+                    fallback = new(owner, new(settings.Language), configureInput, session.Stop);
+                    fallback.InputPressed += DismissAt;
+                }
+                fallback.UpdateFrame(frame);
+            }
             foreach (var window in windows.Hosts)
             {
                 var input = flashInput.Concat(interactiveFrame.Bubbles.Where(b => b.CanPop)
                     .Select(b => BubbleGeometry.NormalizedBounds(b, window.ClientSize.Width, window.ClientSize.Height))).ToArray();
-                if (!window.SetInputBounds(input)) { session.Dispose(); Report("EffectsUnavailable"); return; }
+                if (!window.SetInputBounds(input)) { windows.Clear(CloseWindow); useFallback = true; break; }
                 window.View.UpdateFrame(frame);
             }
             whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath,
                 videos.IsPlaying ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1);
-            Report(videos.Status ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
+            TickHaptics(elapsed);
+            Report(videos.Status ?? wallpaper?.StatusKey ?? HapticStatus ?? (useFallback ? "EffectsInWindow" : null)
+                ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
                 : audio.LastError is not null ? "AudioUnavailable" : "Running"));
         }
         catch (Exception e) when (e is InvalidOperationException or IOException or ArgumentException)
         {
-            session.Dispose(); Report("EffectsUnavailable");
+            session.Abort(); Report("EffectsUnavailable");
         }
     }
 
@@ -147,7 +168,7 @@ public sealed partial class DesktopEffectsService : IDisposable
         return windows.Reconcile(targets.Keys, target =>
         {
             var window = new EffectOverlayWindow(configureInput);
-            window.FlashPressed += point => DismissAt(window, point);
+            window.FlashPressed += point => DismissAt(point, window.ClientSize);
             var prepared = false;
             try
             {
@@ -158,10 +179,10 @@ public sealed partial class DesktopEffectsService : IDisposable
         }, CloseWindow);
     }
 
-    private void DismissAt(EffectOverlayWindow window, Point point)
+    private void DismissAt(Point point, Size viewport)
     {
         var bubble = interactiveFrame.Bubbles.LastOrDefault(b => b.CanPop
-            && BubbleGeometry.HitTest(b, point, window.ClientSize.Width, window.ClientSize.Height));
+            && BubbleGeometry.HitTest(b, point, viewport.Width, viewport.Height));
         if (bubble is not null && interactive.Pop(bubble.Id)) return;
         if (snapshot is null) return;
         var flash = snapshot.Flashes.LastOrDefault(f => f.Opacity > .01
@@ -181,12 +202,17 @@ public sealed partial class DesktopEffectsService : IDisposable
         window.Close();
     }
 
-    private void CloseWindows() => windows.Clear(CloseWindow);
+    private void CloseWindows()
+    {
+        windows.Clear(CloseWindow); fallback?.FinishImmediately(); fallback = null;
+    }
 
     public void Stop()
     {
-        timer.Stop(); running = false; timeline.Stop(); snapshot = null;
+        timer.Stop(); running = false; StopHaptics(); timeline.Stop(); snapshot = null;
         CloseWindows(); whispers.Stop(); videos.Stop(); StopInteractive(); StopCompanion();
+        _ = StopWallpaperAsync();
+        loom.Reset();
     }
 
     public void Dispose()
@@ -194,7 +220,9 @@ public sealed partial class DesktopEffectsService : IDisposable
         if (disposed) return;
         disposed = true; Stop();
         session.Changed -= SessionChanged; session.StopRequested -= Stop;
-        panic.Dispose(); audio.Dispose(); DisposeInteractiveAudio();
+        panic.Dispose(); audio.Dispose(); DisposeInteractiveAudio(); DisposeWallpaper();
+        loom.Dispose();
+        DisposeHaptics();
         foreach (var image in images) image.Dispose();
         images.Clear();
     }

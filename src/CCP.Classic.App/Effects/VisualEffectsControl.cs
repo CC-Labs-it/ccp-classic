@@ -14,6 +14,7 @@ public sealed record EffectFrame
     public static EffectFrame Empty { get; } = new();
     public double SpiralPhase { get; init; }
     public int SpiralKind { get; init; }
+    public IImage? CustomSpiral { get; init; }
     public double SpiralOpacity { get; init; }
     public double PinkOpacity { get; init; }
     public IImage? FlashImage { get; init; }
@@ -145,6 +146,11 @@ public sealed class VisualEffectsControl : Control
     private void DrawSpiral(DrawingContext context, Rect bounds)
     {
         if (Alpha(Frame.SpiralOpacity) <= 0) return;
+        if (Frame.CustomSpiral is { } image)
+        {
+            using (context.PushOpacity(Alpha(Frame.SpiralOpacity))) context.DrawImage(image, bounds);
+            return;
+        }
         var radius = Math.Sqrt(bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2;
         var phase = double.IsFinite(Frame.SpiralPhase) ? Frame.SpiralPhase % Math.Tau : 0;
         // Reduced motion is resolved by the caller freezing phase, preserving the current pose.

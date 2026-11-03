@@ -6,6 +6,7 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
     private readonly TimeProvider time = clock ?? TimeProvider.System;
     private readonly HashSet<string> held = new(StringComparer.OrdinalIgnoreCase);
     private long started;
+    private bool disposed;
     public bool IsRunning { get; private set; }
     public bool PanicEnabled { get; private set; } = true;
     public bool EndedBySchedule { get; private set; }
@@ -16,7 +17,7 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
 
     public void Start()
     {
-        if (IsRunning) return;
+        if (disposed || IsRunning) return;
         started = time.GetTimestamp();
         EndedBySchedule = false;
         CompletedNormally = false;
@@ -28,7 +29,7 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
 
     public bool Stop(bool finishUntilStopped)
     {
-        if (!PanicEnabled) return false;
+        if (disposed || !PanicEnabled) return false;
         StopAll(finished: finishUntilStopped && settings.RunMinutes == 0);
         return true;
     }
@@ -59,13 +60,13 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
 
     private void StopAll(bool timed = false, bool finished = false)
     {
-        EndedBySchedule = timed;
-        CompletedNormally = timed || finished;
+        if (IsRunning) { EndedBySchedule = timed; CompletedNormally = timed || finished; }
         IsRunning = false;
         settings.KeywordTriggersEnabled = false;
         StopRequested?.Invoke();
         Changed?.Invoke();
     }
 
-    public void Dispose() => StopAll();
+    public void Abort() { if (!disposed) StopAll(); }
+    public void Dispose() { if (disposed) return; disposed = true; StopAll(); }
 }
