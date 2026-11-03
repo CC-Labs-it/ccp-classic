@@ -6,6 +6,13 @@ public sealed class LocalDevicePreferences
     public int LovensePort { get; set; } = 20010;
     public double GlobalIntensity { get; set; } = .7;
     public bool AudioSyncEnabled { get; set; }
+    public bool VideoSyncEnabled { get; set; } = true;
+    public bool FunScriptEnabled { get; set; } = true;
+    public bool FunScriptToVibration { get; set; } = true;
+    public bool LuminanceSyncEnabled { get; set; }
+    public double LuminanceSyncIntensity { get; set; } = .5;
+    public LocalDeviceRoutingOptions Routing { get; set; } = new();
+    public AudioSyncDspOptions AudioSyncDsp { get; set; } = new();
     public Dictionary<string, double> EventLevels { get; set; } = [];
     public Dictionary<string, int> EventPatterns { get; set; } = [];
 
@@ -15,6 +22,9 @@ public sealed class LocalDevicePreferences
         if (IntifacePort is < 1 or > 65535) IntifacePort = 12345;
         if (LovensePort is < 1 or > 65535) LovensePort = 20010;
         GlobalIntensity = double.IsFinite(GlobalIntensity) ? Math.Clamp(GlobalIntensity, 0, 1) : .7;
+        LuminanceSyncIntensity = double.IsFinite(LuminanceSyncIntensity) ? Math.Clamp(LuminanceSyncIntensity, 0, 1) : .5;
+        Routing ??= new(); Routing.Normalize();
+        AudioSyncDsp ??= new(); AudioSyncDsp.Normalize();
         EventLevels ??= []; EventPatterns ??= [];
         var levels = new Dictionary<string, double>(); var patterns = new Dictionary<string, int>();
         foreach (var kind in Enum.GetValues<LocalDeviceEvent>())

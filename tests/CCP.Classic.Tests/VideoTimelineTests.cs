@@ -45,7 +45,8 @@ public sealed class VideoTimelineTests
     [Fact]
     public void PeriodicPlaybackWaitsOneIntervalAndNeverCatchesUp()
     {
-        var timeline = new VideoTimeline(Settings());
+        var settings = Settings(); settings.Effects["video"].Values["maximum"] = 1;
+        var timeline = new VideoTimeline(settings);
         Assert.Empty(timeline.Step(1000).Active);
         timeline.Start();
         Assert.Empty(timeline.Step(0).Launches);
@@ -55,6 +56,7 @@ public sealed class VideoTimelineTests
         var next = timeline.Step(3600);
         Assert.Single(next.Launches);
         Assert.Single(next.Active);
+        Assert.True(timeline.Complete(next.Active[0].Id));
         Assert.Empty(timeline.Step(3600).Launches);
         Assert.Empty(timeline.Step(3779).Launches);
         Assert.Single(timeline.Step(3780).Launches);

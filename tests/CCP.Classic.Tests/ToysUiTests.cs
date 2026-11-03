@@ -23,7 +23,7 @@ public sealed class ToysUiTests
             run.Window.OpenSheet("Toys");
             Assert.Equal(2, run.Window.SettingsWindow!.GetVisualDescendants().OfType<Button>().Count(button => button.Name?.StartsWith("ToyConnect_", StringComparison.Ordinal) == true));
             Assert.False(run.Find<Expander>("ToyMore").IsExpanded);
-            Assert.Equal(14, run.Window.SettingsWindow!.GetLogicalDescendants().OfType<ComboBox>().Count(choice => choice.Name?.StartsWith("ToyPattern_", StringComparison.Ordinal) == true));
+            Assert.Equal(13, run.Window.SettingsWindow!.GetLogicalDescendants().OfType<ComboBox>().Count(choice => choice.Name?.StartsWith("ToyPattern_", StringComparison.Ordinal) == true));
             run.ExpandMore();
             run.Find<Slider>("ToyIntensity").Value = 42;
             run.Find<NumericUpDown>("ToyPort_LovenseConnect").Value = 20202;
@@ -79,7 +79,6 @@ public sealed class ToysUiTests
     [Theory]
     [InlineData(LocalDeviceEvent.Flash)]
     [InlineData(LocalDeviceEvent.BubblePop)]
-    [InlineData(LocalDeviceEvent.Video)]
     public Task ActualProgressEventsUseOnlyTheirConfiguredLevel(LocalDeviceEvent kind) => WithWindow(async run =>
     {
         await run.Toggle();
@@ -88,9 +87,20 @@ public sealed class ToysUiTests
             run.Only(kind); run.Window.Session.Start();
             if (kind == LocalDeviceEvent.Flash) run.Window.Progress.FlashShown();
             else if (kind == LocalDeviceEvent.BubblePop) run.Window.Progress.BubblePopped();
-            else run.Window.Progress.VideoFinished(1);
             Assert.Equal(1, run.Controller.ActivePulseCount);
             run.Window.Session.Stop(); Assert.Equal(0, run.Controller.ActivePulseCount);
+        });
+    });
+
+    [Fact]
+    public Task VideoCompletionDoesNotCreateALatePulse() => WithWindow(async run =>
+    {
+        await run.Toggle();
+        await UiDispatcher.Run(() =>
+        {
+            run.Only(LocalDeviceEvent.Video); run.Window.Session.Start();
+            run.Window.Progress.VideoFinished(1);
+            Assert.Equal(0, run.Controller.ActivePulseCount);
         });
     });
 

@@ -14,10 +14,10 @@ public sealed partial class DesktopEffectsService
     private LockEffectsTimeline lockEffects = null!;
     private InteractiveEffectsFrame interactiveFrame = InteractiveEffectsFrame.Empty;
     private LockEffectsFrame lockFrame = LockEffectsFrame.Empty;
-    private Window? lockWindow;
-    private TextBlock? lockPhrase, lockCount;
+    private readonly List<LockCardWindow> lockWindows = [];
+    private string lockInput = "";
     private long lockId;
-    private bool closingLock;
+    private Avalonia.Threading.DispatcherTimer? lockPreviewTimer;
     private readonly LibVlcAudioPlayback wipeAudio = new(), cueAudio = new(), barkAudio = new();
     private AudioPlaybackGate cueGate = null!, barkGate = null!;
     private AudioPlaybackTicket? wipeTicket;
@@ -25,7 +25,7 @@ public sealed partial class DesktopEffectsService
     private LocalImageLibrary? selectedImages;
     private bool imagesScanned;
     private CancellationTokenSource? interactiveScan;
-    private Task<string?>? popSound;
+    private readonly RecordedBubblePops popSounds = new();
     private long playingWipe;
     private bool wipePlaying;
     private int audioFile, lockErrors, lockCorrect;
@@ -36,102 +36,105 @@ public sealed partial class DesktopEffectsService
 
     private void InitializeInteractive()
     {
-        interactive = new(settings); lockEffects = new(settings);
+        interactive = new(settings) { BounceTextMeasurer = BouncingTextRenderer.Measure }; lockEffects = new(settings);
         cueGate = new(cueAudio); barkGate = new(barkAudio);
         interactive.EventOccurred += value =>
         {
             TriggerBubbleEffect(value);
-            if (value.PlaySound && settings.Effects["audio"].Enabled && popSound?.IsCompletedSuccessfully == true
-                && popSound.Result is { } path) cueGate.Play(path, .7);
+            popSounds.Play(cueGate, value.PlaySound && settings.Effects["audio"].Enabled, settings.Bubbles.VolumePercent / 100d);
             InteractiveEvent?.Invoke(value);
-            if (value.Kind == InteractiveEffectEventKind.CornerHit) DeviceEvent?.Invoke(LocalDeviceEvent.BouncingText);
+            if (value.Kind == InteractiveEffectEventKind.WallHit) DeviceEvent?.Invoke(LocalDeviceEvent.BouncingText);
         };
         lockEffects.EventOccurred += value => InteractiveEvent?.Invoke(value);
     }
     private void StartInteractive()
     {
+        lockPreviewTimer?.Stop(); CloseLock();
         interactive.Start(); lockEffects.Start(); audioFile = 0;
-        interactiveScan = new(); var token = interactiveScan.Token;
-        var folders = settings.Library.AudioFolders.ToArray();
-        var imageFolders = settings.Library.ImageFolders.ToArray(); imagesScanned = false;
-        audioLibrary = Task.Run(() => MediaLibrary.Scan(imageDirectories: imageFolders, audioDirectories: folders,
-            cancellationToken: token), token);
-        popSound ??= Task.Run<string?>(() =>
-        {
-            try
-            {
-                var directory = Path.Combine(Path.GetTempPath(), "CCP Classic"); Directory.CreateDirectory(directory);
-                var path = Path.Combine(directory, "pop-" + Guid.NewGuid().ToString("N") + ".wav");
-                File.WriteAllBytes(path, ProceduralAudio.PopWave()); return path;
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
-        });
+        RefreshInteractiveLibrary(force: true);
     }
     private void TickInteractive(double elapsed)
     {
         if (!imagesScanned && audioLibrary?.IsCompletedSuccessfully == true)
         {
             imagesScanned = true;
-            var paths = audioLibrary.Result.Images.Where(settings.Library.Includes).ToArray();
-            if (paths.Length > 0 && images.Count > 0)
-            {
-                selectedImages = new(starter.Images.Concat(paths), images[0]);
-                timeline.SetImageCount(selectedImages.Count);
-            }
+            ReplaceSelectedImages(audioLibrary.Result.Images);
         }
+        var screens = owner.Screens.All;
+        interactive.SetViewport(screens.Count > 0 ? screens.Max(s => s.Bounds.Width / s.Scaling) : 1600,
+            screens.Count > 0 ? screens.Max(s => s.Bounds.Height / s.Scaling) : 900);
+        timeline.SetViewport(screens.Count > 0 ? screens.Max(s => s.Bounds.Width / s.Scaling) : 1600,
+            screens.Count > 0 ? screens.Max(s => s.Bounds.Height / s.Scaling) : 900);
         interactive.SetImageCount(selectedImages?.Count ?? images.Count);
         interactive.VideoAvailable = videos.CanTriggerBubble;
+        interactive.VideoPlaying = videos.IsPlaying;
+        lockEffects.VideoBlocking = videos.IsBlocking;
         interactiveFrame = interactive.Step(elapsed); lockFrame = lockEffects.Step(elapsed);
         TickWipe();
         if (lockFrame.LockCard is { } card)
         {
-            if (lockWindow is null || lockId != card.Id) OpenLock(card, elapsed);
-            lockPhrase!.Text = card.Phrase;
-            lockCount!.Text = card.Completed + " / " + card.Repetitions;
-            lockWindow!.Opacity = Math.Max(.01, card.Opacity);
+            if (lockWindows.Count == 0 || lockId != card.Id) OpenLock(card, elapsed);
+            foreach (var window in lockWindows) window.Update(card, lockInput);
         }
         else CloseLock();
+    }
+    public bool PreviewLockCard()
+    {
+        if (running) { var shown = lockEffects.TriggerLock(preview: true); Tick(); return shown; }
+        lockEffects.Start();
+        if (!lockEffects.TriggerLock(preview: true)) { lockEffects.Stop(); return false; }
+        started = clock.GetTimestamp();
+        var initial = lockEffects.Step(0).LockCard!; OpenLock(initial, 0);
+        lockPreviewTimer?.Stop();
+        lockPreviewTimer = new(TimeSpan.FromMilliseconds(33), Avalonia.Threading.DispatcherPriority.Background, (_, _) =>
+        {
+            var cue = lockEffects.Step(clock.GetElapsedTime(started).TotalSeconds).LockCard;
+            if (cue is null) { lockPreviewTimer?.Stop(); lockEffects.Stop(); CloseLock(); return; }
+            foreach (var window in lockWindows) window.Update(cue, lockInput);
+        });
+        lockPreviewTimer.Start(); return true;
     }
     private void OpenLock(LockCardCue card, double elapsed)
     {
         CloseLock(); lockId = card.Id; lockErrors = lockCorrect = 0; lockOpenedAt = elapsed;
         var text = new LocalizationService(settings.Language);
-        var panel = new StackPanel { Spacing = 16, Margin = new Avalonia.Thickness(24),
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        lockPhrase = new TextBlock { FontSize = 30, Foreground = Brushes.HotPink };
-        lockCount = new TextBlock { FontSize = 16 };
-        var entry = new TextBox { Width = 300, Name = "LockAnswer" };
-        var submit = new Button { Content = text["Submit"], Name = "LockSubmit" };
-        submit.Click += (_, _) =>
+        var primary = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
+        var screens = owner.Screens.All.OrderByDescending(s => ReferenceEquals(s, primary)).ToArray();
+        foreach (var screen in screens)
         {
-            if (lockEffects.SubmitLock(card.Id, entry.Text ?? ""))
+            var child = new LockCardWindow(card, settings.LockCard, text, lockWindows.Count == 0)
             {
-                lockCorrect++;
-                if (lockCorrect == card.Repetitions)
-                    LockCompleted?.Invoke(lockErrors, lockCorrect, clock.GetElapsedTime(started).TotalSeconds - lockOpenedAt);
-            }
-            else lockErrors++;
-            entry.Text = "";
-        };
-        panel.Children.Add(lockPhrase); panel.Children.Add(lockCount); panel.Children.Add(entry); panel.Children.Add(submit);
-        var child = new Window { Title = text["LockCard"], Width = 420, Height = 320, CanResize = false,
-            ShowInTaskbar = false, Topmost = true, Content = panel, WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Opacity = .01 };
-        child.Closing += (_, args) =>
-        {
-            if (closingLock) return;
-            args.Cancel = true;
-            if (!card.Strict) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (ReferenceEquals(child, lockWindow)) session.Stop(); });
-        };
-        configureInput(child); lockWindow = child; child.Show(owner); entry.Focus();
+                Position = screen.Bounds.Position,
+                Width = screen.Bounds.Width / screen.Scaling, Height = screen.Bounds.Height / screen.Scaling
+            };
+            child.AnswerChanged += value =>
+            {
+                lockInput = value;
+                if (value.Length > 0 && !LockCardText.IsPrefixOf(value, card.Phrase))
+                { lockErrors++; lockEffects.RegisterTypo(card.Id); }
+                if (lockEffects.SubmitLock(card.Id, value))
+                {
+                    lockCorrect++; lockInput = "";
+                    var completed = lockEffects.Step(clock.GetElapsedTime(started).TotalSeconds).LockCard;
+                    if (running && completed?.Completed >= card.Repetitions)
+                        LockCompleted?.Invoke(lockErrors, lockCorrect, clock.GetElapsedTime(started).TotalSeconds - lockOpenedAt);
+                }
+                var current = lockEffects.Step(clock.GetElapsedTime(started).TotalSeconds).LockCard;
+                if (current is not null) foreach (var window in lockWindows) window.Update(current, lockInput);
+            };
+            child.StopRequested += () => { if (!card.Strict) session.Stop(); };
+            configureInput(child); lockWindows.Add(child); child.Show(owner);
+        }
         DeviceEvent?.Invoke(LocalDeviceEvent.LockCard);
     }
     private void CloseLock()
     {
-        closingLock = true; lockWindow?.Close(); lockWindow = null; lockPhrase = lockCount = null; closingLock = false;
+        foreach (var window in lockWindows) window.Finish();
+        lockWindows.Clear(); lockInput = "";
     }
     private void StopInteractive()
     {
+        lockPreviewTimer?.Stop();
         interactiveScan?.Cancel(); interactiveScan?.Dispose(); interactiveScan = null;
         selectedImages?.Dispose(); selectedImages = null; timeline.SetImageCount(images.Count);
         wipeAudio.StopAll(); cueGate.Stop(); barkGate.Stop(); wipeTicket = null; playingWipe = 0; SetWipePlaying(false);
@@ -143,12 +146,12 @@ public sealed partial class DesktopEffectsService
     {
         var audioEnabled = settings.Effects["audio"].Enabled && settings.Effects["audio"].Values["master"] > 0;
         var gain = audioEnabled ? settings.Effects["audio"].Values["master"] / 100 : 0;
-        if (videos.IsPlaying) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
+        if (settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking)) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
         cueGate.Update(audioEnabled, gain);
         barkGate.Update(audioEnabled && settings.CompanionEnabled && settings.BarksEnabled, gain);
         var cue = lockFrame.MindWipe;
         wipeAudio.SetMasterGain(gain * (cue?.Volume ?? 0));
-        if (cue is null || !audioEnabled || cue.Volume <= 0)
+        if (!MindWipeRunRule.CanPlay(session.IsRunning, cue is not null, audioEnabled) || cue is null || cue.Volume <= 0)
         {
             if (wipeTicket is not null) wipeAudio.StopAll();
             if (cue is not null) lockEffects.CancelMindWipe(cue.Id);
@@ -163,10 +166,15 @@ public sealed partial class DesktopEffectsService
             if (!ticket.WasSuccessful || !cue.Loop) SetWipePlaying(false);
             wipeTicket = null; playingWipe = 0; return;
         }
-        if (audioLibrary?.IsFaulted == true) { _ = audioLibrary.Exception; lockEffects.CancelMindWipe(cue.Id); return; }
-        if (audioLibrary?.IsCompletedSuccessfully != true) return;
-        var files = audioLibrary.Result.Audio.Where(settings.Library.Includes).ToArray();
-        var clip = files.Length > 0 ? files[audioFile++ % files.Length] : starter.Phrases[2].AudioPath;
+        string? clip;
+        if (!string.IsNullOrWhiteSpace(settings.MindWipe.AudioPath)) clip = LocalAudioInput.LocalPath(settings.MindWipe.AudioPath);
+        else
+        {
+            if (audioLibrary?.IsFaulted == true) { _ = audioLibrary.Exception; lockEffects.CancelMindWipe(cue.Id); return; }
+            if (audioLibrary?.IsCompletedSuccessfully != true) return;
+            var files = audioLibrary.Result.Audio.Where(settings.Library.Includes).ToArray();
+            clip = files.Length > 0 ? files[audioFile++ % files.Length] : starter.Phrases[2].AudioPath;
+        }
         if (clip is null || (wipeTicket = wipeAudio.PlayTracked(clip, 1)) is null)
         { lockEffects.CancelMindWipe(cue.Id); SetWipePlaying(false); }
         else playingWipe = cue.Id;
@@ -179,11 +187,6 @@ public sealed partial class DesktopEffectsService
 
     private void DisposeInteractiveAudio()
     {
-        wipeAudio.Dispose(); cueAudio.Dispose(); barkAudio.Dispose();
-        if (popSound is { } task) _ = task.ContinueWith(result =>
-        {
-            if (result.IsCompletedSuccessfully && result.Result is { } path)
-                try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
-        }, TaskScheduler.Default);
+        wipeAudio.Dispose(); cueAudio.Dispose(); barkAudio.Dispose(); keywordAudio.Dispose();
     }
 }

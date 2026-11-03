@@ -8,8 +8,38 @@ namespace CCP.Classic.App.Effects;
 // Native adaptation of public CCP compositor FlashLayer exit transforms, slices and sparks at fe40ea7.
 public sealed partial class VisualEffectsControl
 {
+    private static readonly BoxShadows FlashHalo = new(new BoxShadow
+    { Blur = 18, Color = Color.FromArgb(128, 255, 105, 180) });
+    private static void DrawFlashFrame(DrawingContext context, Rect bounds, FlashFrame flash)
+    {
+        if (flash.Shatter is { } broken)
+        {
+            var sx = bounds.Width / Math.Max(1, broken.BoundsW); var sy = bounds.Height / Math.Max(1, broken.BoundsH);
+            var pivot = new Point(bounds.X + broken.PivotX * sx, bounds.Y + broken.PivotY * sy);
+            using var tilt = context.PushTransform(Matrix.CreateTranslation(-pivot.X, -pivot.Y)
+                * Matrix.CreateRotation(broken.FrozenAngleRad) * Matrix.CreateTranslation(pivot.X, pivot.Y));
+            foreach (var shard in broken.Shards)
+            {
+                if (shard.Alpha <= 0) continue;
+                var cut = new Rect(shard.U0 * flash.Image.Size.Width, shard.V0 * flash.Image.Size.Height,
+                    (shard.U1 - shard.U0) * flash.Image.Size.Width, (shard.V1 - shard.V0) * flash.Image.Size.Height);
+                var target = new Rect(bounds.X + (broken.RectX + shard.U0 * broken.RectW + shard.Dx) * sx,
+                    bounds.Y + (broken.RectY + shard.V0 * broken.RectH + shard.Dy) * sy,
+                    (shard.U1 - shard.U0) * broken.RectW * sx, (shard.V1 - shard.V0) * broken.RectH * sy);
+                using (context.PushOpacity(Alpha(flash.Opacity * shard.Alpha)))
+                using (context.PushTransform(Matrix.CreateTranslation(-target.Center.X, -target.Center.Y)
+                    * Matrix.CreateRotation(shard.AngleRad) * Matrix.CreateTranslation(target.Center.X, target.Center.Y)))
+                    context.DrawImage(flash.Image, cut, target);
+            }
+            return;
+        }
+        var center = new Point(bounds.X + flash.Bounds.Center.X * bounds.Width, bounds.Y + flash.Bounds.Center.Y * bounds.Height);
+        using (context.PushTransform(Matrix.CreateTranslation(-center.X, -center.Y) * Matrix.CreateRotation(flash.Rotation)
+            * Matrix.CreateTranslation(center.X, center.Y)))
+            DrawFlash(context, bounds, flash.Image, flash.Bounds, flash.Opacity, flash.Exit, flash.RoundedCorners, flash.Glow);
+    }
     private static void DrawFlash(DrawingContext context, Rect bounds, IImage image, Rect box,
-        double opacity, FlashExitState? exit = null)
+        double opacity, FlashExitState? exit = null, bool rounded = true, bool glow = false)
     {
         if (Alpha(opacity) <= 0 || !double.IsFinite(box.X + box.Y + box.Width + box.Height)
             || box.Width <= 0 || box.Height <= 0 || image.Size.Width <= 0 || image.Size.Height <= 0) return;
@@ -23,10 +53,14 @@ public sealed partial class VisualEffectsControl
             * Matrix.CreateScale(Math.Max(.0001, pose.ScaleX), Math.Max(.0001, pose.ScaleY))
             * Matrix.CreateRotation(pose.RotationDeg * Math.PI / 180)
             * Matrix.CreateTranslation(pivot.X, pivot.Y + pose.OffsetY * target.Height);
+        if (glow)
+            using (context.PushTransform(transform))
+            using (context.PushOpacity(Alpha(opacity * pose.Alpha)))
+                context.DrawRectangle(Brushes.Transparent, null, target, rounded ? 12 : 0, rounded ? 12 : 0, FlashHalo);
         using (context.PushTransform(transform))
         using (context.PushRenderOptions(new RenderOptions { RequiresFullOpacityHandling = true }))
         using (context.PushOpacity(Alpha(opacity * pose.Alpha)))
-        using (context.PushClip(new RoundedRect(target, 8)))
+        using (context.PushClip(new RoundedRect(target, rounded ? 8 : 0)))
         {
             if (exit is not null && pose.Glitch > 0)
             {

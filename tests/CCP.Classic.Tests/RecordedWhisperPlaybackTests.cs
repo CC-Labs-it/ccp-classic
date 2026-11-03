@@ -15,7 +15,7 @@ public sealed class RecordedWhisperPlaybackTests
         playback.Update(settings, true, "relax.mp3");
         settings.Effects["audio"].Values["master"] = 20;
         playback.Update(settings, false, null);
-        Assert.Equal(new[] { .6, .2 }, audio.MasterGains);
+        Assert.Equal(new[] { .3, .1 }, audio.MasterGains);
         Assert.Equal(("relax.mp3", 1d), Assert.Single(audio.Plays));
         Assert.Equal(0, audio.Stops);
     }

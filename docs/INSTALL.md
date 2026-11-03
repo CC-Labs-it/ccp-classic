@@ -1,12 +1,12 @@
 # Install CCP Classic
 
-Packages currently default to `1.0.0-preview.1`. They are unsigned previews until
-the owner signs and publishes a release. The application works offline and does
+Packages are unsigned previews until the owner signs and publishes a release.
+Use the version shown in the package filename. The application works offline and does
 not check for updates. Install later versions manually.
 
 ## Windows x64
 
-Run `CCP.Classic-1.0.0-preview.1-win-x64-setup.exe`. It installs for the current
+Run `CCP.Classic-VERSION-win-x64-setup.exe`. It installs for the current
 user under `%LOCALAPPDATA%\Programs\CCP Classic`, without administrator access.
 Launch CCP Classic from the Start menu. The installer does not launch the app,
 enable startup or start effects automatically.
@@ -44,11 +44,11 @@ bundled Inter font does not contain. Other distributions use different package
 names and ICU/OpenSSL versions. See [Avalonia's Linux requirements](https://docs.avaloniaui.net/docs/platform-specific-guides/linux)
 and [Microsoft's native dependency list](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-decision#dependencies).
 
-Extract and launch:
+Extract and launch, replacing `VERSION` with the package version:
 
 ```sh
-tar -xzf CCP.Classic-1.0.0-preview.1-linux-x64.tar.gz
-cd CCP.Classic-1.0.0-preview.1-linux-x64
+tar -xzf CCP.Classic-VERSION-linux-x64.tar.gz
+cd CCP.Classic-VERSION-linux-x64
 ./CCP.Classic
 ```
 

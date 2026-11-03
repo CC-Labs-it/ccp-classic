@@ -15,7 +15,7 @@ namespace CCP.Classic.App.Controls;
 public sealed record LibraryAsset(string Path, string Kind, bool Starter = false);
 
 // CCP AssetsTabView's folder rail, thumbnail wall and checkbox overlays, with a bounded page.
-public sealed class LibraryPanel : UserControl, IDisposable
+public sealed partial class LibraryPanel : UserControl, IDisposable
 {
     private readonly ClassicSettings settings;
     private readonly LocalizationService text;
@@ -37,6 +37,7 @@ public sealed class LibraryPanel : UserControl, IDisposable
     private int pageIndex, scanVersion;
     private bool disposed;
     public event Action<LibraryAsset>? PreviewRequested;
+    public event Action? RefreshRequested;
     internal IReadOnlyList<LibraryAsset> Assets => assets;
 
     public LibraryPanel(ClassicSettings settings, LocalizationService text, Action changed, Action<string> chooseFolder)
@@ -66,8 +67,9 @@ public sealed class LibraryPanel : UserControl, IDisposable
         search.TextChanged += (_, _) => { pageIndex = 0; RenderPage(); };
         Grid.SetColumn(search, 1); toolbar.Children.Add(search); root.Children.Add(toolbar);
         var split = new Grid { ColumnDefinitions = new("174,*"), ColumnSpacing = 12 };
-        var rail = new StackPanel { Spacing = 12 }; rail.Children.Add(Label(text["Folders"], 15)); rail.Children.Add(folders);
-        var refresh = ActionButton("Refresh", () => _ = ReloadAsync()); refresh.Name = "LibraryRefresh"; rail.Children.Add(refresh);
+        var rail = new StackPanel { Spacing = 12 }; rail.Children.Add(Label(text["Folders"], 15));
+        rail.Children.Add(new ScrollViewer { Content = folders, MaxHeight = 310, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        var refresh = ActionButton("Refresh", () => { RefreshRequested?.Invoke(); _ = ReloadAsync(); }); refresh.Name = "LibraryRefresh"; rail.Children.Add(refresh);
         rail.Children.Add(new TextBlock { Text = text["LibraryNextSession"], Foreground = Brush("#9D9DB9"), FontSize = 11, TextWrapping = TextWrapping.Wrap });
         var side = Plate(rail); split.Children.Add(side);
         var browser = new Grid { RowDefinitions = new("Auto,*,Auto"), RowSpacing = 8 };
@@ -79,10 +81,11 @@ public sealed class LibraryPanel : UserControl, IDisposable
         Grid.SetRow(scroll, 1); browser.Children.Add(scroll);
         Grid.SetRow(message, 2); message.Foreground = Brush("#A0A0BC"); message.FontSize = 11; browser.Children.Add(message);
         var plate = Plate(browser); Grid.SetColumn(plate, 1); split.Children.Add(plate); Grid.SetRow(split, 1); root.Children.Add(split);
-        var footer = new Grid { ColumnDefinitions = new("*,Auto,Auto"), ColumnSpacing = 8 };
+        var footer = new Grid { ColumnDefinitions = new("*,Auto,Auto"), RowDefinitions = new("Auto,Auto"), ColumnSpacing = 8, RowSpacing = 10 };
         counter.VerticalAlignment = VerticalAlignment.Center; footer.Children.Add(counter);
         previous = ActionButton("Previous", () => { pageIndex--; RenderPage(); }); next = ActionButton("Next", () => { pageIndex++; RenderPage(); });
         Grid.SetColumn(previous, 1); Grid.SetColumn(next, 2); footer.Children.Add(previous); footer.Children.Add(next);
+        var selections = SelectionControls(); Grid.SetRow(selections, 1); Grid.SetColumnSpan(selections, 3); footer.Children.Add(selections);
         Grid.SetRow(footer, 2); root.Children.Add(footer);
         _ = ReloadAsync();
     }
@@ -116,17 +119,20 @@ public sealed class LibraryPanel : UserControl, IDisposable
                 .Concat(images.Length == 0 ? starter.Images.Select(path => new LibraryAsset(path, "Images", true)) : [])
                 .Concat(audio.Length == 0 ? starter.Phrases.Where(word => word.AudioPath is not null).Select(word => new LibraryAsset(word.AudioPath!, "Audio", true)) : []).ToArray();
             pageIndex = 0; RenderPage();
+            RenderFolders(images, videos, audio);
             if (snapshot.IsTruncated) message.Text = text["LibraryLimited"];
         }
         catch (OperationCanceledException) { }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { if (!disposed) message.Text = text["SaveFailed"]; }
     }
     private LibraryAsset[] Filtered() => assets.Where(asset => (kind == "All" || kind == asset.Kind)
+        && (folderFilter is null || LibrarySettings.Within(asset.Path, folderFilter))
         && Path.GetFileName(asset.Path).Contains(search.Text?.Trim() ?? "", StringComparison.CurrentCultureIgnoreCase)).ToArray();
     private void SelectFiltered(bool selected)
     {
         foreach (var asset in Filtered().Where(asset => !asset.Starter)) settings.Library.Include(asset.Path, selected);
         changed(); RenderPage();
+        RefreshFolderChecks();
     }
     private void RenderPage()
     {
@@ -158,7 +164,7 @@ public sealed class LibraryPanel : UserControl, IDisposable
             IsEnabled = !asset.Starter, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new(6, 2) };
         AutomationProperties.SetName(check, text["Included"] + " " + Path.GetFileName(asset.Path));
         image.Opacity = check.IsChecked == true ? 1 : .35;
-        check.IsCheckedChanged += (_, _) => { settings.Library.Include(asset.Path, check.IsChecked == true); image.Opacity = check.IsChecked == true ? 1 : .35; changed(); };
+        check.IsCheckedChanged += (_, _) => { settings.Library.Include(asset.Path, check.IsChecked == true); image.Opacity = check.IsChecked == true ? 1 : .35; changed(); RefreshFolderChecks(); };
         tile.Children.Add(check);
         if (asset.Kind == "Images") _ = LoadImage(asset.Path, image, token);
         return tile;

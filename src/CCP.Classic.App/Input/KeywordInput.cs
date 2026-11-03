@@ -1,6 +1,6 @@
 namespace CCP.Classic.App.Input;
 
-// Only held physical keys are retained here. The companion owns the sole six-character suffix.
+// Only held physical keys are retained here. The trigger engine owns a bounded ephemeral text buffer.
 internal sealed class KeywordInput(Action<string> emit)
 {
     internal const string Clear = "\u001b";

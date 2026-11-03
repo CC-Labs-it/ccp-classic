@@ -73,12 +73,13 @@ public sealed class FfmpegEnvelopeTests
     {
         var executable = Environment.GetEnvironmentVariable("CCP_CLASSIC_FFMPEG_TEST_PATH")!;
         var folder = Environment.GetEnvironmentVariable("CCP_CLASSIC_FFMPEG_FIXTURES")!;
-        using var cache = new AudioEnvelopeCache(new FfmpegEnvelopeDecoder(executable).Decode);
+        Exception? failure = null;
+        using var cache = new AudioEnvelopeCache(new FfmpegEnvelopeDecoder(executable, failed: error => failure = error).Decode);
         foreach (var (name, full, half) in new[] { ("known.wav", .325, .925), ("delayed.mkv", .725, 1.325),
                      ("common-gap.mkv", 1.025, 1.725), ("common-gap.mov", 1.025, 1.725) })
         {
             var envelope = cache.Get(Path.Combine(folder, name)); await cache.Completion.WaitAsync(TestContext.Current.CancellationToken);
-            Assert.False(envelope.Failed, envelope.FailureReason); Assert.True(envelope.IsComplete);
+            Assert.False(envelope.Failed, failure?.ToString() ?? envelope.FailureReason); Assert.True(envelope.IsComplete);
             Assert.Equal(0, envelope.Sample(.025)); Assert.InRange(envelope.Sample(full), .49, .51); Assert.InRange(envelope.Sample(half), .24, .26);
             if (name.StartsWith("common-gap", StringComparison.Ordinal)) Assert.Equal(0, envelope.Sample(.725));
         }

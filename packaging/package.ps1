@@ -46,8 +46,11 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'docs/INSTALL.md') -Destination (Join-Path $payload 'INSTALL.md')
     & (Join-Path $PSScriptRoot 'collect-notices.ps1') -Runtime $Runtime -Payload $payload `
         -AssetsPath (Join-Path $work 'build/obj/CCP.Classic.App/project.assets.json')
+    Copy-Item -LiteralPath (Join-Path $repo 'src/CCP.Classic.App/Assets/Fonts/Fredoka.OFL.txt') -Destination (Join-Path $payload 'licenses/Fredoka-OFL.txt')
     $required = @('CCP.Classic.App.dll', 'CCP.Classic.App.runtimeconfig.json', 'Starter/Images/spiral.png',
-        'Starter/Words/focus.mp3', 'Starter/Words/breathe.mp3', 'Starter/Words/relax.mp3', 'Starter/Words/listen.mp3', 'Starter/Words/deeper.mp3')
+        'Starter/Words/focus.mp3', 'Starter/Words/breathe.mp3', 'Starter/Words/relax.mp3', 'Starter/Words/listen.mp3', 'Starter/Words/deeper.mp3',
+        'Starter/Audio/Bubbles/Pop.mp3', 'Starter/Audio/Bubbles/Pop2.mp3', 'Starter/Audio/Bubbles/Pop3.mp3',
+        'Starter/Spirals/spiral.gif', 'Starter/Spirals/spiral_corner.gif', 'licenses/Fredoka-OFL.txt')
     $required += if ($windowsPackage) { @('CCP.Classic.App.exe', 'coreclr.dll', 'hostfxr.dll', 'libSkiaSharp.dll',
         'libHarfBuzzSharp.dll', 'libvlc/win-x64/libvlc.dll', 'libvlc/win-x64/libvlccore.dll',
         'libvlc/win-x64/plugins/audio_output/libdirectsound_plugin.dll', 'Analysis/ffmpeg.exe', 'Analysis/analysis-helper.json') } else {
@@ -64,8 +67,11 @@ try {
             if ($LASTEXITCODE -ne 0 -or ($dependencies -match 'not found')) { throw "Unresolved Linux dependency for ${file}: $dependencies" }
         }
     }
-    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $payload 'Starter/Words') -File) {
+    foreach ($file in Get-ChildItem -LiteralPath @((Join-Path $payload 'Starter/Words'), (Join-Path $payload 'Starter/Audio/Bubbles')) -File) {
         if ($file.Length -lt 256) { throw "Starter recording is missing or an LFS pointer: $($file.Name)" }
+    }
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $payload 'Starter/Spirals') -Filter '*.gif' -File) {
+        if ($file.Length -lt 256) { throw "Starter animation is missing or an LFS pointer: $($file.Name)" }
     }
     $commit = (& git rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Could not record source revision.' }

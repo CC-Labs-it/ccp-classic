@@ -30,9 +30,10 @@ public sealed partial class DesktopEffectsService
             .OrderBy(monitor => monitor.Bounds.X).ThenBy(monitor => monitor.Bounds.Y).ToArray();
         var effect = settings.Effects["wall"];
         wallpaper.Update(running && effect.Enabled, effect.Values["mode"] != 0, monitors, settings.Library,
-            settings.GentleVisuals, settings.ReducedMotion, settings.PerformanceMode);
+            settings.GentleVisuals, settings.ReducedMotion, settings.PerformanceMode, settings.Wallpaper);
     }
 
     public Task StopWallpaperAsync(bool immediate = true) => wallpaper?.StopAsync(immediate) ?? Task.CompletedTask;
+    public void ShuffleWallpaper() => wallpaper?.Shuffle();
     private void DisposeWallpaper() => wallpaper?.Dispose();
 }

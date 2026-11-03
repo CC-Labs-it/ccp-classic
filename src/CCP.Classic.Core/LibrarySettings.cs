@@ -1,6 +1,6 @@
 namespace CCP.Classic.Core;
 
-public sealed class LibrarySettings
+public sealed partial class LibrarySettings
 {
     public List<string> ImageFolders { get; set; } = [];
     public List<string> VideoFolders { get; set; } = [];
@@ -13,13 +13,17 @@ public sealed class LibrarySettings
         VideoFolders = Local(VideoFolders, 32);
         AudioFolders = Local(AudioFolders, 32);
         ExcludedFiles = Local(ExcludedFiles, 10000);
+        NormalizeSelections();
     }
 
-    public bool Includes(string path) => !ExcludedFiles.Contains(path, PathComparer);
+    public bool Includes(string path) => IncludesSelection(path);
     public void Include(string path, bool included)
     {
         ExcludedFiles.RemoveAll(item => PathComparer.Equals(item, path));
-        if (!included && MediaLibrary.IsLocalPath(path)) ExcludedFiles.Add(path);
+        IncludedFiles.RemoveAll(item => PathComparer.Equals(item, path));
+        if (!MediaLibrary.IsLocalPath(path)) return;
+        if (!included) ExcludedFiles.Add(path);
+        else if (!FolderIncluded(path)) IncludedFiles.Add(path);
     }
 
     private static StringComparer PathComparer => OperatingSystem.IsWindows()

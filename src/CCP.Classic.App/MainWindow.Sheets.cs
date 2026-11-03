@@ -48,9 +48,13 @@ public sealed partial class MainWindow
         {
             foreach (var tile in this.GetVisualDescendants().OfType<EffectTile>()) tile.Refresh();
             effects?.RefreshSettings();
-        });
+        }, EffectCustomization(id));
         card.ActionRequested += key => { if (id == "spiral" && key == "loom") OpenLoom(); };
-        card.ValueChanged += key => { if (id == "spiral" && key == "spiral") Settings.CustomSpiralId = null; };
+        card.ValueChanged += key =>
+        {
+            if (id != "spiral" || key != "spiral") return;
+            Settings.CustomSpiralId = null; Settings.Spiral.UseProcedural = true; effects?.RefreshSettings();
+        };
         content.Children.Add(card);
         content.Children.Add(Note(DesktopEffectsService.IsPlayable(id) ? "LiveSettings" : "Unavailable"));
         ShowSettingsWindow(definition.Title, content);

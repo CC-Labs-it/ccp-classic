@@ -6,7 +6,9 @@ or persona asset directory was used.
 
 Source ref: `origin/main`.
 Source commit: `fe40ea7587ac0b09e47d0724e59d7178db3336da`.
-License: MIT, copyright CodeBambi, retained in the repository LICENSE.
+Reuse is authorized by the owner for Classic under MIT. Historical upstream
+attribution is retained in THIRD-PARTY-NOTICES.md and the unchanged source notice
+at packaging/notices/CCP-UPSTREAM.txt. Classic's own LICENSE names CC labs Srls.
 
 Files were read with Git without changing the source repository. Any LFS object
 was accepted only when its size and SHA-256 matched the committed pointer.

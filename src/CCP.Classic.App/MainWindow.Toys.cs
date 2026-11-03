@@ -5,6 +5,7 @@ using Avalonia.Layout;
 using Avalonia.Threading;
 using CCP.Classic.Core;
 using CCP.Classic.Core.LocalDevices;
+using CCP.Classic.App.Controls;
 
 namespace CCP.Classic.App;
 
@@ -19,6 +20,7 @@ public sealed partial class MainWindow
     private void InitializeToys()
     {
         haptics.GlobalIntensity = Settings.Devices.GlobalIntensity; toysLevel = Progress.Level;
+        haptics.ConfigureRouting(Settings.Devices.Routing);
         haptics.Changed += ToysChanged;
         Progress.Recorded += ToysProgress;
         Progress.Changed += ToysLevelChanged;
@@ -42,6 +44,13 @@ public sealed partial class MainWindow
         { Settings.Devices.GlobalIntensity = value; haptics.GlobalIntensity = value; })));
         content.Children.Add(Note("LocalhostOnly"));
         var more = new StackPanel { Spacing = 10 };
+        more.Children.Add(new ToyRoutingEditor(Settings.Devices.Routing, haptics, text, () => { }, () =>
+        {
+            var stopped = Session.Stop(finishUntilStopped: true);
+            if (!stopped) SetStatus("DisabledByPanic");
+            return stopped;
+        }));
+        more.Children.Add(new AudioSyncDspEditor(Settings.Devices.AudioSyncDsp, text, () => { }));
         foreach (var provider in Enum.GetValues<LocalDeviceProvider>())
         {
             var port = new NumericUpDown { Minimum = 1, Maximum = 65535, Increment = 1, FormatString = "0", Width = 110,
@@ -60,7 +69,7 @@ public sealed partial class MainWindow
             var line = new Grid { ColumnDefinitions = new("*,130"), ColumnSpacing = 8 };
             var level = ToySlider("ToyLevel_" + kind, Settings.Devices.Level(kind), value => Settings.Devices.EventLevels[kind.ToString()] = value);
             line.Children.Add(level);
-            if (kind != LocalDeviceEvent.AudioSync)
+            if (kind is not (LocalDeviceEvent.AudioSync or LocalDeviceEvent.Video))
             {
                 var patterns = Enum.GetValues<LocalHapticPattern>().Select(pattern => new ToyPattern(pattern, text["Pattern" + pattern])).ToArray();
                 var choice = new ComboBox { Name = "ToyPattern_" + kind, ItemsSource = patterns,
@@ -78,6 +87,16 @@ public sealed partial class MainWindow
             if (!value) haptics.SetAudioLevel(0);
         });
         sync.Name = "ToyAudioSync"; more.Children.Add(Row("AudioSync", sync));
+        more.Children.Add(Row("FunScriptEnabled", Toggle(Settings.Devices.FunScriptEnabled, text["FunScriptEnabled"], value =>
+        { Settings.Devices.FunScriptEnabled = value; if (!value) haptics.SetScriptLevel(0, null); })));
+        more.Children.Add(Row("FunScriptToVibration", Toggle(Settings.Devices.FunScriptToVibration, text["FunScriptToVibration"], value => Settings.Devices.FunScriptToVibration = value)));
+        more.Children.Add(Note("FunScriptHelp"));
+        more.Children.Add(Row("MandatoryVideos", Toggle(Settings.Devices.VideoSyncEnabled, text["MandatoryVideos"], value =>
+        { Settings.Devices.VideoSyncEnabled = value; if (!value) haptics.SetVideoLevel(0); })));
+        more.Children.Add(Row("LuminanceSync", Toggle(Settings.Devices.LuminanceSyncEnabled, text["LuminanceSync"], value =>
+        { Settings.Devices.LuminanceSyncEnabled = value; if (!value) haptics.SetLuminanceLevel(0); })));
+        more.Children.Add(Row("LuminanceIntensity", ToySlider("LuminanceIntensity", Settings.Devices.LuminanceSyncIntensity,
+            value => Settings.Devices.LuminanceSyncIntensity = value)));
         var test = Button("Test", () => EmitToys(LocalDeviceEvent.Manual)); test.Name = "ToyTest";
         var stop = Button("Stop", () => { if (!Session.Stop(finishUntilStopped: true)) SetStatus("DisabledByPanic"); }); stop.Name = "ToyStop";
         var manual = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -152,12 +171,37 @@ public sealed partial class MainWindow
         haptics.SetAudioLevel(Session.IsRunning && Settings.Devices.AudioSyncEnabled
             ? level * Settings.Devices.Level(LocalDeviceEvent.AudioSync) : 0);
     }
+    private void ToysAudioBands(Media.AudioDspLevels levels)
+    {
+        if (toysDisposed) return;
+        haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
+        var gain = Session.IsRunning && Settings.Devices.AudioSyncEnabled ? Settings.Devices.Level(LocalDeviceEvent.AudioSync) : 0;
+        haptics.SetAudioBands(levels.Combined * gain, levels.Low * gain, levels.High * gain, Settings.Devices.AudioSyncDsp.BandSplit);
+    }
+    private void ToysScriptLevel(Media.ScriptOutput output)
+    {
+        if (toysDisposed) return;
+        haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
+        var enabled = Session.IsRunning && Settings.Devices.FunScriptEnabled;
+        haptics.SetScriptLevel(enabled ? output.Intensity : 0, enabled ? output.Position : null);
+    }
+    private void ToysLuminanceLevel(double value)
+    {
+        if (toysDisposed) return;
+        haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
+        haptics.SetLuminanceLevel(Session.IsRunning && Settings.Devices.LuminanceSyncEnabled ? value : 0);
+    }
+    private void ToysVideoLevel(double value)
+    {
+        if (toysDisposed) return;
+        haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
+        haptics.SetVideoLevel(Session.IsRunning && Settings.Devices.VideoSyncEnabled ? value : 0);
+    }
 
     private void ToysProgress(ProgressEvent value)
     {
         if (value.Kind == ProgressEventKind.Flash) EmitToys(LocalDeviceEvent.Flash);
         else if (value.Kind == ProgressEventKind.Bubble) EmitToys(LocalDeviceEvent.BubblePop);
-        else if (value.Kind == ProgressEventKind.Video) EmitToys(LocalDeviceEvent.Video);
     }
     private void ToysAchievement(AchievementDefinition _) => EmitToys(LocalDeviceEvent.Achievement);
     private void ToysLevelChanged()
@@ -176,7 +220,12 @@ public sealed partial class MainWindow
     {
         if (toysDisposed) return;
         toysDisposed = true;
-        if (effects is not null) { effects.DeviceEvent -= EmitToys; effects.AudioLevelChanged -= ToysAudioLevel; }
+        if (effects is not null)
+        {
+            effects.DeviceEvent -= EmitToys; effects.AudioBandsChanged -= ToysAudioBands;
+            effects.ScriptLevelChanged -= ToysScriptLevel; effects.LuminanceLevelChanged -= ToysLuminanceLevel;
+            effects.VideoLevelChanged -= ToysVideoLevel;
+        }
         haptics.Changed -= ToysChanged; Progress.Recorded -= ToysProgress; Progress.Changed -= ToysLevelChanged;
         Progress.AchievementUnlocked -= ToysAchievement; Session.StopRequested -= ToysStopped;
         foreach (var pending in toysConnecting.Values.ToArray()) pending.Cancel();

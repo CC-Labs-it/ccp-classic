@@ -10,7 +10,7 @@ using CCP.Classic.Core;
 
 namespace CCP.Classic.App.Wallpaper;
 
-public sealed class DynamicWallpaperService : IDisposable
+public sealed partial class DynamicWallpaperService : IDisposable
 {
     private sealed record Host(Window Window, WallpaperView View, WallpaperMonitor Monitor)
     { public WallpaperDesktopState State = new(true); }
@@ -48,32 +48,16 @@ public sealed class DynamicWallpaperService : IDisposable
     public bool Start(IReadOnlyList<WallpaperMonitor> monitors, string? imagePath, IImage fallback, string? videoPath = null,
         bool gentle = false, bool reducedMotion = false, bool performanceMode = false, CancellationToken token = default)
     {
-        Dispatcher.UIThread.VerifyAccess(); Close();
-        ready = NewCompletion(); entered = NewCompletion(); stopped = NewCompletion();
-        if (disposed || !adapter.IsSupported || token.IsCancellationRequested || !ValidMonitors(monitors)
-            || videoPath is not null && !MediaLibrary.IsLocalPath(videoPath) || imagePath is null && videoPath is null)
+        if (!Prepare(monitors, fallback, gentle, reducedMotion, performanceMode, token)) return false;
+        if (videoPath is not null && !MediaLibrary.IsLocalPath(videoPath) || imagePath is null && videoPath is null)
         { Fail(); return false; }
-        this.gentle = gentle; reduced = reducedMotion; performance = performanceMode; this.videoPath = videoPath;
-        started = lastDesktopPoll = clock.GetTimestamp(); alpha = fromAlpha = targetAlpha = 0; fadeStarted = 0; fadeDuration = gentle ? .75 : .25;
-        image = fallback; ending = false; sequence = -1; PresentedFrames = 0;
+        this.videoPath = videoPath;
         try
         {
             if (imagePath is not null)
             { images = new([imagePath], fallback); if (images.Count == 0) { Fail(); return false; } image = images[0]; _ = image.Size; }
-            foreach (var monitor in monitors)
-            {
-                var view = new WallpaperView(); var window = new Window { ShowActivated = false, ShowInTaskbar = false, Topmost = false,
-                    WindowDecorations = WindowDecorations.None, CanResize = false, Background = Brushes.Transparent,
-                    TransparencyBackgroundFallback = Brushes.Transparent, TransparencyLevelHint = [WindowTransparencyLevel.Transparent],
-                    Width = 1, Height = 1,
-                    Position = new PixelPoint(-32000, -32000), Content = view };
-                var host = new Host(window, view, monitor); hosts.Add(host); window.Show();
-                if (!adapter.Attach(window, monitor)) { Fail(); return false; }
-                host.State = adapter.ReadState(window, monitor);
-            }
+            if (!AttachHosts(monitors)) { Fail(); return false; }
             if (videoPath is not null) { video = createVideo(videoPath); video.SetGain(0); video.Start(); }
-            running = true; var ownGeneration = ++generation;
-            cancellation = token.Register(() => Dispatcher.UIThread.Post(() => { if (generation == ownGeneration) Close(); }));
             timer.Start(); Tick(); return true;
         }
         catch (Exception) { Fail(); return false; }
@@ -101,6 +85,7 @@ public sealed class DynamicWallpaperService : IDisposable
             var changed = false;
             if (clock.GetElapsedTime(lastDesktopPoll).TotalSeconds >= 1)
             {
+                if (collage is not null) AnalysisProcessBudget.RequireHeadroom();
                 foreach (var host in hosts)
                 { var state = adapter.ReadState(host.Window, host.Monitor); changed |= state != host.State; host.State = state; }
                 lastDesktopPoll = clock.GetTimestamp();
@@ -108,6 +93,7 @@ public sealed class DynamicWallpaperService : IDisposable
             if (hosts.Any(h => !h.State.ParentAvailable)) { Fail(); return; }
             var visible = hosts.Any(h => !h.State.Covered && !h.State.Minimized);
             var hold = reduced || hosts.Any(h => h.State.OnBattery) || !visible || ending;
+            if (collage is not null) changed |= collage.Advance(now, !hold, gentle ? .5 : 1);
             video?.SetPaused(hold && bitmap is not null);
             if (!ending && video is not null)
             {
@@ -117,7 +103,7 @@ public sealed class DynamicWallpaperService : IDisposable
                 if (video.IsFinished)
                 { video.Dispose(); video = createVideo(videoPath!); video.SetGain(0); video.Start(); sequence = -1; }
             }
-            var loaded = videoPath is not null ? bitmap is not null : images?.CachedCount > 0;
+            var loaded = collage is not null || (videoPath is not null ? bitmap is not null : images?.CachedCount > 0);
             if (!ending && !loaded && (now >= 15 || images is { CachedCount: 0, PendingCount: 0 } && images.Completion.IsCompleted))
             { Fail(); return; }
             if (!ending && loaded && !ready.Task.IsCompleted)
@@ -129,8 +115,8 @@ public sealed class DynamicWallpaperService : IDisposable
             if (ending && alpha == 0) { Close(); return; }
             if (changed && visible)
             foreach (var host in hosts.Where(h => !h.State.Covered && !h.State.Minimized))
-            { host.View.Update(image, alpha); PresentedFrames++; }
-            timer.Interval = TimeSpan.FromSeconds(!visible ? 1 : alpha != targetAlpha || video is not null && !hold
+            { host.View.Update(collage?.For(host.Monitor) ?? image, alpha); PresentedFrames++; }
+            timer.Interval = TimeSpan.FromSeconds(!visible ? 1 : alpha != targetAlpha || (video is not null || collage is not null) && !hold
                 ? 1d / (performance ? 15 : 30) : loaded ? .5 : .05);
         }
         catch (Exception) { Fail(); }
@@ -161,6 +147,7 @@ public sealed class DynamicWallpaperService : IDisposable
     private void Close()
     {
         generation++; running = false; timer.Stop(); cancellation.Dispose();
+        collageBuildStop?.Cancel(); collageBuildStop?.Dispose(); collageBuildStop = null;
         video?.Dispose(); video = null; videoPath = null;
         foreach (var host in hosts)
         {
@@ -169,6 +156,7 @@ public sealed class DynamicWallpaperService : IDisposable
             try { host.Window.Close(); } catch (Exception) { }
         }
         hosts.Clear(); images?.Dispose(); images = null; bitmap?.Dispose(); bitmap = null; image = null;
+        collage?.Dispose(); collage = null;
         ready.TrySetResult(false); entered.TrySetResult(false); stopped.TrySetResult(true); Report(WallpaperStatus.Idle);
     }
     private void Report(WallpaperStatus value) { if (Status != value) { Status = value; StatusChanged?.Invoke(value); } }

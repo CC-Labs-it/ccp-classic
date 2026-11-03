@@ -4,7 +4,7 @@ namespace CCP.Classic.Core;
 
 public sealed class PresetDefinition
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "";
     public Dictionary<string, EffectSettings> Effects { get; set; } = [];
@@ -13,11 +13,12 @@ public sealed class PresetDefinition
     public int RunMinutes { get; set; }
     public List<TimedEffectChange> TimedChanges { get; set; } = [];
     public string? CustomSpiralId { get; set; }
+    public FeatureCustomization? Customization { get; set; }
 }
 
 public sealed class PresetStore(string directory)
 {
-    private const int MaximumBytes = 256 * 1024, MaximumPresets = 256;
+    private const int MaximumBytes = 4 * 1024 * 1024, MaximumPresets = 256;
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true, MaxDepth = 16 };
     public static string DefaultDirectory => Path.Combine(Path.GetDirectoryName(SettingsStore.DefaultPath)!, "presets");
     public static IReadOnlyList<PresetDefinition> BuiltIns =>
@@ -31,6 +32,7 @@ public sealed class PresetStore(string directory)
             Name = name, Effects = settings.Effects, GentleVisuals = settings.GentleVisuals,
             ReducedMotion = settings.ReducedMotion, RunMinutes = settings.RunMinutes,
             CustomSpiralId = settings.CustomSpiralId,
+            Customization = FeatureCustomization.Capture(settings),
             TimedChanges = TimedEffectChange.Normalize(settings.TimedChanges)
         });
     }
@@ -48,6 +50,7 @@ public sealed class PresetStore(string directory)
         settings.RunMinutes = normalized.RunMinutes;
         settings.TimedChanges = normalized.TimedChanges.ToList();
         settings.CustomSpiralId = normalized.CustomSpiralId;
+        normalized.Customization?.Apply(settings);
         settings.Preset = normalized.Name;
     }
 
@@ -122,7 +125,7 @@ public sealed class PresetStore(string directory)
     private static PresetDefinition Normalize(PresetDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        if (definition.SchemaVersion != 1) throw new ArgumentException("Unsupported preset version", nameof(definition));
+        if (definition.SchemaVersion is not (1 or 2)) throw new ArgumentException("Unsupported preset version", nameof(definition));
         var name = definition.Name?.Trim();
         if (string.IsNullOrEmpty(name) || name.Length > 80 || name.Any(char.IsControl))
             throw new ArgumentException("Invalid preset name", nameof(definition));
@@ -140,6 +143,17 @@ public sealed class PresetStore(string directory)
                 if (source.Values is not null && source.Values.TryGetValue(knob.Key, out var value)) target.Values[knob.Key] = value;
             }
         }
+        if (definition.SchemaVersion == 1)
+        {
+            foreach (var id in new[] { "lock", "wipe" })
+                if (definition.Effects?.GetValueOrDefault(id)?.Values is { } values
+                    && !values.ContainsKey("rate") && values.TryGetValue("interval", out var minutes) && double.IsFinite(minutes) && minutes > 0)
+                    settings.Effects[id].Values["rate"] = 60 / minutes;
+            if (definition.Effects?.GetValueOrDefault("bounce")?.Values?.TryGetValue("size", out var size) == true)
+                settings.Effects["bounce"].Values["size"] = size * 2.5;
+            if (definition.Effects?.GetValueOrDefault("flash")?.Values?.TryGetValue("size", out var flashSize) == true)
+                settings.Effects["flash"].Values["size"] = flashSize * 2.5;
+        }
         settings.Normalize();
         settings.Effects["audio"].Values.Remove("output");
         return new PresetDefinition
@@ -147,6 +161,7 @@ public sealed class PresetStore(string directory)
             Id = definition.Id, Name = name, Effects = settings.Effects, RunMinutes = settings.RunMinutes,
             GentleVisuals = definition.GentleVisuals, ReducedMotion = definition.ReducedMotion,
             CustomSpiralId = ClassicSettings.NormalizeSpiralId(definition.CustomSpiralId),
+            Customization = definition.Customization is null ? null : FeatureCustomization.Copy(definition.Customization),
             TimedChanges = TimedEffectChange.Normalize(definition.TimedChanges)
         };
     }
@@ -160,13 +175,13 @@ public sealed class PresetStore(string directory)
         if (name != "Deep")
         {
             settings.Effects["flash"].Values["rate"] = 6;
-            settings.Effects["flash"].Values["size"] = 30;
+            settings.Effects["flash"].Values["size"] = 75;
             settings.Effects["flash"].Values["opacity"] = 55;
             settings.Effects["sub"].Values["rate"] = 4;
             settings.Effects["sub"].Values["opacity"] = 25;
         }
         settings.Effects["video"].Values["strict"] = 0;
-        var preset = Capture(name, settings); preset.Id = "builtin-" + name.ToLowerInvariant();
+        var preset = Capture(name, settings); preset.Id = "builtin-" + name.ToLowerInvariant(); preset.Customization = null;
         return preset;
     }
 }

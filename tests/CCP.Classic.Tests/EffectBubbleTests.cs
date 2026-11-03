@@ -55,8 +55,9 @@ public sealed class EffectBubbleTests
     public void PayloadCapacityIsFourAndDisablingItCancelsPendingPops()
     {
         var settings = Settings(BubbleEffectKind.Spiral); var timeline = new InteractiveEffectsTimeline(settings);
-        timeline.Start(); for (var time = 2; time <= 10; time += 2) timeline.Step(time);
-        var frame = timeline.Step(10.25);
+        settings.Effects["bubble"].Values["rate"] = 60;
+        timeline.Start(); for (var time = 1; time <= 5; time++) timeline.Step(time);
+        var frame = timeline.Step(5.25);
         Assert.Equal(4, frame.Bubbles.Count(b => b.Effect != BubbleEffectKind.None));
         Assert.Single(frame.Bubbles, b => b.Effect == BubbleEffectKind.None);
         settings.Effects["bubble"].Values["effects"] = 0;
@@ -89,17 +90,41 @@ public sealed class EffectBubbleTests
     {
         using var image = new Bitmap(new StarterPack().Images[0]);
         var kinds = Enum.GetValues<BubbleEffectKind>();
-        var cues = kinds.Select((kind, index) => new BubbleCue(index + 1, .01 + index * .14, .15, .44,
+        var cues = kinds.Select((kind, index) => new BubbleCue(index + 1, .02 + index % 5 * .2, .08 + index / 5 * .45, .28,
             1, true, kind, kind == BubbleEffectKind.Flash ? 0 : -1)).ToArray();
         var view = new VisualEffectsControl();
         view.UpdateFrame(new EffectFrame { ReducedMotion = true, BubbleImages = [image], Interactive = new(cues, null) });
-        var panel = new Border { Width = 1280, Height = 400, Background = new SolidColorBrush(Color.Parse("#151321")), Child = view };
-        panel.Measure(new Size(1280, 400)); panel.Arrange(new Rect(0, 0, 1280, 400));
-        using var target = new RenderTargetBitmap(new PixelSize(1280, 400)); target.Render(panel);
+        var panel = new Border { Width = 1280, Height = 600, Background = new SolidColorBrush(Color.Parse("#151321")), Child = view };
+        panel.Measure(new Size(1280, 600)); panel.Arrange(new Rect(0, 0, 1280, 600));
+        using var target = new RenderTargetBitmap(new PixelSize(1280, 600)); target.Render(panel);
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root.Parent is not null && !File.Exists(Path.Combine(root.FullName, "CCP.Classic.slnx"))) root = root.Parent;
         var folder = Environment.GetEnvironmentVariable("CCP_CLASSIC_PROOF_DIR") ?? Path.Combine(root.FullName, "artifacts", "bubble-proof");
         Directory.CreateDirectory(folder); target.Save(Path.Combine(folder, "bubble-faces.png"), PngBitmapEncoderOptions.Default);
+    });
+
+    [Fact]
+    public Task SourcePopChoreographyHasADeterministicNormalAndFlashProof() => UiDispatcher.Run(() =>
+    {
+        using var image = new Bitmap(new StarterPack().Images[0]);
+        var cues = new List<BubbleCue>();
+        for (var row = 0; row < 2; row++)
+        for (var column = 0; column < 4; column++)
+        {
+            var frames = column * 4d; var alpha = 1 - .066 * frames;
+            cues.Add(new BubbleCue(row * 4 + column + 1, .04 + column * .24, .12 + row * .46, .28,
+                alpha, false, row == 0 ? BubbleEffectKind.None : BubbleEffectKind.Flash, row == 0 ? -1 : 0,
+                frames / (BubbleChoreography.PopDuration * 30))
+            { Animation = new(1 + .04 * frames, 25 + 2 * frames, 0, 0, 1280, 680, 41, frames) });
+        }
+        var view = new VisualEffectsControl();
+        view.UpdateFrame(new EffectFrame { BubbleImages = [image], Interactive = new(cues, null) });
+        var panel = new Border { Width = 1280, Height = 680, Background = new SolidColorBrush(Color.Parse("#151321")), Child = view };
+        panel.Measure(new Size(1280, 680)); panel.Arrange(new Rect(0, 0, 1280, 680));
+        using var target = new RenderTargetBitmap(new PixelSize(1280, 680)); target.Render(panel);
+        var folder = Environment.GetEnvironmentVariable("CCP_CLASSIC_PROOF_DIR");
+        if (string.IsNullOrEmpty(folder)) return;
+        Directory.CreateDirectory(folder); target.Save(Path.Combine(folder, "bubble-source-pop.png"), PngBitmapEncoderOptions.Default);
     });
 
     private static WriteableBitmap RedImage()
@@ -109,4 +134,19 @@ public sealed class EffectBubbleTests
         for (var y = 0; y < 8; y++) Marshal.Copy(row, 0, locked.Address + y * locked.RowBytes, 8);
         return image;
     }
+
+    [Fact]
+    public Task OriginalWashAndCascadeHaveAStableNativeProof() => UiDispatcher.Run(() =>
+    {
+        using var image = new Bitmap(new StarterPack().Images[0]);
+        var view = new VisualEffectsControl();
+        view.UpdateFrame(new EffectFrame { BubbleImages = [image], Interactive = new([], null)
+        { ImageVisuals = [new(0, true, 0, 0, 0, 1, .3), new(0, false, .1, 70, 400, .5, .9),
+            new(0, false, .6, 180, 400, .75, .9), new(0, false, .9, 350, 400, 1, .9)] } });
+        var panel = new Border { Width = 960, Height = 600, Background = new SolidColorBrush(Color.Parse("#151321")), Child = view };
+        panel.Measure(new Size(960, 600)); panel.Arrange(new Rect(0, 0, 960, 600));
+        using var target = new RenderTargetBitmap(new PixelSize(960, 600)); target.Render(panel);
+        var folder = Environment.GetEnvironmentVariable("CCP_CLASSIC_PROOF_DIR"); if (string.IsNullOrEmpty(folder)) return;
+        Directory.CreateDirectory(folder); target.Save(Path.Combine(folder, "bubble-wash-cascade.png"), PngBitmapEncoderOptions.Default);
+    });
 }

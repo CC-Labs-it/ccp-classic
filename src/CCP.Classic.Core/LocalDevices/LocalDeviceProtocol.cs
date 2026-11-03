@@ -124,8 +124,9 @@ public static class LocalDeviceProtocol
     public static int NativeLevel(LocalActuator actuator, double intensity) => (int)Math.Clamp(Math.Round(
         (double.IsFinite(intensity) ? Math.Clamp(intensity, 0, 1) : 0) * actuator.Maximum, MidpointRounding.AwayFromZero), 0, actuator.Maximum);
 
-    public static string LovenseAction(LocalDeviceInfo device, double intensity) => string.Join(',', device.Actuators.Select(a =>
+    public static string LovenseAction(LocalDeviceInfo device, double intensity) => LovenseAction(device, _ => intensity);
+    public static string LovenseAction(LocalDeviceInfo device, Func<LocalActuator, double> levels) => string.Join(',', device.Actuators.Select(a =>
         a.Command + ":" + (a.Kind == LocalActuatorKind.Stroke
-            ? "0-" + Math.Max(20, NativeLevel(a, intensity)).ToString(CultureInfo.InvariantCulture)
-            : NativeLevel(a, intensity).ToString(CultureInfo.InvariantCulture))));
+            ? "0-" + Math.Max(20, NativeLevel(a, levels(a))).ToString(CultureInfo.InvariantCulture)
+            : NativeLevel(a, levels(a)).ToString(CultureInfo.InvariantCulture))));
 }

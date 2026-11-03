@@ -27,7 +27,7 @@ public sealed class OwnerClosingTests
             owner.Show(); owner.Session.Start(); owner.Session.SetPanicEnabled(false, true);
             video.Begin(owner, 0); video.Pulse(0, 1); video.Pulse(.25, 1);
             companion.Show(owner);
-            var videoImage = ((Grid)video.Content!).Children.OfType<Image>().Single();
+            var videoImage = ((Grid)video.Content!).Children.OfType<Image>().Single(image => image.Name == "VideoImage");
             Assert.True(video.IsVisible); Assert.True(companion.IsVisible); Assert.True(owner.Session.IsRunning);
             Assert.NotNull(videoImage.Source);
 

@@ -344,7 +344,7 @@ public sealed class AudioPlaybackTests
     }
 
     [Fact]
-    public void LocalAudioSignaturesExcludeDisguisedPlaylistsAndPopIsBoundedPcm()
+    public void LocalAudioSignaturesExcludeDisguisedPlaylists()
     {
         using var file = new LocalFile(".wav");
         File.WriteAllText(file.Path, "#EXTM3U\nhttps://example.invalid/sound.mp3");
@@ -355,12 +355,6 @@ public sealed class AudioPlaybackTests
         Assert.Equal("flac", LocalAudioInput.DetectDemux("fLaC"u8));
         Assert.Equal("mp3", LocalAudioInput.DetectDemux("ID3"u8));
         Assert.Equal("aac", LocalAudioInput.DetectDemux(new byte[] { 0xff, 0xf1 }));
-        var pop = ProceduralAudio.PopWave();
-        Assert.True(pop.AsSpan(0, 4).SequenceEqual("RIFF"u8));
-        Assert.True(pop.AsSpan(8, 4).SequenceEqual("WAVE"u8));
-        Assert.Equal(4454, pop.Length);
-        for (var offset = 44; offset < pop.Length; offset += 2)
-            Assert.InRange((int)BitConverter.ToInt16(pop, offset), -6554, 6554);
     }
 
     private sealed class Device(Action? stopping = null, Action? opening = null, Action? refreshing = null, Action? refreshed = null) : IAudioDevice

@@ -107,8 +107,7 @@ public sealed class InAppEffectWindowTests
             new() { Flashes = [new(image, new Rect(.2, .2, .2, .2), .5)] },
             new() { SubliminalText = "Focus", SubliminalOpacity = .5 },
             new() { Interactive = new([new(1, .2, .2, .1, .5, true)], null) },
-            new() { Interactive = new([], new("Focus", .2, .2, .3, .5)) },
-            new() { BrainDrain = new(.3, .5, .2, false) }
+            new() { Interactive = new([], new("Focus", .2, .2, .3, .5)) }
         };
         foreach (var frame in frames) { fixture.Frame(frame); Assert.True(fixture.Window.IsVisible); }
         fixture.Window.FinishImmediately(); using var stillUsable = image.Lock(); Assert.NotEqual(IntPtr.Zero, stillUsable.Address);

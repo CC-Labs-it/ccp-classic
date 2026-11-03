@@ -68,4 +68,21 @@ public sealed class BubbleGeometryTests
         Assert.Equal(0, Assert.Single(NativeOverlayInput.PixelBounds([bounds], new(1000, 1000))).X);
         Assert.True(BubbleGeometry.HitTest(partial, new(.01, .3), 1000, 1000));
     }
+
+    [Fact]
+    public void SourceSwayAndFlightUseDipAndAnimatedGlassSharesItsHitRadiusAcrossHosts()
+    {
+        var cue = Bubble(.25 + 30d / 1600, .5 - 60d / 900) with
+        { Animation = new(1.06, 30, 30, 60, 1600, 900, 1) };
+        foreach (var size in new[] { new Size(1600, 900), new Size(900, 1600) })
+        {
+            var raw = BubbleGeometry.BaseBounds(cue, size.Width, size.Height);
+            Assert.Equal(.25 * size.Width + 30, raw.X * size.Width, 8);
+            Assert.Equal(.5 * size.Height - 60, raw.Y * size.Height, 8);
+            var bounds = BubbleGeometry.NormalizedBounds(cue, size.Width, size.Height);
+            Assert.Equal(raw.Width * 1.06, bounds.Width, 8);
+            Assert.True(BubbleGeometry.HitTest(cue, bounds.Center, size.Width, size.Height));
+            Assert.False(BubbleGeometry.HitTest(cue, new(bounds.Right + .001, bounds.Center.Y), size.Width, size.Height));
+        }
+    }
 }

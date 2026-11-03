@@ -14,7 +14,7 @@ public sealed partial class DesktopEffectsService
             BubbleEffectKind.Subliminal => timeline.TriggerWhisper(),
             BubbleEffectKind.Pink => timeline.TriggerPinkPulse(),
             BubbleEffectKind.Spiral => timeline.TriggerSpiralPulse(),
-            BubbleEffectKind.BrainDrain => lockEffects.TriggerDrainPulse(),
+            BubbleEffectKind.BrainDrain => TriggerBrainDrainPulse(),
             BubbleEffectKind.Video => videos.TryTriggerBubble(),
             _ => false
         };

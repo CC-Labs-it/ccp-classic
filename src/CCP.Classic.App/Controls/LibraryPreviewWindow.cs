@@ -30,10 +30,13 @@ public sealed class LibraryPreviewWindow : Window
     private readonly TimeProvider clock;
     private ILocalVideoPlayback? video;
     private Bitmap? still;
+    private LocalImageClip? imageClip;
     private WriteableBitmap? videoImage;
     private AudioPlaybackTicket? ticket;
     private bool playing, ready, closed, loaded;
     private long videoStarted;
+    private long imageTick;
+    private double imageSeconds;
     private double volume = .4;
     public LibraryPreviewWindow(LibraryAsset asset, ClassicSettings settings, LocalizationService text, Action<Window> configureInput)
         : this(asset, settings, text, configureInput, path => new LocalVideoPlayback(path, 1800), TimeProvider.System) { }
@@ -82,10 +85,11 @@ public sealed class LibraryPreviewWindow : Window
         {
             if (asset.Kind == "Images")
             {
-                var loaded = await Task.Run(() => LocalImageLibrary.DecodeThumbnail(asset.Path), stop.Token);
+                var token = stop.Token;
+                var loaded = await Task.Run(() => LocalImageClip.Decode(asset.Path, token), token);
                 if (closed) { loaded.Dispose(); return; }
-                still = loaded; image.Source = loaded;
-                status.Text = $"{loaded.PixelSize.Width} × {loaded.PixelSize.Height}";
+                imageClip = loaded; image.Source = loaded; imageTick = clock.GetTimestamp();
+                status.Text = $"{loaded.Size.Width} × {loaded.Size.Height}";
             }
             else if (asset.Kind == "Videos")
             { OpenVideo(); status.Text = text["PreviewMuted"]; }
@@ -114,7 +118,7 @@ public sealed class LibraryPreviewWindow : Window
     {
         if (closed) return;
         if (!IsVisible || WindowState == WindowState.Minimized)
-        { video?.SetPaused(true); if (!ready) videoStarted = clock.GetTimestamp(); audio.StopAll(); playing = false; play.Content = text["Play"]; return; }
+        { video?.SetPaused(true); if (!ready) videoStarted = clock.GetTimestamp(); imageTick = clock.GetTimestamp(); audio.StopAll(); playing = false; play.Content = text["Play"]; return; }
         try { TickMedia(); }
         catch (Exception error) when (error is IOException or InvalidOperationException or ArgumentException)
         { FailVideo(); }
@@ -127,7 +131,15 @@ public sealed class LibraryPreviewWindow : Window
     }
     private void TickMedia()
     {
-        timer.Interval = TimeSpan.FromMilliseconds(video is not null && (playing || !ready) && !settings.PerformanceMode ? 33 : 100);
+        var animate = !settings.GentleVisuals && !settings.ReducedMotion && !settings.PerformanceMode;
+        timer.Interval = TimeSpan.FromMilliseconds((video is not null && (playing || !ready) && !settings.PerformanceMode)
+            || (imageClip is { FrameCount: > 1 } && animate) ? 33 : 100);
+        if (imageClip is { } clip)
+        {
+            var now = clock.GetTimestamp();
+            if (animate) imageSeconds += Math.Max(0, clock.GetElapsedTime(imageTick, now).TotalSeconds);
+            imageTick = now; clip.Advance(imageSeconds); image.InvalidateVisual();
+        }
         if (video is not null && !ready) video.SetPaused(false);
         if (video?.TryCopyFrame(out var frame) == true && frame is not null)
         {
@@ -162,7 +174,7 @@ public sealed class LibraryPreviewWindow : Window
         if (closed) return; closed = true; timer.Stop(); stop.Cancel();
         image.Source = null; waveform.Envelope = null;
         try { video?.Dispose(); } catch (Exception) { }
-        audio.Dispose(); envelopes.Dispose(); still?.Dispose(); videoImage?.Dispose(); stop.Dispose();
+        audio.Dispose(); envelopes.Dispose(); still?.Dispose(); imageClip?.Dispose(); videoImage?.Dispose(); stop.Dispose();
     }
 }
 

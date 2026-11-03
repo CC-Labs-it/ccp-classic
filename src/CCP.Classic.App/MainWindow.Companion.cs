@@ -14,6 +14,7 @@ public sealed partial class MainWindow
         interval.ValueChanged += (_, _) => Settings.BarkIntervalSeconds = (int)(interval.Value ?? 60);
         content.Children.Add(Row("BarkInterval", interval));
         var more = new StackPanel { Spacing = 10 };
+        more.Children.Add(new Controls.CompanionPlacementEditor(Settings.CompanionPlacement, text, () => effects?.RefreshSettings()));
         more.Children.Add(Row("TriggerPhrases", Toggle(Settings.TriggerPhrasesEnabled, text["TriggerPhrases"], value => Settings.TriggerPhrasesEnabled = value)));
         more.Children.Add(Row("KeywordTriggers", Toggle(Settings.KeywordTriggersEnabled, text["KeywordTriggers"], value => Settings.KeywordTriggersEnabled = value)));
         var phrases = new WrapPanel();
@@ -24,6 +25,10 @@ public sealed partial class MainWindow
             phrases.Children.Add(button);
         }
         more.Children.Add(phrases);
+        more.Children.Add(new Controls.KeywordEditor(Settings.Keywords, text, () => effects?.RefreshSettings(),
+            () => Settings.Subliminal.Phrases.Select(phrase => new SubliminalPhrase(phrase.Text,
+                Media.RecordedPhraseResolver.Resolve(phrase, new Media.StarterPack().Phrases, []).AudioPath)),
+            trigger => effects?.TestKeyword(trigger) == true));
         content.Children.Add(new Expander { Header = text["More"], Content = more });
     }
 }

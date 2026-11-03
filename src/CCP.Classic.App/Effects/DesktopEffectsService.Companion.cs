@@ -12,19 +12,20 @@ public sealed partial class DesktopEffectsService
     private readonly TimedEffectTimeline timedChanges = new();
     public bool GlobalTextAvailable => panic.IsTextAvailable;
     public event Action? AvatarClicked;
+    public event Action? CompanionPlacementChanged;
 
     private void InitializeCompanion()
     {
         companion = new(settings);
-        panic.TextReceived += companion.FeedText;
+        InitializeKeywords();
     }
     private void StartCompanion()
     {
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
-        companion.Start(); lastBark = 0;
+        companion.Start(); keywords.Start(); lastBark = 0;
         timedChanges.Start(settings.TimedChanges);
     }
-    public void FeedText(string characters) => companion.FeedText(characters);
+    public void FeedText(string characters) => FeedKeywords(characters);
     public bool TriggerPhrase(string phrase)
     {
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
@@ -32,6 +33,7 @@ public sealed partial class DesktopEffectsService
     }
     private void TickCompanion(double elapsed)
     {
+        TickKeywords(elapsed);
         foreach (var change in timedChanges.Step(elapsed)) settings.Effects[change.EffectId].Enabled = change.Enabled;
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         var frame = companion.Step(elapsed);
@@ -39,6 +41,7 @@ public sealed partial class DesktopEffectsService
         {
             companionWindow = new(owner, settings, configureInput);
             companionWindow.StopRequested += () => session.Stop();
+            companionWindow.PlacementChanged += () => CompanionPlacementChanged?.Invoke();
             companionWindow.AvatarClicked += () => { AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion); };
         }
         companionWindow?.Update(frame.Bark, elapsed);
@@ -63,6 +66,6 @@ public sealed partial class DesktopEffectsService
     }
     private void StopCompanion()
     {
-        timedChanges.Stop(); companion.Stop(); companionWindow?.FinishImmediately(); companionWindow = null;
+        StopKeywords(); timedChanges.Stop(); companion.Stop(); companionWindow?.FinishImmediately(); companionWindow = null;
     }
 }

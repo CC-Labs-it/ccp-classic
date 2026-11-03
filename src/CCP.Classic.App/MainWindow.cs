@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
     {
         Settings = settings ?? new();
         Settings.Normalize();
+        Media.AudioOutputSelection.Configure(Settings.Audio);
         Settings.PanicKey = PanicKeys.Normalize(Settings.PanicKey);
         this.store = store;
         this.presetStore = presetStore ?? new(PresetStore.DefaultDirectory);
@@ -85,20 +86,33 @@ public sealed partial class MainWindow : Window
                 effects = new(this, Settings, Session, ConfigureEffectInput, HandleGlobalKey);
                 effects.StatusChanged += SetStatus;
                 effects.DeviceEvent += EmitToys;
-                effects.AudioLevelChanged += ToysAudioLevel;
+                effects.KeywordXp += amount => Progress.AddXp(amount);
+                effects.KeywordHaptic += level =>
+                {
+                    if (!Session.IsRunning || toysDisposed) return;
+                    haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
+                    haptics.Emit(CCP.Classic.Core.LocalDevices.LocalDeviceEvent.Keyword, level,
+                        TimeSpan.FromMilliseconds(400), Settings.Devices.Pattern(CCP.Classic.Core.LocalDevices.LocalDeviceEvent.Keyword));
+                };
+                effects.AudioBandsChanged += ToysAudioBands;
+                effects.ScriptLevelChanged += ToysScriptLevel;
+                effects.LuminanceLevelChanged += ToysLuminanceLevel;
+                effects.VideoLevelChanged += ToysVideoLevel;
                 effects.InteractiveEvent += value =>
                 {
                     if (value.Kind == InteractiveEffectEventKind.BubblePopped) Progress.BubblePopped();
                     if (value.Kind == InteractiveEffectEventKind.CornerHit) Progress.CornerHit();
+                    if (value.Kind == InteractiveEffectEventKind.WallHit) AwardBouncingTextWall();
                 };
                 effects.VideoFinished += seconds => Progress.VideoFinished(seconds);
                 effects.FlashShown += Progress.FlashShown;
                 effects.AvatarClicked += Progress.AvatarClicked;
+                effects.CompanionPlacementChanged += SaveSettings;
                 effects.LockCompleted += (errors, phrases, seconds) => Progress.LockResult(errors, phrases, seconds);
                 effects.WipePlayingChanged += playing => { if (playing) Progress.WipeStarted(); else Progress.WipeEnded(); };
                 effects.CountAnswered += correct =>
                 {
-                    Progress.BubbleCountAnswer(correct); Progress.AttentionAnswer(correct);
+                    Progress.VideoTargetAnswer(correct);
                     if (correct) Progress.AddXp(10);
                 };
                 SetStatus("Idle");
@@ -254,7 +268,7 @@ public sealed partial class MainWindow : Window
         return panel;
     }
 
-    private void PresetChanged() { SaveSettings(); VisualPolish.ApplyWindow(this, Settings); BuildShell(); effects?.RefreshSettings(); }
+    private void PresetChanged() { SettingsWindow?.Close(); SaveSettings(); VisualPolish.ApplyWindow(this, Settings); BuildShell(); effects?.RefreshSettings(); }
 
     private Control Studio()
     {

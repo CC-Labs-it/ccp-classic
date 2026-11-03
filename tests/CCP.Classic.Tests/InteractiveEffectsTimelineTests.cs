@@ -40,7 +40,7 @@ public sealed class InteractiveEffectsTimelineTests
         Assert.True(Assert.Single(events).PlaySound);
         Assert.Equal(InteractiveEffectEventKind.BubblePopped, events[0].Kind);
         Assert.False(Assert.Single(timeline.Step(2.25).Bubbles).CanPop);
-        Assert.Empty(timeline.Step(2.5).Bubbles);
+        Assert.Empty(timeline.Step(2.8).Bubbles);
         settings.Effects["bubble"].Values["sound"] = 0;
         var second = Assert.Single(timeline.Step(4).Bubbles);
         timeline.Step(4.25);
@@ -102,8 +102,8 @@ public sealed class InteractiveEffectsTimelineTests
         var events = 0; timeline.EventOccurred += _ => events++;
         timeline.Start(); timeline.Step(2); timeline.Step(2.5);
         settings.Effects["bubble"].Values["rate"] = 0;
-        timeline.Step(3); timeline.Step(14);
-        Assert.Empty(timeline.Step(14.25).Bubbles);
+        timeline.Step(3); timeline.Step(40);
+        Assert.Empty(timeline.Step(40.25).Bubbles);
         Assert.Equal(0, events);
     }
 
@@ -123,7 +123,7 @@ public sealed class InteractiveEffectsTimelineTests
     }
 
     [Fact]
-    public void BounceReflectsAtEdgesAndEmitsOnlyAnExactCorner()
+    public void BounceReflectsAtEdgesAndKeepsOrdinaryWallHitsSeparateFromCorners()
     {
         var settings = Settings(); settings.Effects["bounce"].Enabled = true;
         var timeline = new InteractiveEffectsTimeline(settings, initialBounce: new(.9, .9, 1, 1));
@@ -131,15 +131,17 @@ public sealed class InteractiveEffectsTimelineTests
         timeline.Start(); timeline.Step(0);
         var corner = timeline.Step(.1).BouncingText!;
         Assert.Equal(1, corner.X, 8); Assert.Equal(1, corner.Y, 8);
-        Assert.Equal(InteractiveEffectEventKind.CornerHit, Assert.Single(events).Kind);
+        Assert.Single(events, value => value.Kind == InteractiveEffectEventKind.CornerHit);
+        Assert.Single(events, value => value.Kind == InteractiveEffectEventKind.WallHit);
         var reflected = timeline.Step(.2).BouncingText!;
         Assert.True(reflected.X < corner.X && reflected.Y < corner.Y);
-        Assert.Single(events);
+        Assert.Equal(2, events.Count);
 
-        var nearMiss = new InteractiveEffectsTimeline(settings, initialBounce: new(.9, .900001, 1, 1));
-        var misses = 0; nearMiss.EventOccurred += _ => misses++;
+        var nearMiss = new InteractiveEffectsTimeline(settings, initialBounce: new(.9, .8, 1, 1));
+        var misses = new List<InteractiveEffectEvent>(); nearMiss.EventOccurred += misses.Add;
         nearMiss.Start(); nearMiss.Step(0); nearMiss.Step(.1);
-        Assert.Equal(0, misses);
+        Assert.DoesNotContain(misses, value => value.Kind == InteractiveEffectEventKind.CornerHit);
+        Assert.Single(misses, value => value.Kind == InteractiveEffectEventKind.WallHit);
     }
 
     [Fact]
@@ -151,10 +153,10 @@ public sealed class InteractiveEffectsTimelineTests
         timeline.Start(); var first = timeline.Step(0).BouncingText!;
         var later = timeline.Step(.75).BouncingText!;
         Assert.Equal(first.X, later.X); Assert.Equal(first.Y, later.Y);
-        Assert.Equal(.7, later.Opacity, 8);
+        Assert.Equal(1, later.Opacity, 8);
         settings.Effects["bounce"].Enabled = false;
         timeline.Step(.75);
-        Assert.Equal(.35, timeline.Step(1.125).BouncingText!.Opacity, 8);
+        Assert.Equal(.5, timeline.Step(1.125).BouncingText!.Opacity, 8);
         Assert.Null(timeline.Step(1.5).BouncingText);
     }
 

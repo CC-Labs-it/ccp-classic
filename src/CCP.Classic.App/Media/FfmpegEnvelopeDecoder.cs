@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace CCP.Classic.App.Media;
 
-internal sealed class FfmpegEnvelopeDecoder(string? testExecutable = null, Action<Process>? started = null)
+internal sealed class FfmpegEnvelopeDecoder(string? testExecutable = null, Action<Process>? started = null, Action<Exception>? failed = null)
 {
     internal const long MaximumFrames = 7200L * 48000;
     internal void Decode(string path, PcmRmsAccumulator accumulator, CancellationToken token) =>
@@ -58,7 +58,7 @@ internal sealed class FfmpegEnvelopeDecoder(string? testExecutable = null, Actio
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception failure) when (failure is not OutOfMemoryException)
-        { throw new IOException("Offline audio analysis is unavailable."); }
+        { failed?.Invoke(failure); throw new IOException("Offline audio analysis is unavailable."); }
     }
 
     internal static string? Demux(ReadOnlySpan<byte> header, string extension)

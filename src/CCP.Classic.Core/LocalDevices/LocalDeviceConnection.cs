@@ -82,24 +82,36 @@ public sealed class LocalDeviceConnection(Func<ILocalDeviceTransport>? transport
     {
         var level = double.IsFinite(intensity) ? Math.Clamp(intensity, 0, 1) : 0;
         if (level == 0) { await StopAsync(token).ConfigureAwait(false); return; }
+        await SetLevelsAsync(_ => level, token).ConfigureAwait(false);
+    }
+
+    public Task SetLevelsAsync(Func<LocalDeviceInfo, double> levels, CancellationToken token) => SetActuatorLevelsAsync((device, _) => levels(device), token);
+
+    // Negative requests omit an actuator, allowing an inactive absolute-position motor to hold its target.
+    public async Task SetActuatorLevelsAsync(Func<LocalDeviceInfo, LocalActuator, double> levels, CancellationToken token)
+    {
         ILocalDeviceTransport? current; IReadOnlyList<LocalDeviceInfo> targets; LocalDeviceProvider selected; int epoch;
         lock (gate) { current = status == LocalDeviceStatus.Connected && !disconnecting ? transport : null; targets = devices; selected = provider; epoch = outputEpoch; }
         if (current is null) return;
         foreach (var device in targets)
         {
             if (!CanOutput(current, epoch)) return;
+            double Level(LocalActuator actuator) { var requested = levels(device, actuator); return double.IsFinite(requested) ? Math.Clamp(requested, 0, 1) : 0; }
             if (selected == LocalDeviceProvider.LovenseConnect)
             {
+                var included = device with { Actuators = device.Actuators.Where(actuator => levels(device, actuator) >= 0).ToArray() };
+                var active = included.Actuators.Any(actuator => Level(actuator) > 0 || actuator.Kind == LocalActuatorKind.Position);
                 // A short lease prevents retained output if the local app vanishes. Every function is restated together.
-                var command = JsonSerializer.Serialize(new { command = "Function", action = LocalDeviceProtocol.LovenseAction(device, level),
-                    timeSec = 2, apiVer = 1, stopPrevious = 1, toy = device.Id });
+                var command = JsonSerializer.Serialize(new { command = "Function", action = !active ? "Stop" : LocalDeviceProtocol.LovenseAction(included, Level),
+                    timeSec = !active ? 0 : 2, apiVer = 1, stopPrevious = 1, toy = device.Id });
                 LocalDeviceProtocol.CheckLovense(LocalDeviceProtocol.Parse(await current.ExchangeAsync(command, token).ConfigureAwait(false)));
                 continue;
             }
             foreach (var actuator in device.Actuators)
             {
                 if (!CanOutput(current, epoch)) return;
-                var value = new Dictionary<string, object> { ["Value"] = LocalDeviceProtocol.NativeLevel(actuator, level) };
+                if (levels(device, actuator) < 0) continue;
+                var value = new Dictionary<string, object> { ["Value"] = LocalDeviceProtocol.NativeLevel(actuator, Level(actuator)) };
                 if (actuator.Command == "HwPositionWithDuration") value["Duration"] = Math.Clamp(100, actuator.MinimumDuration, actuator.MaximumDuration);
                 await Request(current, "OutputCmd", new() { ["DeviceIndex"] = int.Parse(device.Id, System.Globalization.CultureInfo.InvariantCulture),
                     ["FeatureIndex"] = actuator.Index, ["Command"] = new Dictionary<string, object> { [actuator.Command] = value } }, "Ok", token).ConfigureAwait(false);

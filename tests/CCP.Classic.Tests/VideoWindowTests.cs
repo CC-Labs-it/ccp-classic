@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using CCP.Classic.App;
@@ -49,6 +50,25 @@ public sealed class VideoWindowTests
         fixture.Window.Close(); fixture.Window.FinishImmediately(); fixture.Session.Start();
         Dispatcher.UIThread.RunJobs();
         Assert.True(fixture.Session.IsRunning);
+    });
+
+    [Fact]
+    public Task OriginalCornerMuteNeverEndsTheVideoAndCloseUsesThePanicGate() => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(); fixture.Frame(0); fixture.Window.Pulse(.25, .6);
+        var controls = fixture.Window.GetVisualDescendants().OfType<Button>().ToArray();
+        var mute = controls.Single(c => c.Name == "VideoMute"); var close = controls.Single(c => c.Name == "VideoClose");
+        Assert.Equal(24, mute.Width); Assert.Equal(.6, mute.Opacity);
+        mute.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(0, fixture.Playback.Gain); Assert.True(fixture.Session.IsRunning); Assert.Null(fixture.Window.GetAudioSample());
+        Assert.NotNull(fixture.Window.GetTimelineSample());
+        fixture.Window.Pulse(.5, .6); Assert.Equal(0, fixture.Playback.Gain);
+        mute.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Assert.Equal(.6, fixture.Playback.Gain);
+        fixture.Session.SetPanicEnabled(false, true); close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Assert.True(fixture.Session.IsRunning);
+        fixture.Session.SetPanicEnabled(true); close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Assert.False(fixture.Session.IsRunning);
+        using var strict = new Fixture(strict: true); strict.Frame(0);
+        Assert.Single(strict.Window.GetVisualDescendants().OfType<Button>(), c => c.Name == "VideoMute");
+        Assert.DoesNotContain(strict.Window.GetVisualDescendants().OfType<Button>(), c => c.Name == "VideoClose");
     });
 
     [Fact]
@@ -112,28 +132,19 @@ public sealed class VideoWindowTests
     });
 
     [Fact]
-    public Task AttentionUsesVideoStartTimePausesAndResumesAfterAnAnswer() => UiDispatcher.Run(() =>
+    public Task OriginalAttentionTargetsMoveWithoutPausingAndCountEachClickOnce() => UiDispatcher.Run(() =>
     {
-        using var fixture = new Fixture(attention: true); var answers = new List<bool>(); var prompts = 0;
-        fixture.Window.CountAnswered += answers.Add;
-        fixture.Window.AttentionStarted += () => prompts++;
-        fixture.Frame(1000); fixture.Window.Pulse(1029.99, 1); Assert.False(fixture.Playback.Paused);
-        Assert.NotNull(fixture.Window.GetAudioSample());
-        fixture.Window.Pulse(1030, 1); Assert.True(fixture.Playback.Paused);
-        Assert.Equal(1, prompts); Assert.Null(fixture.Window.GetAudioSample());
-        var bubbles = fixture.Window.GetVisualDescendants().OfType<Canvas>().Single(canvas => canvas.Name == "AttentionBubbles");
-        Assert.False(fixture.Window.AnswerCount(0)); Assert.True(fixture.Playback.Paused);
-        Assert.True(fixture.Window.AnswerCount(bubbles.Children.Count)); Assert.False(fixture.Playback.Paused);
-        Assert.NotNull(fixture.Window.GetAudioSample());
-        Assert.Equal(new[] { false, true }, answers);
-        Assert.False(fixture.Window.AnswerCount(bubbles.Children.Count)); Assert.Equal(2, answers.Count);
-        fixture.Window.Pulse(1060, 1); Assert.True(fixture.Playback.Paused);
-        Assert.Equal(2, prompts);
-        fixture.Window.Pulse(1075, 1); Assert.False(fixture.Playback.Paused);
-        Assert.Equal(new[] { false, true, false }, answers);
-        fixture.Window.FinishImmediately(); Assert.False(fixture.Window.AnswerCount(bubbles.Children.Count));
+        using var fixture = new Fixture(attention: true); fixture.Settings.Video.TargetCount = 1;
+        var answers = new List<bool>(); var prompts = 0;
+        fixture.Window.CountAnswered += answers.Add; fixture.Window.AttentionStarted += () => prompts++;
+        fixture.Frame(1000); fixture.Window.Pulse(1001, 1); Assert.Empty(fixture.Window.Targets);
+        fixture.Window.Pulse(1060, 1); var target = Assert.Single(fixture.Window.Targets);
+        Assert.False(fixture.Playback.Paused); Assert.NotNull(fixture.Window.GetAudioSample()); Assert.Equal(1, prompts);
+        fixture.Window.Pulse(1060.1, 1); Assert.NotEqual(target.X, Assert.Single(fixture.Window.Targets).X);
+        Assert.True(fixture.Window.HitTarget(target.Id)); Assert.False(fixture.Window.HitTarget(target.Id));
+        Assert.Empty(fixture.Window.Targets); Assert.Equal(new[] { true }, answers);
+        fixture.Window.FinishImmediately(); Assert.False(fixture.Window.HitTarget(target.Id));
     });
-
     [Fact]
     public Task InvalidFramesFailOnlyTheirWindowWithoutMappingABlocker() => UiDispatcher.Run(() =>
     {
@@ -205,30 +216,44 @@ public sealed class VideoWindowTests
         Assert.NotNull(fixture.Image.Source); Assert.False(fixture.Window.HasFinished);
     });
 
-    [Fact]
-    public Task HiddenAttentionFreezesItsDeadlineAndRestoringKeepsTheAttentionPause() => UiDispatcher.Run(() =>
+    [Theory]
+    [InlineData(false, false)] [InlineData(true, false)] [InlineData(false, true)] [InlineData(true, true)]
+    public Task AWorkerThatAlreadyFinishedReleasesItsHiddenViewWithoutCopyingOrRestoring(bool minimize, bool failed) => UiDispatcher.Run(() =>
     {
-        using var fixture = new Fixture(attention: true); var results = new List<bool>();
-        fixture.Window.CountAnswered += results.Add; fixture.Frame(0); fixture.Window.Pulse(30, 1);
-        Assert.True(fixture.Playback.Paused);
-        fixture.Owner.Hide(); fixture.Window.Pulse(31, 1); fixture.Window.Pulse(300, 1);
-        fixture.Owner.Show(); fixture.Window.Pulse(301, 1);
-        Assert.True(fixture.Playback.Paused); Assert.Empty(results);
-        fixture.Window.Pulse(315.9, 1); Assert.Empty(results);
-        fixture.Window.Pulse(316, 1);
-        Assert.Equal(new[] { false }, results); Assert.False(fixture.Playback.Paused);
+        using var fixture = new Fixture(); var successes = 0; fixture.Window.VideoFinished += () => successes++;
+        fixture.Frame(0); fixture.Window.Pulse(.25, 1); var copies = fixture.Playback.Copies;
+        fixture.Playback.IsFinished = true; if (failed) fixture.Playback.LastError = "Decoder failed";
+        if (minimize) fixture.Window.WindowState = WindowState.Minimized; else fixture.Window.Hide();
+        fixture.Window.Pulse(1, 1);
+        Assert.True(fixture.Window.HasFinished); Assert.False(fixture.Window.IsVisible); Assert.Null(fixture.Image.Source);
+        Assert.Equal(copies, fixture.Playback.Copies); Assert.Equal(1, fixture.Playback.Disposals);
+        Assert.Equal(failed ? 0 : 1, successes); Assert.Equal(failed ? "Decoder failed" : null, fixture.Window.PlaybackError);
+        fixture.Window.Pulse(100, 1); Assert.Equal(1, fixture.Playback.Disposals);
     });
 
     [Fact]
-    public Task AnsweringAnAttentionPromptWhileHiddenCannotUnpauseTheDecoder() => UiDispatcher.Run(() =>
+    public Task HiddenAttentionFreezesItsDeadlineAndRestoringResumesPlayback() => UiDispatcher.Run(() =>
     {
-        using var fixture = new Fixture(attention: true); fixture.Frame(0); fixture.Window.Pulse(30, 1);
-        var bubbles = fixture.Window.GetVisualDescendants().OfType<Canvas>().Single(canvas => canvas.Name == "AttentionBubbles");
-        fixture.Owner.Hide(); fixture.Window.Pulse(31, 1);
-        Assert.True(fixture.Window.AnswerCount(bubbles.Children.Count)); Assert.True(fixture.Playback.Paused);
-        fixture.Owner.Show(); fixture.Window.Pulse(300, 1); Assert.False(fixture.Playback.Paused);
+        using var fixture = new Fixture(attention: true); fixture.Settings.Video.TargetCount = 1;
+        var results = new List<bool>(); fixture.Window.CountAnswered += results.Add;
+        fixture.Frame(0); fixture.Window.Pulse(60, 1); Assert.Single(fixture.Window.Targets);
+        fixture.Owner.Hide(); fixture.Window.Pulse(61, 1); fixture.Window.Pulse(300, 1);
+        Assert.True(fixture.Playback.Paused); fixture.Owner.Show(); fixture.Window.Pulse(301, 1);
+        Assert.False(fixture.Playback.Paused); Assert.Empty(results); Assert.Single(fixture.Window.Targets);
+        fixture.Window.Pulse(312.9, 1); Assert.Empty(results);
+        fixture.Window.Pulse(313, 1); Assert.Equal(new[] { false }, results); Assert.Empty(fixture.Window.Targets);
     });
 
+    [Fact]
+    public Task HiddenTargetsCannotBeClickedAndAVisibleHitKeepsTheDecoderRunning() => UiDispatcher.Run(() =>
+    {
+        using var fixture = new Fixture(attention: true); fixture.Settings.Video.TargetCount = 1;
+        fixture.Frame(0); fixture.Window.Pulse(60, 1); var target = Assert.Single(fixture.Window.Targets);
+        fixture.Owner.Hide(); fixture.Window.Pulse(61, 1);
+        Assert.False(fixture.Window.HitTarget(target.Id)); Assert.True(fixture.Playback.Paused);
+        fixture.Owner.Show(); fixture.Window.Pulse(300, 1);
+        Assert.True(fixture.Window.HitTarget(target.Id)); Assert.False(fixture.Playback.Paused);
+    });
     [Fact]
     public Task HeldPanicRemainsOnePressAcrossFocusIntoTheOwnedVideo() => UiDispatcher.Run(() =>
     {
@@ -265,7 +290,7 @@ public sealed class VideoWindowTests
         public readonly Playback Playback = new();
         public readonly SessionController Session;
         public readonly VideoWindow Window;
-        public Image Image => ((Grid)Window.Content!).Children.OfType<Image>().Single();
+        public Image Image => ((Grid)Window.Content!).Children.OfType<Image>().Single(item => item.Name == "VideoImage");
         public Fixture(bool strict = false, bool attention = false)
         {
             Session = new(Settings);

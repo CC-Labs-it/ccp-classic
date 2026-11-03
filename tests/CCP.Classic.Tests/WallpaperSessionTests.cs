@@ -153,6 +153,46 @@ public sealed class WallpaperSessionTests
         });
     });
 
+    [Fact]
+    public Task DedicatedFolderDoesNotMutateTheLibraryAndShuffleWaitsForTheReplacementCover() => WithSession(async run =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "wall-dedicated");
+        var second = Path.Combine(folder, "second.jpg");
+        var options = new WallpaperOptions { SourceFolder = folder, Rotate = false };
+        await UiDispatcher.Run(() =>
+        {
+            run.Update(options: options); Assert.Equal(new[] { folder }, run.Seen!.ImageFolders); Assert.Empty(run.Library.ImageFolders);
+            Assert.False(run.Session.Shuffle());
+        });
+        await run.Enter(); await run.Done();
+        await UiDispatcher.Run(() =>
+        {
+            run.Media = new([run.Image, second], []); run.Log.Clear(); Assert.True(run.Session.Shuffle());
+            Assert.Equal(new[] { "cover" }, run.Log); Assert.Equal(1, run.Native.Starts);
+            Assert.Equal(second, run.Covers[1].Image);
+        });
+        await run.Enter(); await run.Done(); Assert.Equal(second, run.Native.Selected);
+        await UiDispatcher.Run(() => { run.Update(options: options); Assert.Equal(2, run.Scans); });
+    });
+
+    [Fact]
+    public Task AutomaticRotationHasNoCatchUpBurstAndStopCancelsItsNextTurn() => WithSession(async run =>
+    {
+        var options = new WallpaperOptions { Rotate = true, IntervalSeconds = 10 };
+        await UiDispatcher.Run(() => run.Update(options: options)); await run.Enter(); await run.Done();
+        await UiDispatcher.Run(() =>
+        {
+            run.Clock.Seconds = 100; run.Update(options: options); run.Update(options: options);
+            Assert.Equal(2, run.Covers.Count); Assert.Equal(2, run.Scans);
+        });
+        await run.Enter(); await run.Done();
+        await UiDispatcher.Run(() =>
+        {
+            run.Update(options: options); Assert.Equal(2, run.Scans); _ = run.Session.StopAsync();
+            run.Clock.Seconds = 1000; Assert.False(run.Session.Shuffle());
+        });
+    });
+
     private static async Task WithSession(Func<Run, Task> test, bool windows = true)
     {
         Run? run = null; await UiDispatcher.Run(() => run = new(windows));
@@ -169,6 +209,7 @@ public sealed class WallpaperSessionTests
         public readonly Native Native;
         public readonly WallpaperSession Session;
         public readonly LibrarySettings Library = new();
+        public readonly Clock Clock = new();
         public WallpaperMedia Media;
         public LibrarySettings? Seen;
         public int Scans;
@@ -177,17 +218,23 @@ public sealed class WallpaperSessionTests
         {
             Media = new([Image], [Video]); Native = new(Log);
             Session = new(Fallback, [Starter], windows, Native, () => { var value = new Cover(Log); Covers.Add(value); created.Writer.TryWrite(value); return value; },
-                (library, token) => { Scans++; Seen = library; return ScanOverride?.Invoke(library, token) ?? Task.FromResult(Media); });
+                (library, token) => { Scans++; Seen = library; return ScanOverride?.Invoke(library, token) ?? Task.FromResult(Media); }, Clock);
             Assert.Empty(Log);
         }
-        public void Update(bool dynamic = false, bool gentle = false, bool reduced = false, bool performance = false, WallpaperMonitor[]? monitors = null)
-            => Session.Update(true, dynamic, monitors ?? [new(new PixelRect(0, 0, 320, 240), 1)], Library, gentle, reduced, performance);
+        public void Update(bool dynamic = false, bool gentle = false, bool reduced = false, bool performance = false, WallpaperMonitor[]? monitors = null, WallpaperOptions? options = null)
+            => Session.Update(true, dynamic, monitors ?? [new(new PixelRect(0, 0, 320, 240), 1)], Library, gentle, reduced, performance, options);
         public async Task Enter()
         {
             var current = await created.Reader.ReadAsync(TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
             await UiDispatcher.Run(current.Enter);
         }
         public Task Done() => Session.Completion.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+    }
+    private sealed class Clock : TimeProvider
+    {
+        public double Seconds;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => (long)(Seconds * TimeSpan.TicksPerSecond);
     }
     private sealed class Native(List<string> log) : IStaticWallpaperBackend
     {

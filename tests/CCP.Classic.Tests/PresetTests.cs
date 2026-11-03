@@ -19,7 +19,7 @@ public sealed class PresetTests
         Assert.Equal(11, Enabled(deep).Length); Assert.False(deep.Effects["wall"].Enabled);
         Assert.True(deep.Effects["video"].Enabled); Assert.Equal(0, deep.Effects["video"].Values["strict"]);
         Assert.Equal(6, gentle.Effects["flash"].Values["rate"]);
-        Assert.Equal(30, gentle.Effects["flash"].Values["size"]);
+        Assert.Equal(75, gentle.Effects["flash"].Values["size"]);
         Assert.Equal(55, gentle.Effects["flash"].Values["opacity"]);
         Assert.Equal(4, daily.Effects["sub"].Values["rate"]);
         Assert.Equal(25, daily.Effects["sub"].Values["opacity"]);
@@ -80,7 +80,7 @@ public sealed class PresetTests
         fixture.Store.Save(PresetStore.Capture("Valid", new ClassicSettings()));
         fixture.Write(Guid.NewGuid().ToString("N"), "{");
         fixture.Write(Guid.NewGuid().ToString("N"), new string(' ', 256 * 1024 + 1));
-        var future = PresetStore.Capture("Future", new ClassicSettings()); future.SchemaVersion = 2;
+        var future = PresetStore.Capture("Future", new ClassicSettings()); future.SchemaVersion = 3;
         fixture.Write(future.Id, JsonSerializer.Serialize(future));
         var mismatch = PresetStore.Capture("Mismatch", new ClassicSettings());
         fixture.Write(Guid.NewGuid().ToString("N"), JsonSerializer.Serialize(mismatch));
@@ -99,8 +99,8 @@ public sealed class PresetTests
         PresetStore.Apply(definition, target);
         Assert.False(target.Effects.ContainsKey("unknown"));
         Assert.False(target.Effects["flash"].Values.ContainsKey("other"));
-        Assert.Equal(60, target.Effects["flash"].Values["rate"]);
-        Assert.Equal(45, target.Effects["flash"].Values["size"]);
+        Assert.Equal(180, target.Effects["flash"].Values["rate"]);
+        Assert.Equal(100, target.Effects["flash"].Values["size"]);
         Assert.False(target.Effects["spiral"].Enabled); Assert.Equal(0, target.RunMinutes);
     }
 

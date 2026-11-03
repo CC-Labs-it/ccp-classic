@@ -13,7 +13,8 @@ public sealed partial class MainWindow
 
     private void FillLibrary(StackPanel content)
     {
-        var panel = new LibraryPanel(Settings, text, SaveSettings, ChooseLibraryFolder);
+        var panel = new LibraryPanel(Settings, text, () => { SaveSettings(); effects?.RefreshSettings(); }, ChooseLibraryFolder);
+        panel.RefreshRequested += () => effects?.ReloadLibrary();
         panel.PreviewRequested += asset =>
         {
             libraryPreview?.Close();
@@ -45,7 +46,7 @@ public sealed partial class MainWindow
             if (paths.Length == 0) return;
             var folders = LibraryFolders(kind);
             folders.Clear(); folders.AddRange(paths);
-            Settings.Library.Normalize(); SaveSettings();
+            Settings.Library.Normalize(); SaveSettings(); effects?.RefreshSettings();
             if (sheet == "Library") OpenSheet("Library");
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException)

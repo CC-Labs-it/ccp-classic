@@ -30,6 +30,11 @@ internal sealed class CompanionWindow : Window
     private string wantedClip = "idle", displayedClip = "";
     private double lastNow, animationTime, lastRequest = double.NegativeInfinity, reaction = 7.2;
     private bool closed, prepared, hasTime, forced, stopPending;
+    private Point? dragStart;
+    private PixelPoint dragPosition;
+    private bool dragged, placing;
+    private double appliedScale = double.NaN;
+    private bool? detached;
     public string? LastError { get; private set; }
     public int DecodedFrames { get; private set; }
     internal bool IsDecodePending => pending is not null;
@@ -40,6 +45,7 @@ internal sealed class CompanionWindow : Window
         && !settings.GentleVisuals && !settings.ReducedMotion && !settings.PerformanceMode;
     public event Action? AvatarClicked;
     public event Action? StopRequested;
+    public event Action? PlacementChanged;
 
     public CompanionWindow(Window owner, ClassicSettings settings, Action<Window> configureInput, bool requireTransparency = true,
         Action? beforeDecode = null)
@@ -54,8 +60,36 @@ internal sealed class CompanionWindow : Window
         images.PointerPressed += (_, args) =>
         {
             var pointer = args.GetCurrentPoint(images).Properties;
-            if (pointer.IsLeftButtonPressed) { reaction = 7.2; AvatarClicked?.Invoke(); args.Handled = true; }
+            if (pointer.IsLeftButtonPressed)
+            {
+                if (settings.CompanionPlacement.Detached)
+                { dragStart = args.GetPosition(this); dragPosition = Position; dragged = false; args.Pointer.Capture(images); }
+                else { reaction = 7.2; AvatarClicked?.Invoke(); }
+                args.Handled = true;
+            }
             else if (pointer.IsRightButtonPressed) { StopRequested?.Invoke(); args.Handled = true; }
+        };
+        images.PointerMoved += (_, args) =>
+        {
+            if (dragStart is not { } start || !args.GetCurrentPoint(images).Properties.IsLeftButtonPressed) return;
+            var point = args.GetPosition(this); var delta = point - start;
+            if (!dragged && delta.X * delta.X + delta.Y * delta.Y < 25) return;
+            dragged = true;
+            var scaling = Screens.ScreenFromWindow(this)?.Scaling ?? 1;
+            Position = ClampPosition(new(Position.X + (int)(delta.X * scaling), Position.Y + (int)(delta.Y * scaling)));
+        };
+        images.PointerReleased += (_, args) =>
+        {
+            if (dragStart is null) return; dragStart = null; args.Pointer.Capture(null);
+            if (dragged) PersistPlacement(); else { Position = dragPosition; reaction = 7.2; AvatarClicked?.Invoke(); }
+            dragged = false; args.Handled = true;
+        };
+        images.PointerCaptureLost += (_, _) => { if (dragged) PersistPlacement(); dragStart = null; dragged = false; };
+        images.PointerWheelChanged += (_, args) =>
+        {
+            if (!settings.CompanionPlacement.Detached || !args.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+            settings.CompanionPlacement.Scale = Math.Clamp(settings.CompanionPlacement.Scale + Math.Sign(args.Delta.Y) * .25, .5, 1.5);
+            ApplyPlacement(); PersistPlacement(); args.Handled = true;
         };
         speech = new Border { Child = words, Background = new SolidColorBrush(Color.Parse("#E61C1C35")),
             CornerRadius = new(12), Padding = new(12, 8), Margin = new(0, 0, 0, 8), IsHitTestVisible = false, Opacity = 0 };
@@ -82,6 +116,7 @@ internal sealed class CompanionWindow : Window
     public void Update(CompanionBarkCue? bark, double seconds)
     {
         if (closed) return;
+        if (prepared) ApplyPlacement();
         var now = double.IsFinite(seconds) ? Math.Max(lastNow, seconds) : lastNow;
         var dt = hasTime ? Math.Clamp(now - lastNow, 0, .1) : 0;
         lastNow = now; hasTime = true;
@@ -114,15 +149,52 @@ internal sealed class CompanionWindow : Window
             Position = new(-32000, -32000); Width = Height = 1; Show(owner);
             if (requireTransparency && ActualTransparencyLevel != WindowTransparencyLevel.Transparent)
             { LastError = "Companion transparency is unavailable."; Hide(); return; }
-            Hide(); Width = 240; Height = 390; prepared = true;
+            Hide(); prepared = true;
         }
+        ApplyPlacement(); Show(owner);
+    }
+
+    private void ApplyPlacement()
+    {
+        if (placing || dragged) return;
+        placing = true;
+        try
+        {
+            var options = settings.CompanionPlacement;
+            var scale = options.Detached ? Math.Clamp(options.Scale, .5, 1.5) : 1;
+            if (appliedScale != scale) { Width = 240 * scale; Height = 390 * scale; appliedScale = scale; }
+            Topmost = options.AlwaysOnTop;
+            if (options.Detached)
+            {
+                if (options.Left is { } left && options.Top is { } top) Position = ClampPosition(new(left, top));
+                else if (detached != true) Anchor();
+            }
+            else Anchor();
+            detached = options.Detached;
+        }
+        finally { placing = false; }
+    }
+    private PixelPoint ClampPosition(PixelPoint point)
+    {
+        var screen = Screens.ScreenFromPoint(point) ?? owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
+        if (screen is null) return point;
+        var area = screen.WorkingArea; var scale = screen.Scaling;
+        return new(Math.Clamp(point.X, area.X, Math.Max(area.X, area.Right - (int)(Width * scale))),
+            Math.Clamp(point.Y, area.Y, Math.Max(area.Y, area.Bottom - (int)(Height * scale))));
+    }
+    private void PersistPlacement()
+    {
+        if (!settings.CompanionPlacement.Detached || !prepared || closed) return;
+        settings.CompanionPlacement.Left = Position.X; settings.CompanionPlacement.Top = Position.Y; PlacementChanged?.Invoke();
+    }
+    private void Anchor()
+    {
         var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
         if (screen is not null)
         {
             var area = screen.WorkingArea; var scale = screen.Scaling;
             Position = new(area.Right - (int)(Width * scale) - 20, area.Bottom - (int)(Height * scale) - 20);
         }
-        Show(owner);
     }
 
     private void RequestFrame(double now)

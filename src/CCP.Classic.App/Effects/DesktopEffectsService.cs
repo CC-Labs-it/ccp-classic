@@ -24,6 +24,7 @@ public sealed partial class DesktopEffectsService : IDisposable
     private readonly VideoSessionService videos;
     private readonly GlobalPanicMonitor panic;
     private readonly EffectsTimeline timeline;
+    private readonly RemixSession remix;
     private readonly DispatcherTimer timer;
     private readonly Action<Window> configureInput;
     private readonly TimeProvider clock = TimeProvider.System;
@@ -45,12 +46,20 @@ public sealed partial class DesktopEffectsService : IDisposable
         Action<Window> configureInput, Action<string, bool> keyChanged)
     {
         this.owner = owner; this.settings = settings; this.session = session; this.configureInput = configureInput;
+        AudioOutputSelection.Configure(settings.Audio);
         loom = new(settings, new LoomStore(LoomStore.DefaultDirectory));
         whispers = new(audio);
         videos = new(owner, settings, session, configureInput);
         videos.VideoFinished += seconds => VideoFinished?.Invoke(seconds);
-        videos.CountAnswered += correct => CountAnswered?.Invoke(correct);
+        videos.CountAnswered += correct =>
+        {
+            if (correct) popSounds.Play(cueGate, settings.Effects["audio"].Enabled, settings.Bubbles.VolumePercent / 100d);
+            CountAnswered?.Invoke(correct);
+        };
         InitializeInteractive();
+        videos.LaunchBlocked = () => lockFrame.LockCard is not null || interactiveFrame.CascadeActive;
+        InitializeBrainDrain();
+        InitializeSpiralMedia();
         InitializeHaptics();
         foreach (var path in starter.Images)
         {
@@ -58,6 +67,14 @@ public sealed partial class DesktopEffectsService : IDisposable
             catch (Exception e) when (e is IOException or ArgumentException) { }
         }
         timeline = new(settings, images.Count, starter.Phrases.Count);
+        remix = new(settings, () => selectedImages?.SelectedPaths ?? []);
+        timeline.ScheduledRemix = remix.TryTake;
+        timeline.FlashAudioRequested += BeginFlashVoice;
+        timeline.ImageAspectRatio = index =>
+        {
+            var image = selectedImages is { } library ? library[index] : images[index];
+            return image.Size.Width / Math.Max(1, image.Size.Height);
+        };
         panic = new(() => settings.PanicKey, keyChanged, () => settings.KeywordTriggersEnabled && session.IsRunning);
         InitializeCompanion();
         InitializeWallpaper();
@@ -69,7 +86,8 @@ public sealed partial class DesktopEffectsService : IDisposable
     public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
         or "bubble" or "bounce" or "lock" or "wipe" or "drain" || id == "wall" && OperatingSystem.IsWindows();
 
-    public void RefreshSettings() => Tick();
+    public void RefreshSettings() { AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); Tick(); }
+    public void ReloadLibrary() { RefreshInteractiveLibrary(force: true); videos.RefreshLibrary(force: true); Tick(); }
     public void ReloadCustomSpiral() { loom.Reload(); Tick(); }
 
     private void SessionChanged()
@@ -83,7 +101,9 @@ public sealed partial class DesktopEffectsService : IDisposable
         if (disposed) return;
         running = true; useFallback = false; lastStatus = null;
         timeline.Start(); videos.Start(); StartInteractive(); StartCompanion(); lastFlash = 0; started = clock.GetTimestamp();
-        StartHaptics();
+        StartBrainDrain(); StartHaptics();
+        StartSpiralMedia();
+        remix.Start();
         timer.Start();
         Tick();
     }
@@ -96,9 +116,17 @@ public sealed partial class DesktopEffectsService : IDisposable
             var elapsed = clock.GetElapsedTime(started).TotalSeconds;
             videos.Tick(elapsed);
             TickInteractive(elapsed);
+            TickBrainDrain(elapsed);
+            TickFlashVoice(elapsed);
+            TickSpiralMedia(elapsed);
+            selectedImages?.AdvanceAnimations(elapsed, !settings.GentleVisuals && !settings.ReducedMotion && !settings.PerformanceMode, settings.Flash.GifSpeed);
             TickCompanion(elapsed);
             TickWallpaper();
+            timeline.SetPhrases(settings.Subliminal.Phrases);
+            remix.BeforeFrame(elapsed, !videos.IsPlaying && lockFrame.LockCard is null && !interactiveFrame.CascadeActive);
             snapshot = timeline.Step(elapsed);
+            remix.AfterFrame(snapshot.Flashes.Any(flash => flash.IsRemix));
+            HapticFlashLuminance(snapshot.Flashes.Where(flash => flash.Opacity > .01 && flash.Image >= 0).Select(flash => flash.Image));
             loom.Update(elapsed);
             foreach (var flash in snapshot.Flashes.Where(flash => flash.Id > lastFlash).OrderBy(flash => flash.Id))
             { lastFlash = flash.Id; FlashShown?.Invoke(); }
@@ -106,42 +134,46 @@ public sealed partial class DesktopEffectsService : IDisposable
                 || settings.Effects["spiral"].Enabled || settings.Effects["pink"].Enabled
                 || settings.Effects["bubble"].Enabled || settings.Effects["bounce"].Enabled || settings.Effects["drain"].Enabled;
             if (!anyVisual && snapshot.Flashes.Count == 0 && snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity == 0
-                && interactiveFrame.Bubbles.Count == 0 && interactiveFrame.BouncingText is null && lockFrame.BrainDrain is null)
+                && interactiveFrame.Bubbles.Count == 0 && interactiveFrame.BouncingText is null && interactiveFrame.ImageVisuals.Count == 0)
                 CloseWindows();
             var needsHost = anyVisual || snapshot.Flashes.Count > 0 || snapshot.TextOpacity + snapshot.SpiralOpacity + snapshot.PinkOpacity > 0
-                || interactiveFrame.Bubbles.Count > 0 || interactiveFrame.BouncingText is not null || lockFrame.BrainDrain is not null;
+                || interactiveFrame.Bubbles.Count > 0 || interactiveFrame.BouncingText is not null || interactiveFrame.ImageVisuals.Count > 0;
             timer.Interval = FrameInterval(settings, videos.IsPlaying, lockFrame.LockCard is not null, needsHost || companionWindow?.IsVisible == true);
             if (needsHost && !useFallback && !ReconcileWindows())
             {
                 windows.Clear(CloseWindow); useFallback = true;
             }
             var phrases = starter.Phrases;
-            var spoken = snapshot.Phrase >= 0 ? phrases[snapshot.Phrase] : null;
+            var spoken = ResolveSubliminal(snapshot);
             IReadOnlyList<IImage> frameImages = selectedImages is { } library ? library : images;
-            var frame = EffectsFrameBuilder.Build(snapshot, settings, frameImages, phrases)
-                with { Interactive = interactiveFrame, BrainDrain = lockFrame.BrainDrain, CustomSpiral = loom.Image };
-            var flashInput = settings.Effects["flash"].Values["dismiss"] != 0
-                ? frame.Flashes.Where(f => f.Exit is null && f.Opacity > .01).Select(f => f.Bounds) : [];
+            var frame = EffectsFrameBuilder.Build(snapshot, settings, frameImages, phrases, remix.Image)
+                with { Interactive = interactiveFrame, CustomSpiral = loom.Image };
             if (useFallback && needsHost)
             {
                 if (fallback is null)
                 {
                     fallback = new(owner, new(settings.Language), configureInput, session.Stop);
                     fallback.InputPressed += DismissAt;
+                    fallback.TryBeginDrag = TryBeginFlashDrag;
+                    fallback.DragMoved += point => timeline.MoveDrag(point.X, point.Y);
+                    fallback.DragFinished += timeline.EndDrag;
                 }
-                fallback.UpdateFrame(frame);
+                fallback.UpdateFrame(ApplySpiralMedia(FrameForWindow(frame, fallback), null));
             }
             foreach (var window in windows.Hosts)
             {
-                var input = flashInput.Concat(interactiveFrame.Bubbles.Where(b => b.CanPop)
+                var windowFrame = ApplySpiralMedia(FrameForWindow(frame, window), owner.Screens.ScreenFromWindow(window));
+                var monitorFlashInput = settings.Effects["flash"].Values["dismiss"] != 0
+                    ? windowFrame.Flashes.Where(f => f.Exit is null && f.Shatter is null && f.Opacity > .01).Select(f => f.InputBounds) : [];
+                var input = monitorFlashInput.Concat(windowFrame.Interactive.Bubbles.Where(b => b.CanPop)
                     .Select(b => BubbleGeometry.NormalizedBounds(b, window.ClientSize.Width, window.ClientSize.Height))).ToArray();
                 if (!window.SetInputBounds(input)) { windows.Clear(CloseWindow); useFallback = true; break; }
-                window.View.UpdateFrame(frame);
+                window.View.UpdateFrame(windowFrame);
             }
             whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath,
-                videos.IsPlaying ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1);
+                settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking) ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1, snapshot.ManualSubliminal);
             TickHaptics(elapsed);
-            Report(videos.Status ?? wallpaper?.StatusKey ?? HapticStatus ?? (useFallback ? "EffectsInWindow" : null)
+            Report(videos.Status ?? BrainDrainStatus ?? SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? (useFallback ? "EffectsInWindow" : null)
                 ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
                 : audio.LastError is not null ? "AudioUnavailable" : "Running"));
         }
@@ -163,12 +195,20 @@ public sealed partial class DesktopEffectsService : IDisposable
         IReadOnlyList<Screen> selected = settings.FillAllMonitors ? owner.Screens.All
             : owner.Screens.ScreenFromWindow(owner) is { } current ? [current] : [];
         if (selected.Count == 0 && owner.Screens.Primary is { } primary) selected = [primary];
+        if (settings.Effects["spiral"].Enabled || snapshot is { SpiralOpacity: > 0 })
+            selected = selected.Concat(SpiralScreens()).Distinct().ToArray();
+        var monitor = settings.PinkFilter.Monitor;
+        if ((settings.Effects["pink"].Enabled || snapshot is { PinkOpacity: > 0 }) && monitor >= 0 && monitor < owner.Screens.All.Count)
+            selected = selected.Append(owner.Screens.All[monitor]).Distinct().ToArray();
         var targets = selected.GroupBy(screen => new MonitorTarget(screen.Bounds, screen.Scaling))
             .ToDictionary(group => group.Key, group => group.First());
         return windows.Reconcile(targets.Keys, target =>
         {
             var window = new EffectOverlayWindow(configureInput);
             window.FlashPressed += point => DismissAt(point, window.ClientSize);
+            window.TryBeginDrag = point => TryBeginFlashDrag(point, window.ClientSize);
+            window.DragMoved += point => timeline.MoveDrag(point.X, point.Y);
+            window.DragFinished += timeline.EndDrag;
             var prepared = false;
             try
             {
@@ -185,9 +225,17 @@ public sealed partial class DesktopEffectsService : IDisposable
             && BubbleGeometry.HitTest(b, point, viewport.Width, viewport.Height));
         if (bubble is not null && interactive.Pop(bubble.Id)) return;
         if (snapshot is null) return;
-        var flash = snapshot.Flashes.LastOrDefault(f => f.Exit is null && f.Opacity > .01
-            && new Rect(f.X, f.Y, f.Size, f.Size).Contains(point));
+        var flash = snapshot.Flashes.LastOrDefault(f => f.Exit is null && f.Shatter is null && f.Opacity > .01
+            && new Rect(f.HitArea.X, f.HitArea.Y, f.HitArea.Width, f.HitArea.Height).Contains(point));
         if (flash is not null) timeline.Dismiss(flash.Id);
+    }
+
+    private bool TryBeginFlashDrag(Point point, Size viewport)
+    {
+        if (interactiveFrame.Bubbles.Any(b => b.CanPop && BubbleGeometry.HitTest(b, point, viewport.Width, viewport.Height))) return false;
+        var flash = snapshot?.Flashes.LastOrDefault(f => f.Exit is null && f.Shatter is null && f.Opacity > .01
+            && new Rect(f.HitArea.X, f.HitArea.Y, f.HitArea.Width, f.HitArea.Height).Contains(point));
+        return flash is not null && timeline.BeginDrag(flash.Id, point.X, point.Y);
     }
 
     private void Report(string key)
@@ -210,7 +258,8 @@ public sealed partial class DesktopEffectsService : IDisposable
     public void Stop()
     {
         timer.Stop(); running = false; StopHaptics(); timeline.Stop(); snapshot = null;
-        CloseWindows(); whispers.Stop(); videos.Stop(); StopInteractive(); StopCompanion();
+        CloseWindows(); whispers.Stop(); videos.Stop(); StopFlashVoice(); StopBrainDrain(); StopSpiralMedia(); StopInteractive(); StopCompanion();
+        remix.Stop();
         _ = StopWallpaperAsync();
         loom.Reset();
     }
@@ -220,8 +269,8 @@ public sealed partial class DesktopEffectsService : IDisposable
         if (disposed) return;
         disposed = true; Stop();
         session.Changed -= SessionChanged; session.StopRequested -= Stop;
-        panic.Dispose(); audio.Dispose(); DisposeInteractiveAudio(); DisposeWallpaper();
-        loom.Dispose();
+        panic.Dispose(); audio.Dispose(); DisposeInteractiveAudio(); DisposeBrainDrain(); DisposeSpiralMedia(); DisposeWallpaper();
+        loom.Dispose(); flashAudio.Dispose(); remix.Dispose();
         DisposeHaptics();
         foreach (var image in images) image.Dispose();
         images.Clear();

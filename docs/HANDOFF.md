@@ -1,5 +1,72 @@
 # CCP Classic handoff
 
+## Active parity work, 2026-11-03
+
+Owner requested full behavior/customization parity for the existing features, using
+public CCP source and assets. Typed input only: microphone and OCR are excluded.
+Source is pinned at public `fe40ea7587ac0b09e47d0724e59d7178db3336da`.
+Do not use the original repo's current working tree as implementation input: it is
+different from that pin. Read pinned files with `git show`; cached reference files
+are in ignored `artifacts/parity-source`. See `docs/PARITY-REVIEW.md` for gaps.
+
+Current branch: `codex/parity-68-recorded-bubble-sounds`. Existing-feature parity
+changes are ready for the preview.7 checkpoint and package.
+Preview.6 does not contain these changes. All 774 Windows Release tests pass,
+with zero skips (`artifacts/test-results/parity-release-verified.trx`), including
+native playback, selected/default output identity, actual desktop capture and
+offline FFmpeg analysis. Linux CI is pending for this checkpoint.
+
+Implemented: original recorded bubble pops and effect faces, flash-in-bubble,
+click outros, flash movement/drag/fling/pendulum/shatter, audio-held batches and
+linked Hydra, original native Remix compositions, native GIF timing, original
+Bouncing Text motion/font/colors/two lines/FX and wall-hit rewards, real Windows
+Brain Drain capture/blur/melt, configurable typed lock cards, editable typed trigger
+rules, phrase/audio mapping, GIF spiral libraries/corners, source video targets and
+floating windows, output selection, source audio DSP, per-device toy routing,
+FunScript/luminance/band split/temperaments, avatar placement, hierarchical Library
+selection presets and native animated wallpaper collages. All ten languages carry
+the controls. Feature presets capture the options, including wallpaper.
+
+Stop, owned-window closure, motion preferences, local-only media and bounded
+resource use remain authoritative. Video tests share the normal capacity pool.
+Finished hidden video views retire their reservations. Library edits now apply to
+future video launches immediately; currently playing videos retain their captured
+path. Image selection changes remove old flashes and image-bearing bubble payloads,
+cancel prepared Remix content and rebuild the selected cache. Folder changes and
+Refresh trigger cancellable rescans. Applying a preset closes stale settings editors.
+
+The native render proofs include `remix-native.png`,
+`wallpaper-moving-collage-public.png`, `video-attention-parity.png`, original bubble
+faces/pop physics and all five image outros under `artifacts/proof`.
+Real desktop-capture tests keep their tiny buffers in memory, never saving the screen.
+No toy hardware was connected. Desktop wallpaper and the installed application
+were not changed. The native audio check plays the approved recording at zero gain.
+
+Concrete remaining work is recorded in `docs/PARITY-REVIEW.md`. Layered audio still
+needs a true sample-domain mixer. An isolated LibVLC-only prototype lives under
+ignored `artifacts/audio-layers-probe`; transcode loses 20 ms, while direct decoded
+audio callbacks preserve the complete stream. The paced prototype also verified
+sample-domain looping and live gains, with less than 120 ms read-ahead. Decoding
+is paced at 1x, so long tracks still need a bounded streaming/spool design. This
+remains an isolated prototype, not production implementation. Intiface button input needs a bounded receive pump and
+advertised feature subscriptions; Classic already uses protocol v4. Its design is
+under ignored `artifacts/parity-source/INTIFACE-INPUT-DESIGN.md`. Multi-monitor
+Bouncing Text currently mirrors local positions rather than crossing the full
+virtual desktop. These are not completion claims. Microphone, OCR and camera/gaze
+remain outside the retained input scope. Brain Drain is explicitly Windows only.
+
+Original neutral public spiral GIFs were copied, without overwriting other files,
+to the user's existing image folder `C:/Users/Admin/Documents/ShareX/Backup` as
+`CCP-Classic-Test-Spiral.gif` and `CCP-Classic-Test-Corner-Spiral.gif`. Actual profile
+settings were not changed. Use literal profile paths when inspecting them because
+the sandbox LOCALAPPDATA points to a different profile.
+
+Agents: local_library owns Remix and the isolated layered-audio investigation;
+roadmap owns video/bubbles/bounce/animated wallpaper review; production_audit owns
+native audio output and Toys. Root owns shared integration, live image selections,
+coordinated builds, source checkpoints and packaging. Production source is frozen
+except for release-check findings. Do not run competing main-solution builds.
+
 ## Scope
 
 M0 is merged into main. M1 is complete in a draft review stack. The owner authorized
@@ -406,7 +473,7 @@ Approved achievement names, in the original v5.0.0 catalog order:
 13. Quiet Session
 14. Staying With It
 15. Spiral Focus
-16. Counting Practice
+16. Target Practice
 17. Bubble Collector
 18. Careful Typing
 19. Quick Response
@@ -421,5 +488,8 @@ Approved achievement names, in the original v5.0.0 catalog order:
 
 Approved replacements for four removed named-preset conditions: finish Gentle
 between 06:00 and 09:00 local time; finish Daily without switching apps; finish
-Gentle for at least 30 minutes; finish Deep with Strict Lock. All other original
-conditions remain, including five consecutive correct bubble-count answers.
+Gentle for at least 30 minutes; finish Deep with Strict Lock. Owner follow-up
+approval on 2026-11-03 replaces Counting Practice with Target Practice: hit five
+consecutive video attention targets, with a miss resetting the streak. Its new
+persisted counters are separate from legacy counting stats; existing unlock history
+is preserved. Other approved conditions remain unchanged.

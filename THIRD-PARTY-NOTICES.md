@@ -1,10 +1,12 @@
 # Third-party notices
 
 Original CCP Classic code is copyright CC labs Srls under the repository's MIT
-license. Public CCP artwork retains the historical upstream attribution
+license. Adapted public CCP source and artwork retain the historical upstream attribution
 "By CodeBambi" under the same MIT terms. Bundled third-party components retain
 their own licenses.
 Packages include full upstream texts under `licenses`, not just this summary.
+The unchanged source repository notice is preserved as `licenses/CCP-UPSTREAM.txt`;
+it describes that upstream source, not Classic's current publisher or app byline.
 
 | Component | Resolved version | License and notices |
 |---|---|---|
@@ -14,6 +16,7 @@ Packages include full upstream texts under `licenses`, not just this summary.
 | SkiaSharp | 3.119.4 | MIT bindings; Skia uses BSD-3-Clause; full native dependency notices copied from NuGet |
 | HarfBuzzSharp | 8.3.1.3 | MIT bindings and HarfBuzz's upstream license; full native notices copied from NuGet |
 | Inter typeface | As embedded by Avalonia.Fonts.Inter 12.1.2 | SIL Open Font License 1.1; `Inter-OFL.txt` |
+| Fredoka typeface | Unmodified public CCP font at `fe40ea7587ac0b09e47d0724e59d7178db3336da` | SIL Open Font License 1.1; `Fredoka-OFL.txt` |
 | LibVLCSharp | 3.10.1 | LGPL-2.1-or-later; `LibVLCSharp-LGPL-2.1.txt` |
 | Windows LibVLC | 3.0.24 | LGPL-2.1-or-later NuGet distribution; `LibVLC-LGPL-2.1.txt` |
 | MicroCom.Runtime | 0.11.6 | MIT; `MicroCom-LICENSE.txt` |

@@ -6,7 +6,14 @@ using CCP.Classic.Core;
 
 namespace CCP.Classic.App.Effects;
 
-public sealed record FlashFrame(IImage Image, Rect Bounds, double Opacity, FlashExitState? Exit = null);
+public sealed record FlashFrame(IImage Image, Rect Bounds, double Opacity, FlashExitState? Exit = null)
+{
+    public double Rotation { get; init; }
+    public CCP.Classic.Core.Flash.FlashShatterState? Shatter { get; init; }
+    public bool RoundedCorners { get; init; } = true;
+    public bool Glow { get; init; }
+    public Rect InputBounds { get; init; } = Bounds;
+}
 
 // Final opacities and phase come from the shared engine clock. Images remain caller-owned.
 public sealed record EffectFrame
@@ -17,11 +24,14 @@ public sealed record EffectFrame
     public IImage? CustomSpiral { get; init; }
     public double SpiralOpacity { get; init; }
     public double PinkOpacity { get; init; }
+    public Color PinkColour { get; init; } = Color.Parse("#FF69B4");
+    public bool PinkUnderEffects { get; init; }
     public IImage? FlashImage { get; init; }
     public Rect FlashBounds { get; init; } = new(.25, .25, .5, .5);
     public double FlashOpacity { get; init; }
     public IReadOnlyList<FlashFrame> Flashes { get; init; } = [];
     public string? SubliminalText { get; init; }
+    public string SubliminalFont { get; init; } = "Arial";
     public Color SubliminalColour { get; init; } = Color.Parse("#FF69B4");
     public double SubliminalOpacity { get; init; }
     public bool ReducedMotion { get; init; }
@@ -29,7 +39,6 @@ public sealed record EffectFrame
     public IReadOnlyList<IImage> BubbleImages { get; init; } = [];
     public bool GentleVisuals { get; init; }
     public bool PerformanceMode { get; init; }
-    public BrainDrainCue? BrainDrain { get; init; }
 }
 
 public sealed partial class VisualEffectsControl : Control
@@ -40,7 +49,7 @@ public sealed partial class VisualEffectsControl : Control
     // Same eight outline offsets as CCP's compositor SubliminalLayer, MIT.
     private static readonly (double X, double Y)[] Outline =
         [(-3, -3), (3, -3), (-3, 3), (3, 3), (0, -4), (0, 4), (-4, 0), (4, 0)];
-    private (string Text, Color Colour, double Width)? textKey;
+    private (string Text, Color Colour, double Width, string Font)? textKey;
     private FormattedText? words, outline;
     public EffectFrame Frame { get; private set; } = EffectFrame.Empty;
 
@@ -61,54 +70,41 @@ public sealed partial class VisualEffectsControl : Control
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
         using (context.PushClip(bounds))
         {
+            if (Frame.PinkUnderEffects) DrawPink(context, bounds);
             if (Frame.FlashImage is { } image) DrawFlash(context, bounds, image, Frame.FlashBounds, Frame.FlashOpacity);
-            foreach (var flash in Frame.Flashes) DrawFlash(context, bounds, flash.Image, flash.Bounds, flash.Opacity, flash.Exit);
+            foreach (var flash in Frame.Flashes) DrawFlashFrame(context, bounds, flash);
             DrawSubliminal(context, bounds);
             DrawSpiral(context, bounds);
-            if (Alpha(Frame.PinkOpacity) > 0)
-                using (context.PushOpacity(Alpha(Frame.PinkOpacity))) context.DrawRectangle(Pink, null, bounds);
+            if (!Frame.PinkUnderEffects) DrawPink(context, bounds);
             DrawInteractive(context, bounds);
         }
     }
 
+    private void DrawPink(DrawingContext context, Rect bounds)
+    {
+        if (Alpha(Frame.PinkOpacity) > 0)
+            using (context.PushOpacity(Alpha(Frame.PinkOpacity)))
+                context.DrawRectangle(new SolidColorBrush(Frame.PinkColour), null, bounds);
+    }
+
     private void DrawInteractive(DrawingContext context, Rect bounds)
     {
-        if (Frame.BrainDrain is { Opacity: > 0 } drain)
-        {
-            using (context.PushOpacity(Alpha(drain.Opacity)))
-            {
-                var centre = bounds.Center;
-                for (var ring = 0; ring < 8; ring++)
-                {
-                    var radius = (ring + drain.Pulse) / 8 * Math.Max(bounds.Width, bounds.Height);
-                    context.DrawEllipse(null, new Pen(Pink, Math.Max(1, bounds.Width * .004)), centre, radius, radius * .65);
-                }
-            }
-        }
+        BubbleVisualRenderer.Draw(context, bounds, Frame.Interactive.ImageVisuals, Frame.BubbleImages);
         foreach (var bubble in Frame.Interactive.Bubbles)
             BubbleRenderer.Draw(context, bounds, bubble,
                 bubble.Image >= 0 && bubble.Image < Frame.BubbleImages.Count ? Frame.BubbleImages[bubble.Image] : null,
                 Frame.SpiralPhase, Frame.ReducedMotion, Frame.GentleVisuals, Frame.PerformanceMode);
-        if (Frame.Interactive.BouncingText is { Opacity: > 0 } bounce)
-        {
-            var fontSize = Math.Clamp(Math.Min(bounds.Width, bounds.Height) * bounce.Size * .2, 16, 120);
-            var text = new FormattedText(bounce.Text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                new Typeface("Arial", FontStyle.Normal, FontWeight.Bold), fontSize, Pink);
-            var origin = new Point(bounds.X + bounce.X * Math.Max(0, bounds.Width - text.Width),
-                bounds.Y + bounce.Y * Math.Max(0, bounds.Height - text.Height));
-            using (context.PushRenderOptions(new RenderOptions { RequiresFullOpacityHandling = true }))
-            using (context.PushOpacity(Alpha(bounce.Opacity))) context.DrawText(text, origin);
-        }
+        foreach (var bounce in Frame.Interactive.BouncingTexts) BouncingTextRenderer.Draw(context, bounds, bounce);
     }
 
     private void DrawSubliminal(DrawingContext context, Rect bounds)
     {
         if (string.IsNullOrWhiteSpace(Frame.SubliminalText) || Alpha(Frame.SubliminalOpacity) <= 0) return;
         var width = Math.Max(1, bounds.Width * .9);
-        var key = (Frame.SubliminalText, Frame.SubliminalColour, width);
+        var key = (Frame.SubliminalText, Frame.SubliminalColour, width, Frame.SubliminalFont);
         if (textKey != key)
         {
-            var face = new Typeface("Arial", FontStyle.Normal, FontWeight.Bold);
+            var face = new Typeface(CCP.Classic.App.Controls.LocalFontPicker.Resolve(Frame.SubliminalFont), FontStyle.Normal, FontWeight.Bold);
             words = MakeText(key.Item1, face, new SolidColorBrush(key.Item2), width);
             outline = MakeText(key.Item1, face, Brushes.Black, width);
             textKey = key;
@@ -129,7 +125,10 @@ public sealed partial class VisualEffectsControl : Control
         if (Alpha(Frame.SpiralOpacity) <= 0) return;
         if (Frame.CustomSpiral is { } image)
         {
-            using (context.PushOpacity(Alpha(Frame.SpiralOpacity))) context.DrawImage(image, bounds);
+            var scale = Math.Max(bounds.Width / image.Size.Width, bounds.Height / image.Size.Height);
+            var source = new Rect((image.Size.Width - bounds.Width / scale) / 2,
+                (image.Size.Height - bounds.Height / scale) / 2, bounds.Width / scale, bounds.Height / scale);
+            using (context.PushOpacity(Alpha(Frame.SpiralOpacity))) context.DrawImage(image, source, bounds);
             return;
         }
         var radius = Math.Sqrt(bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2;

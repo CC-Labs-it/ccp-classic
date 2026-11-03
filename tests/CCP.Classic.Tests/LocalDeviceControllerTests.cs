@@ -79,8 +79,9 @@ public sealed class LocalDeviceControllerTests
     [Fact]
     public async Task AudioUpdatesReplaceTheLevelWithoutPulseAllocationOrOverlapAmplification()
     {
-        var wire = new FakeTransport(); var clock = new ManualClock();
-        await using var controller = new LocalDeviceController(() => new(() => wire), clock);
+        var wire = new FakeTransport();
+        await using var controller = new LocalDeviceController(() => new(() => wire));
+        controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
         controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
         for (var index = 0; index < 100; index++) controller.Emit(LocalDeviceEvent.AudioSync, .5, TimeSpan.FromSeconds(10));
@@ -98,8 +99,9 @@ public sealed class LocalDeviceControllerTests
     {
         var wire = new FakeTransport(); var clock = new ManualClock();
         await using var controller = new LocalDeviceController(() => new(() => wire), clock);
+        controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
+        clock.Advance(100); controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
         clock.Advance(299); controller.GlobalIntensity = .6; await wire.WaitForLevel(6);
         clock.Advance(1); controller.GlobalIntensity = .7; await wire.WaitForLevel(0);
         Assert.Equal(0, controller.ActivePulseCount);
@@ -110,8 +112,9 @@ public sealed class LocalDeviceControllerTests
     {
         var wire = new FakeTransport(); var clock = new ManualClock();
         await using var controller = new LocalDeviceController(() => new(() => wire), clock);
+        controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
+        clock.Advance(100); controller.SetAudioLevel(.5); await wire.WaitForLevel(7);
         controller.Emit(LocalDeviceEvent.LevelUp, .8, TimeSpan.FromSeconds(10)); clock.Advance(100);
         controller.SetAudioLevel(.5); await wire.WaitForLevel(11);
         controller.Emit(LocalDeviceEvent.LevelUp, 1, TimeSpan.FromSeconds(10)); clock.Advance(100);
@@ -125,7 +128,7 @@ public sealed class LocalDeviceControllerTests
         var wire = new FakeTransport { BlockOutput = true }; var clock = new ManualClock();
         await using var controller = new LocalDeviceController(() => new(() => wire), clock);
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        controller.SetAudioLevel(1); await wire.OutputEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(100); controller.SetAudioLevel(1); await wire.OutputEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
         var stopping = controller.StopAsync(); controller.SetAudioLevel(1);
         Assert.False(stopping.IsCompleted); Assert.Equal(0, controller.ActivePulseCount);
         wire.Release.TrySetResult(); await stopping;
@@ -142,8 +145,9 @@ public sealed class LocalDeviceControllerTests
     {
         var wires = new List<FakeTransport>(); var clock = new ManualClock();
         await using var controller = new LocalDeviceController(() => new(() => { var wire = new FakeTransport(); wires.Add(wire); return wire; }), clock);
+        controller.ConfigureRouting(new() { SoftRampMilliseconds = 1 });
         await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken);
-        controller.SetAudioLevel(.5); await wires[0].WaitForLevel(7);
+        clock.Advance(100); controller.SetAudioLevel(.5); await wires[0].WaitForLevel(7);
         controller.Enabled = false; await controller.StopAsync(); controller.Enabled = true;
         await Task.Delay(150, TestContext.Current.CancellationToken); Assert.Equal(0, wires[0].Levels[^1]);
         clock.Advance(401); controller.SetAudioLevel(.5); await wires[0].WaitForLevel(7);

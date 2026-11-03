@@ -22,7 +22,7 @@ public sealed class AchievementTests
         var lifetime = Enumerable.Range(1, 149).Sum(ProgressTracker.GetXpForLevel);
         var data = new ProgressData { LifetimeXp = lifetime, PinkSeconds = 36000, LongestSessionSeconds = 10800,
             ConsecutiveDays = 7, LastLaunchDay = DateOnly.FromDateTime(clock.GetLocalNow().DateTime),
-            FlashesShown = 5000, BubblesPopped = 1000, BubbleCountBestStreak = 5, AttentionFailures = 3 };
+            FlashesShown = 5000, BubblesPopped = 1000, VideoTargetBestStreak = 5, AttentionFailures = 3 };
         var tracker = new ProgressTracker(data, clock); var events = new List<string>();
         tracker.AchievementUnlocked += badge => events.Add(badge.Id);
         tracker.RefreshAchievements(); var count = tracker.UnlockedAchievementCount;
@@ -53,15 +53,15 @@ public sealed class AchievementTests
     }
 
     [Fact]
-    public void BubbleAnswersRequireFiveConsecutiveSuccessesAndAttentionRequiresThreeFailures()
+    public void VideoTargetsRequireFiveConsecutiveSuccessesAndAttentionRequiresThreeFailures()
     {
         var tracker = new ProgressTracker(); tracker.StartSession("Daily");
-        for (var i = 0; i < 4; i++) tracker.BubbleCountAnswer(true);
-        tracker.BubbleCountAnswer(false); tracker.BubbleCountAnswer(true);
+        for (var i = 0; i < 4; i++) tracker.VideoTargetAnswer(true);
+        tracker.VideoTargetAnswer(false); tracker.VideoTargetAnswer(true);
         Locked(tracker, "mathematicians_nightmare");
-        for (var i = 0; i < 4; i++) tracker.BubbleCountAnswer(true);
+        for (var i = 0; i < 4; i++) tracker.VideoTargetAnswer(true);
         Unlocked(tracker, "mathematicians_nightmare");
-        tracker.AttentionAnswer(false); tracker.AttentionAnswer(true); tracker.AttentionAnswer(false);
+        tracker.AttentionAnswer(true); tracker.AttentionAnswer(false);
         Locked(tracker, "mercy_beggar"); tracker.AttentionAnswer(false);
         Unlocked(tracker, "mercy_beggar"); Assert.Equal(3, tracker.Data.AttentionFailures);
     }

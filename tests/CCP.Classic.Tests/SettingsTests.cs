@@ -43,7 +43,7 @@ public sealed class SettingsTests
         settings.Effects["video"].Values.Clear();
         settings.Normalize();
         Assert.Equal(0, settings.RunMinutes);
-        Assert.Equal(60, settings.Effects["flash"].Values["rate"]);
+        Assert.Equal(180, settings.Effects["flash"].Values["rate"]);
         Assert.Equal(8, settings.Effects["video"].Values["cap"]);
         Assert.All(EffectCatalog.All, d => Assert.InRange(d.Primary.Count, 1, 3));
     }
@@ -72,7 +72,7 @@ public sealed class SettingsTests
             store.Save(loaded); var restored = store.Load(out recovered);
             Assert.False(recovered); Assert.Equal(6, restored.Effects["flash"].Values["exit"]);
             Assert.Equal(0, restored.Effects["bubble"].Values["effects"]);
-            Assert.Equal(37, restored.Effects["bubble"].Values["chance"]); Assert.Equal(6, restored.Effects["bubble"].Values["kind"]);
+            Assert.Equal(37, restored.Effects["bubble"].Values["chance"]); Assert.Equal(9, restored.Effects["bubble"].Values["kind"]);
             Assert.Equal(71, restored.Effects["flash"].Values["opacity"]); Assert.Equal(0, restored.Effects["bubble"].Values["sound"]);
         }
         finally { Directory.Delete(directory, recursive: true); }

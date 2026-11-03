@@ -14,6 +14,10 @@ public sealed class EffectOverlayWindow : Window
     public VisualEffectsControl View { get; } = new();
     public string? LastError { get; private set; }
     public event Action<Point>? FlashPressed;
+    public Func<Point, bool>? TryBeginDrag { get; set; }
+    public event Action<Point>? DragMoved;
+    public event Action? DragFinished;
+    private bool dragging;
 
     public EffectOverlayWindow(Action<Window>? configureInput = null)
     {
@@ -32,9 +36,18 @@ public sealed class EffectOverlayWindow : Window
         {
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
             var point = e.GetPosition(this);
+            if (TryBeginDrag?.Invoke(new Point(point.X / ClientSize.Width, point.Y / ClientSize.Height)) == true)
+            { dragging = true; e.Pointer.Capture(this); e.Handled = true; return; }
             FlashPressed?.Invoke(new Point(point.X / ClientSize.Width, point.Y / ClientSize.Height));
             e.Handled = true;
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        PointerMoved += (_, e) =>
+        {
+            if (!dragging || ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
+            var point = e.GetPosition(this); DragMoved?.Invoke(new(point.X / ClientSize.Width, point.Y / ClientSize.Height));
+        };
+        PointerReleased += (_, e) => { if (dragging) { dragging = false; DragFinished?.Invoke(); e.Pointer.Capture(null); e.Handled = true; } };
+        PointerCaptureLost += (_, _) => { if (dragging) { dragging = false; DragFinished?.Invoke(); } };
         PropertyChanged += (_, e) =>
         {
             if (prepared && e.Property == ActualTransparencyLevelProperty && ActualTransparencyLevel != WindowTransparencyLevel.Transparent)

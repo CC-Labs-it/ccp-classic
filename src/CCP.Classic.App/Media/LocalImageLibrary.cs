@@ -14,26 +14,36 @@ public sealed class LocalImageLibrary : IReadOnlyList<IImage>, IDisposable
     private readonly string[] paths;
     private readonly IImage[] proxies;
     private readonly Size?[] sizes;
+    private readonly double?[] brightness;
     private readonly IImage fallback;
-    private readonly Func<string, Bitmap> decode;
+    private readonly Func<string, CancellationToken, LocalImageClip> decode;
+    private readonly CancellationTokenSource stop = new();
     private readonly int cacheCapacity, pendingCapacity;
     private readonly Queue<int> queue = new();
     private readonly HashSet<int> pending = [], failed = [];
-    private readonly Dictionary<int, (Bitmap Image, LinkedListNode<int> Node)> cache = [];
+    private readonly Dictionary<int, (LocalImageClip Image, LinkedListNode<int> Node)> cache = [];
     private readonly LinkedList<int> recent = new();
     private Task worker = Task.CompletedTask;
     private bool working, disposed;
+    private double animationSeconds, lastAnimationTime;
+    private long cachedBytes;
     public int Count => proxies.Length;
     public IImage this[int index] => proxies[index];
+    internal IReadOnlyList<string> SelectedPaths => Array.AsReadOnly(paths);
     internal int CachedCount { get { lock (gate) return cache.Count; } }
     internal int PendingCount { get { lock (gate) return pending.Count; } }
     internal Task Completion { get { lock (gate) return worker; } }
+    internal long CachedBytes { get { lock (gate) return cachedBytes; } }
 
     public LocalImageLibrary(IEnumerable<string> selectedPaths, IImage fallback)
-        : this(selectedPaths, fallback, Decode) { }
+        : this(selectedPaths, fallback, LocalImageClip.Decode, 12, 12) { }
 
     internal LocalImageLibrary(IEnumerable<string> selectedPaths, IImage fallback, Func<string, Bitmap> decode,
         int cacheCapacity = 12, int pendingCapacity = 12)
+        : this(selectedPaths, fallback, (path, _) => new LocalImageClip(decode(path)), cacheCapacity, pendingCapacity) { }
+
+    private LocalImageLibrary(IEnumerable<string> selectedPaths, IImage fallback, Func<string, CancellationToken, LocalImageClip> decode,
+        int cacheCapacity, int pendingCapacity)
     {
         ArgumentNullException.ThrowIfNull(selectedPaths); ArgumentNullException.ThrowIfNull(fallback);
         ArgumentNullException.ThrowIfNull(decode);
@@ -46,8 +56,31 @@ public sealed class LocalImageLibrary : IReadOnlyList<IImage>, IDisposable
         paths = selectedPaths.Where(MediaLibrary.IsLocalPath).Select(Path.GetFullPath)
             .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
             .Take(100000).ToArray();
-        sizes = new Size?[paths.Length];
+        sizes = new Size?[paths.Length]; brightness = new double?[paths.Length];
         proxies = Enumerable.Range(0, paths.Length).Select(index => (IImage)new ImageProxy(this, index)).ToArray();
+    }
+
+    public double? Brightness(int index)
+    {
+        lock (gate)
+        {
+            if (disposed || index < 0 || index >= paths.Length) return null;
+            if (brightness[index] is { } value) return value;
+            Request(index); return null;
+        }
+    }
+
+    // One caller clock keeps a GIF's bubble preview and subsequent flash on the same frame.
+    public void AdvanceAnimations(double seconds, bool allowed, double speed = 1)
+    {
+        lock (gate)
+        {
+            if (disposed || !double.IsFinite(seconds)) return;
+            seconds = Math.Max(lastAnimationTime, seconds);
+            if (allowed) animationSeconds += (seconds - lastAnimationTime) * (double.IsFinite(speed) ? Math.Clamp(speed, .25, 4) : 1);
+            lastAnimationTime = seconds;
+            foreach (var entry in cache.Values) entry.Image.Advance(animationSeconds);
+        }
     }
 
     private Size Size(int index)
@@ -97,12 +130,12 @@ public sealed class LocalImageLibrary : IReadOnlyList<IImage>, IDisposable
             {
                 if (disposed || !queue.TryDequeue(out index)) { working = false; return; }
             }
-            Bitmap? image = null;
+            LocalImageClip? image = null;
             try
             {
                 var path = LocalPath(paths[index]);
                 lock (gate) { if (disposed) { working = false; return; } }
-                if (path is not null) image = decode(path);
+                if (path is not null) image = decode(path, stop.Token);
             }
             catch (Exception) { }
             lock (gate)
@@ -111,11 +144,14 @@ public sealed class LocalImageLibrary : IReadOnlyList<IImage>, IDisposable
                 if (disposed) { image?.Dispose(); working = false; return; }
                 if (image is null) { failed.Add(index); continue; }
                 sizes[index] = image.Size;
+                brightness[index] = image.Brightness;
+                image.Advance(animationSeconds); cachedBytes += image.DecodedBytes;
                 cache.Add(index, (image, recent.AddLast(index)));
-                while (cache.Count > cacheCapacity)
+                while (cache.Count > cacheCapacity || cachedBytes > 64 * 1024 * 1024)
                 {
                     var oldest = recent.First!; recent.RemoveFirst();
-                    var evicted = cache[oldest.Value]; cache.Remove(oldest.Value); evicted.Image.Dispose();
+                    var evicted = cache[oldest.Value]; cache.Remove(oldest.Value);
+                    cachedBytes -= evicted.Image.DecodedBytes; evicted.Image.Dispose();
                 }
             }
         }
@@ -163,9 +199,9 @@ public sealed class LocalImageLibrary : IReadOnlyList<IImage>, IDisposable
         lock (gate)
         {
             if (disposed) return;
-            disposed = true; queue.Clear(); pending.Clear();
+            disposed = true; stop.Cancel(); stop.Dispose(); queue.Clear(); pending.Clear();
             foreach (var entry in cache.Values) entry.Image.Dispose();
-            cache.Clear(); recent.Clear();
+            cache.Clear(); recent.Clear(); cachedBytes = 0;
         }
     }
 

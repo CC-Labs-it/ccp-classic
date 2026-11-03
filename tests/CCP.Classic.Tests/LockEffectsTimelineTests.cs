@@ -5,31 +5,13 @@ namespace CCP.Classic.Tests;
 
 public sealed class LockEffectsTimelineTests
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void BubbleDrainPulseReturnsToTheSavedLevelAndPanicClearsIt(bool gentle)
-    {
-        var settings = Settings(); settings.GentleVisuals = gentle; settings.ReducedMotion = true;
-        settings.Effects["drain"].Enabled = true; settings.Effects["drain"].Values["intensity"] = 100;
-        var timeline = new LockEffectsTimeline(settings);
-        Assert.False(timeline.TriggerDrainPulse()); timeline.Start(); timeline.Step(0);
-        var baseline = timeline.Step(1).BrainDrain!;
-        Assert.True(timeline.TriggerDrainPulse()); timeline.Step(1);
-        var pulse = timeline.Step(2).BrainDrain!;
-        Assert.Equal(baseline.Opacity * 1.5, pulse.Opacity, 8); Assert.Equal(baseline.Pulse, pulse.Pulse);
-        timeline.Step(4); Assert.Equal(baseline.Opacity, timeline.Step(5).BrainDrain!.Opacity, 8);
-        Assert.Equal(100, settings.Effects["drain"].Values["intensity"]);
-        timeline.TriggerDrainPulse(); timeline.Stop(); Assert.Same(LockEffectsFrame.Empty, timeline.Step(6));
-        timeline.Start(); timeline.Step(0); Assert.Equal(baseline.Opacity, timeline.Step(1).BrainDrain!.Opacity, 8);
-    }
-
     private static ClassicSettings Settings()
     {
         var settings = new ClassicSettings();
         settings.Effects["lock"].Enabled = true;
-        settings.Effects["lock"].Values["interval"] = 5;
-        settings.Effects["wipe"].Values["interval"] = 5;
+        settings.Effects["lock"].Values["rate"] = 10;
+        settings.LockCard.Phrases = new() { ["Breathe"] = true, ["Relax"] = true };
+        settings.Effects["wipe"].Values["rate"] = 12;
         return settings;
     }
 
@@ -37,18 +19,18 @@ public sealed class LockEffectsTimelineTests
     public void LockCapturesItsRulesAndRequiresExactRepetitions()
     {
         var settings = Settings(); settings.Effects["lock"].Values["strict"] = 1;
-        var timeline = new LockEffectsTimeline(settings);
+        var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         var events = new List<InteractiveEffectEvent>(); timeline.EventOccurred += events.Add;
-        timeline.Start(); Assert.Null(timeline.Step(299).LockCard);
+        timeline.Start(); Assert.Null(timeline.Step(179).LockCard);
         var card = timeline.Step(300).LockCard!;
         Assert.Equal("Breathe", card.Phrase); Assert.Equal(3, card.Repetitions); Assert.True(card.Strict);
         settings.Effects["lock"].Values["repeats"] = 1;
         settings.Effects["lock"].Values["strict"] = 0;
         Assert.False(timeline.CanDismissLock); Assert.False(timeline.DismissLock());
-        Assert.False(timeline.SubmitLock(card.Id, "breathe"));
-        Assert.False(timeline.SubmitLock(card.Id, " Breathe"));
+        Assert.False(timeline.SubmitLock(card.Id, "wrong"));
+        Assert.False(timeline.SubmitLock(card.Id, "Breathe extra"));
         Assert.False(timeline.SubmitLock(card.Id + 1, "Breathe"));
-        for (var count = 0; count < 3; count++) Assert.True(timeline.SubmitLock(card.Id, "Breathe"));
+        for (var count = 0; count < 3; count++) Assert.True(timeline.SubmitLock(card.Id, " breathe "));
         Assert.False(timeline.SubmitLock(card.Id, "Breathe"));
         Assert.Equal(InteractiveEffectEventKind.LockCompleted, Assert.Single(events).Kind);
         timeline.Step(300); Assert.Null(timeline.Step(300.25).LockCard);
@@ -57,7 +39,7 @@ public sealed class LockEffectsTimelineTests
     [Fact]
     public void NonStrictDismissalDoesNotAwardCompletionAndFades()
     {
-        var timeline = new LockEffectsTimeline(Settings());
+        var timeline = new LockEffectsTimeline(Settings(), new FixedRandom());
         var events = 0; timeline.EventOccurred += _ => events++;
         timeline.Start(); timeline.Step(300); timeline.Step(300.25);
         Assert.True(timeline.CanDismissLock); Assert.True(timeline.DismissLock());
@@ -69,18 +51,18 @@ public sealed class LockEffectsTimelineTests
     [Fact]
     public void BusyLockScheduleDoesNotQueueCardsOrAdvanceThePhrasePool()
     {
-        var timeline = new LockEffectsTimeline(Settings());
+        var timeline = new LockEffectsTimeline(Settings(), new FixedRandom());
         timeline.Start(); var original = timeline.Step(300).LockCard!;
         Assert.Equal(original.Id, timeline.Step(10000).LockCard!.Id);
         timeline.DismissLock(); timeline.Step(10000); timeline.Step(10000.25);
-        Assert.Null(timeline.Step(10299).LockCard);
-        Assert.Equal("Relax", timeline.Step(10300).LockCard!.Phrase);
+        Assert.Null(timeline.Step(10359).LockCard);
+        Assert.Equal("Relax", timeline.Step(10360).LockCard!.Phrase);
     }
 
     [Fact]
     public void GentleLockEntrancesAndExitsStayContinuousDuringLiveChanges()
     {
-        var settings = Settings(); var timeline = new LockEffectsTimeline(settings);
+        var settings = Settings(); var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         timeline.Start(); timeline.Step(300);
         var before = timeline.Step(300.125).LockCard!.Opacity;
         settings.GentleVisuals = true;
@@ -95,7 +77,7 @@ public sealed class LockEffectsTimelineTests
     public void PeriodicMindWipeWaitsItsIntervalAndReservesOnlyOneVoice()
     {
         var settings = Settings(); settings.Effects["wipe"].Enabled = true;
-        var timeline = new LockEffectsTimeline(settings);
+        var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         timeline.Start(); Assert.Null(timeline.Step(299).MindWipe);
         var cue = timeline.Step(300).MindWipe!;
         Assert.False(cue.Loop); Assert.Equal(.6, cue.Volume, 8);
@@ -111,7 +93,7 @@ public sealed class LockEffectsTimelineTests
     {
         var settings = Settings(); settings.Effects["wipe"].Enabled = true;
         settings.Effects["wipe"].Values["loop"] = 1;
-        var timeline = new LockEffectsTimeline(settings);
+        var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         var events = new List<InteractiveEffectEvent>(); timeline.EventOccurred += events.Add;
         timeline.Start(); var first = timeline.Step(0).MindWipe!;
         Assert.True(first.Loop);
@@ -131,7 +113,7 @@ public sealed class LockEffectsTimelineTests
     {
         var settings = Settings(); settings.Effects["wipe"].Enabled = true;
         settings.Effects["wipe"].Values["loop"] = 1;
-        var timeline = new LockEffectsTimeline(settings);
+        var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         var events = 0; timeline.EventOccurred += _ => events++;
         timeline.Start(); var cue = timeline.Step(0).MindWipe!;
         settings.Effects["wipe"].Values["volume"] = 20;
@@ -146,7 +128,7 @@ public sealed class LockEffectsTimelineTests
     {
         var settings = Settings(); settings.Effects["wipe"].Enabled = true;
         settings.Effects["wipe"].Values["loop"] = 1;
-        var timeline = new LockEffectsTimeline(settings);
+        var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         timeline.Start(); var cue = timeline.Step(0).MindWipe!;
         settings.Effects["wipe"].Enabled = false;
         Assert.Null(timeline.Step(.1).MindWipe);
@@ -156,45 +138,12 @@ public sealed class LockEffectsTimelineTests
     }
 
     [Fact]
-    public void BrainDrainHasBoundedIntensityAndReducedMotionPreservesItsPulse()
-    {
-        var settings = Settings(); settings.Effects["drain"].Enabled = true;
-        settings.Effects["drain"].Values["intensity"] = 100;
-        settings.Effects["drain"].Values["refresh"] = 1;
-        var timeline = new LockEffectsTimeline(settings);
-        timeline.Start(); timeline.Step(0);
-        var full = timeline.Step(.25).BrainDrain!;
-        Assert.Equal(1, full.Intensity); Assert.Equal(.3, full.Opacity, 8); Assert.True(full.HighRefresh);
-        settings.ReducedMotion = true;
-        var frozen = timeline.Step(1).BrainDrain!;
-        Assert.Equal(full.Pulse, frozen.Pulse); Assert.False(frozen.HighRefresh);
-        Assert.Equal(frozen.Pulse, timeline.Step(2).BrainDrain!.Pulse);
-        settings.Effects["drain"].Values["intensity"] = 0;
-        timeline.Step(2); Assert.Null(timeline.Step(2.25).BrainDrain);
-    }
-
-    [Fact]
-    public void GentleBrainDrainDimsContinuouslyAndUsesAtLeast750msToExit()
-    {
-        var settings = Settings(); settings.Effects["drain"].Enabled = true;
-        settings.Effects["drain"].Values["intensity"] = 100;
-        var timeline = new LockEffectsTimeline(settings);
-        timeline.Start(); timeline.Step(0); var before = timeline.Step(.25).BrainDrain!.Opacity;
-        settings.GentleVisuals = true;
-        Assert.Equal(before, timeline.Step(.25).BrainDrain!.Opacity);
-        Assert.Equal(.15, timeline.Step(1).BrainDrain!.Opacity, 8);
-        settings.Effects["drain"].Enabled = false; timeline.Step(1);
-        Assert.Equal(.075, timeline.Step(1.375).BrainDrain!.Opacity, 8);
-        Assert.Null(timeline.Step(1.75).BrainDrain);
-    }
-
-    [Fact]
     public void PanicStopWinsEvenForAnUnfinishedStrictLockAndRestartsRejectStaleIds()
     {
         var settings = Settings(); settings.Effects["lock"].Values["strict"] = 1;
         settings.Effects["wipe"].Enabled = true; settings.Effects["wipe"].Values["loop"] = 1;
         settings.Effects["drain"].Enabled = true;
-        var timeline = new LockEffectsTimeline(settings);
+        var timeline = new LockEffectsTimeline(settings, new FixedRandom());
         timeline.Start(); var previous = timeline.Step(300);
         timeline.Stop(); Assert.False(timeline.IsRunning);
         Assert.Same(LockEffectsFrame.Empty, timeline.Step(10000));
@@ -204,5 +153,10 @@ public sealed class LockEffectsTimelineTests
         Assert.NotEqual(previous.LockCard.Id, fresh.LockCard!.Id);
         Assert.NotEqual(previous.MindWipe.Id, fresh.MindWipe!.Id);
         Assert.False(timeline.SubmitLock(previous.LockCard.Id, fresh.LockCard.Phrase));
+    }
+    private sealed class FixedRandom : Random
+    {
+        public override double NextDouble() => .5;
+        public override int Next(int maxValue) => 0;
     }
 }

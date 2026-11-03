@@ -11,7 +11,9 @@ public interface ILocalVideoPlayback : IDisposable
     bool IsFinished { get; }
     string? LastError { get; }
     double PlayedSeconds => 0;
+    double DurationSeconds => 0;
     AudioPlaybackSample? GetAudioSample() => null;
+    AudioPlaybackSample? GetTimelineSample() => GetAudioSample();
     void Start();
     void SetGain(double gain);
     void SetPaused(bool paused);
@@ -25,6 +27,7 @@ internal interface ILocalVideoDevice : IDisposable
     bool IsFinished { get; }
     bool IsPlaying { get; }
     long PositionMilliseconds { get; }
+    long DurationMilliseconds => 0;
     long PresentedFrameSequence => -1;
     double FrameIntervalMilliseconds => 0;
     bool TryCopyFrame(out VideoFrame? frame);
@@ -48,6 +51,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
     private double gain;
     private int finished;
     private long playedMilliseconds;
+    private long durationMilliseconds;
     private string? lastError;
     private AudioPlaybackSample? audioSample;
     public int Width => Volatile.Read(ref device)?.Width ?? 0;
@@ -55,10 +59,12 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
     public bool IsFinished => Volatile.Read(ref finished) != 0;
     public string? LastError => Volatile.Read(ref lastError);
     public double PlayedSeconds => Interlocked.Read(ref playedMilliseconds) / 1000d;
+    public double DurationSeconds => Interlocked.Read(ref durationMilliseconds) / 1000d;
     public AudioPlaybackSample? GetAudioSample() { lock (gate) return disposed || paused ? null : audioSample; }
     internal Task Completion => completion.Task;
 
-    public LocalVideoPlayback(string localPath, double capSeconds) : this(localPath, capSeconds, p => new NativeVideo(p)) { }
+    public LocalVideoPlayback(string localPath, double capSeconds, bool randomStart = false)
+        : this(localPath, capSeconds, p => new NativeVideo(p, capSeconds, randomStart)) { }
     internal LocalVideoPlayback(string localPath, double capSeconds, Func<string, ILocalVideoDevice> factory)
     {
         path = localPath;
@@ -129,6 +135,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
                 if (nextGain != appliedGain) { opened.SetGain(nextGain); appliedGain = nextGain; }
                 if (nextPause != appliedPause) { opened.SetPaused(nextPause); appliedPause = nextPause; }
                 opened.Refresh();
+                Interlocked.Exchange(ref durationMilliseconds, Math.Max(0, opened.DurationMilliseconds));
                 // Sample completion once, then observe any terminal error before releasing the decoder.
                 var completed = opened.IsFinished;
                 if (completed) opened.Refresh();
@@ -209,16 +216,23 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
         private double currentGain;
         private double frameIntervalMilliseconds;
         private bool pause;
+        private readonly double capSeconds;
+        private readonly bool randomStart;
+        private volatile bool startResolved;
+        private long seekSequence = -1;
+        private string? outputId;
         public int Width => Volatile.Read(ref width);
         public int Height => Volatile.Read(ref height);
         public bool IsFinished => Volatile.Read(ref ended) != 0;
         public bool IsPlaying => player?.State == VLCState.Playing;
         public long PositionMilliseconds => player?.Time ?? -1;
-        public long PresentedFrameSequence => Volatile.Read(ref sequence);
+        public long DurationMilliseconds => player?.Length ?? 0;
+        public long PresentedFrameSequence => startResolved && Volatile.Read(ref sequence) > seekSequence ? Volatile.Read(ref sequence) : 0;
         public double FrameIntervalMilliseconds => Volatile.Read(ref frameIntervalMilliseconds);
 
-        public NativeVideo(string path)
+        public NativeVideo(string path, double capSeconds, bool randomStart)
         {
+            this.capSeconds = capSeconds; this.randomStart = randomStart; startResolved = !randomStart;
             try
             {
                 stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -243,6 +257,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
         }
         public void Start()
         {
+            AudioOutputSelection.Apply(player!, ref outputId);
             player!.Volume = NativeAudioDevice.PlayerVolume(currentGain);
             player.SetRate(1);
             if (!player.Play()) throw new InvalidOperationException("Video playback could not start.");
@@ -252,6 +267,14 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
         public void Refresh()
         {
             if (Volatile.Read(ref error) is { } failure) throw new InvalidOperationException(failure);
+            AudioOutputSelection.Apply(player!, ref outputId);
+            if (!startResolved && (player!.Length > 0 || IsPlaying))
+            {
+                var offset = CCP.Classic.Core.VideoOptions.StartOffset((int)Math.Clamp(capSeconds, 1, 1800), player.Length, Random.Shared.NextDouble());
+                if (offset > 0) { seekSequence = Volatile.Read(ref sequence); player.Time = offset; }
+                copiedSequence = Volatile.Read(ref sequence);
+                startResolved = true;
+            }
             var next = Volatile.Read(ref sequence);
             if (pause || next != watchedSequence) { watchedSequence = next; lastFrameAt = Environment.TickCount64; }
             else if (!IsFinished && Environment.TickCount64 - lastFrameAt > 15_000)
@@ -306,7 +329,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
             try
             {
                 var next = Volatile.Read(ref sequence);
-                if (buffer == IntPtr.Zero || next == copiedSequence) return false;
+                if (!startResolved || buffer == IntPtr.Zero || next <= seekSequence || next == copiedSequence) return false;
                 var data = new byte[width * height * 4];
                 for (var row = 0; row < height; row++) Marshal.Copy(buffer + row * pitch, data, row * width * 4, width * 4);
                 for (var alpha = 3; alpha < data.Length; alpha += 4) data[alpha] = 255;

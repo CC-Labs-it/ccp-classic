@@ -24,7 +24,7 @@ public sealed class EffectCard : Border
     public event Action<string>? ValueChanged;
 
     public EffectCard(EffectDefinition definition, EffectSettings settings,
-        LocalizationService text, Action changed)
+        LocalizationService text, Action changed, Control? customization = null)
     {
         this.definition = definition;
         this.settings = settings;
@@ -59,11 +59,12 @@ public sealed class EffectCard : Border
         header.Children.Add(enabled);
         body.Children.Add(header);
         foreach (var knob in definition.Primary) body.Children.Add(CreateKnob(knob));
-        if (definition.More.Count > 0)
+        if (definition.More.Count > 0 || customization is not null)
         {
             var advanced = new StackPanel { Spacing = 10, IsVisible = false,
                 Margin = new Thickness(0, 4, 0, 0) };
             foreach (var knob in definition.More) advanced.Children.Add(CreateKnob(knob));
+            if (customization is not null) advanced.Children.Add(customization);
             var more = new Button { Content = text["More"], HorizontalAlignment = HorizontalAlignment.Left };
             more.Classes.Add("more");
             more.Name = "More_" + definition.Id;

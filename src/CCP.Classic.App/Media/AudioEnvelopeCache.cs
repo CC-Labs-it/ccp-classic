@@ -1,4 +1,5 @@
 using CCP.Classic.Core;
+using CCP.Classic.Core.LocalDevices;
 
 namespace CCP.Classic.App.Media;
 
@@ -6,6 +7,7 @@ public sealed class RmsEnvelope
 {
     internal const int BinsPerSecond = 20, MaximumBins = 144000;
     private float[] bins = [];
+    internal readonly AudioFeatureTrack FeatureTrack = new();
     private double end;
     private int failed, complete;
     public bool Failed => Volatile.Read(ref failed) != 0;
@@ -25,7 +27,13 @@ public sealed class RmsEnvelope
         if (index >= bins.Length) { var grown = new float[Math.Min(MaximumBins, Math.Max(index + 1, Math.Max(32, bins.Length * 2)))]; bins.CopyTo(grown, 0); Volatile.Write(ref bins, grown); }
         Volatile.Write(ref bins[index], (float)Math.Clamp(rms, 0, 1)); Volatile.Write(ref end, Math.Max(end, until));
     }
-    internal void Finish() => Volatile.Write(ref complete, 1);
+    internal void Finish() { FeatureTrack.Seal(); Volatile.Write(ref complete, 1); }
+    public AudioSpectralFeatures SampleFeatures(double seconds)
+    {
+        if (Sample(seconds) <= 0) return default;
+        return FeatureTrack.Features(seconds);
+    }
+    public AudioDspLevels SampleDsp(double seconds, AudioSyncDspOptions options) => Sample(seconds) <= 0 ? default : FeatureTrack.Sample(seconds, options);
     internal void Fail(string? reason = null) { FailureReason = reason; Volatile.Write(ref failed, 1); Finish(); }
     internal static RmsEnvelope Unavailable { get; } = CreateUnavailable();
     private static RmsEnvelope CreateUnavailable() { var result = new RmsEnvelope(); result.Fail(); return result; }
@@ -34,6 +42,7 @@ public sealed class RmsEnvelope
 internal sealed class PcmRmsAccumulator(RmsEnvelope envelope, int rate = 48000, int channels = 2)
 {
     private double[] squares = [];
+    private readonly PcmSpectralFeatures spectral = new(envelope, rate);
     public bool AtLimit { get; private set; }
     public void Append(ReadOnlySpan<short> samples, double startSeconds)
     {
@@ -50,7 +59,9 @@ internal sealed class PcmRmsAccumulator(RmsEnvelope envelope, int rate = 48000, 
             if (bin < 0) continue;
             if (previous != bin && previous >= 0) envelope.Publish(previous, Math.Sqrt(squares[previous] / (rate / (double)RmsEnvelope.BinsPerSecond * channels)), until);
             if (bin >= squares.Length) Array.Resize(ref squares, Math.Min(RmsEnvelope.MaximumBins, Math.Max(bin + 1, Math.Max(32, squares.Length * 2))));
-            for (var channel = 0; channel < channels; channel++) { var value = samples[frame * channels + channel] / 32768d; squares[bin] += value * value; }
+            double mono = 0;
+            for (var channel = 0; channel < channels; channel++) { var value = samples[frame * channels + channel] / 32768d; squares[bin] += value * value; mono += value; }
+            spectral.Append(mono / channels, seconds);
             // Empty parts of a 50ms window are silence, including genuine timestamp gaps.
             previous = bin; until = Math.Min(7200, seconds + 1d / rate);
         }

@@ -18,6 +18,16 @@ namespace CCP.Classic.Tests;
 public sealed class ShellTests
 {
     [Fact]
+    public Task LoadingAPresetClosesEditorsHoldingThePreviousOptions() => WithWindow(window =>
+    {
+        window.OpenEffect("flash"); var previous = window.SettingsWindow!;
+        window.SelectTab("Presets"); Dispatcher.UIThread.RunJobs();
+        Named<Button>(window, "PresetLoad_builtin-gentle").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.False(previous.IsVisible); Assert.Null(window.SettingsWindow);
+        window.OpenEffect("flash"); Assert.NotSame(previous, window.SettingsWindow);
+    });
+
+    [Fact]
     public Task DefaultWindowFitsTheMosaicWithoutEmptySideColumns() => WithWindow(window =>
     {
         Assert.InRange(window.Width / window.Height, .9, 1.1);

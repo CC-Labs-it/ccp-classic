@@ -42,7 +42,7 @@ public sealed partial class ProgressTracker
         if (Data.ConsecutiveDays >= 7) Unlock("daily_maintenance");
         if (Data.FlashesShown >= 5000) Unlock("retinal_burn");
         if (Data.BubblesPopped >= 1000) Unlock("pop_the_thought");
-        if (Data.BubbleCountBestStreak >= 5) Unlock("mathematicians_nightmare");
+        if (Data.VideoTargetBestStreak >= 5) Unlock("mathematicians_nightmare");
         if (Data.AttentionFailures >= 3) Unlock("mercy_beggar");
         if (progressEvent.Kind == ProgressEventKind.SessionStarted)
         {
@@ -80,8 +80,16 @@ public sealed partial class ProgressTracker
         if (!IsRunning) return;
         Data.BubbleCountCorrectStreak = correct ? Math.Min(Data.BubbleCountCorrectStreak + 1, 1_000_000) : 0;
         Data.BubbleCountBestStreak = Math.Max(Data.BubbleCountBestStreak, Data.BubbleCountCorrectStreak);
-        if (Data.BubbleCountCorrectStreak >= 5) Unlock("mathematicians_nightmare");
         RecordAchievement(new(AchievementEventKind.BubbleCount, correct, Data.BubbleCountCorrectStreak));
+    }
+
+    public void VideoTargetAnswer(bool correct)
+    {
+        if (!IsRunning) return;
+        Data.VideoTargetCorrectStreak = correct ? Math.Min(Data.VideoTargetCorrectStreak + 1, 1_000_000) : 0;
+        Data.VideoTargetBestStreak = Math.Max(Data.VideoTargetBestStreak, Data.VideoTargetCorrectStreak);
+        if (Data.VideoTargetCorrectStreak >= 5) Unlock("mathematicians_nightmare");
+        AttentionAnswer(correct);
     }
 
     public void LockResult(int errors, int phraseCount, TimeSpan elapsed) => LockResult(errors, phraseCount, elapsed.TotalSeconds);

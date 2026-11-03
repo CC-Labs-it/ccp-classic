@@ -38,6 +38,17 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   and ambient effect bubbles, including the same flash image inside the bubble
   and after its pop. Keep timed image expiry soft, motion preferences effective,
   and effect/video capacity bounds. Defaults are Mix exits and 10% effect bubbles.
+- Owner correction 2026-11-03: existing Classic features need full public CCP
+  behavior and customization parity, including original bubble sound/animations,
+  Bouncing Text, Brain Drain, editable triggers and lock cards. Simplified chrome
+  is not permission to replace the underlying behavior with approximations.
+  Reuse verified public source and record concrete gaps before porting them.
+  Owner scope decision: typed input only. Do not add microphone completion or
+  screen-reading/OCR. Brain Drain desktop capture is a visual effect, not OCR.
+- Owner approval 2026-11-03: Target Practice replaces Counting Practice, earned
+  by five consecutive video attention targets hit, with a miss resetting the
+  streak. Persist separate video-target streaks. Preserve the existing badge ID
+  and unlocked history, but never award the new condition from legacy count stats.
 - Studio / Presets / Progress; Library / Companion / Toys / Settings windows.
   At most three primary controls per editor. Video concurrency goes under More.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.
@@ -45,12 +56,22 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
 - All UiDispatcher-backed tests share the Avalonia UI collection. RunJobs can
   reenter another queued test; one dispatcher thread alone does not isolate input.
+- Worker-built Avalonia scenes must publish immutable brushes. Mutable gradients
+  retain the worker dispatcher and fail when the UI renders their opacity masks.
 - Native playback callbacks can finish between worker polls. Sample completion
   once per pass and revalidate terminal errors before release; a healthy Refresh
   does not prove that a subsequent completion succeeded.
 - LibVLC 3 can leave player.Time stale while video Display callbacks keep playing.
   Video caps combine source time with bounded presented-frame progress. Keep raw
   source positions for audio metering; do not replace this with metadata duration.
+- LibVLCSharp SetOutputDevice takes deviceId before module, unlike the native C
+  function. Use named arguments. Windows lists real DirectSound GUIDs through
+  DirectSoundEnumerateW; VLC's legacy instance enumeration can return empty.
+  Empty device ID restores default; null is ignored. Native identity tests guard this.
+- LibVLC 3 decoded-audio callbacks use S16N unless a setup callback changes the
+  negotiated format. SetAudioFormat("FL32") alone does not yield float samples.
+  The transcode copy packetizer drops its last packet; direct decoded callbacks
+  preserve the tail but run at playback speed. Do not treat fast smem as lossless.
 - Starter recordings use LFS; checkout in CI must fetch LFS. Audio playback uses local
   LibVLC only, forced DirectSound on Windows, never a mixer-wide fallback output.
 - Owner approval 2026-11-03: bundle offline FFmpeg for PCM/RMS analysis only.

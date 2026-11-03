@@ -11,24 +11,31 @@ using CCP.Classic.Core.Localization;
 
 namespace CCP.Classic.App.Media;
 
-internal sealed class VideoWindow : Window
+internal sealed partial class VideoWindow : Window
 {
     private readonly VideoCue cue;
     private readonly ClassicSettings settings;
     private readonly ILocalVideoPlayback playback;
-    private readonly Image image = new() { Stretch = Stretch.Uniform };
-    private readonly Border attention = new() { Background = Brushes.Black, IsVisible = false };
-    private readonly TextBox answer = new() { Width = 100, Name = "AttentionAnswer" };
+    private readonly Image image = new() { Stretch = Stretch.Uniform, Name = "VideoImage" };
+    private readonly VideoAttentionLayer attention = new();
+    private readonly VideoAttentionTimeline checks;
+    private readonly bool ownsChecks;
+    private readonly Image backgroundImage = new() { Stretch = Stretch.UniformToFill, Opacity = .35, IsHitTestVisible = false };
     private WriteableBitmap? bitmap;
     private bool forced, completed, counted, released, closePending, suppressed, hiddenForOwner, pendingOwnerHide;
     private Window? owner;
     private int windowIndex;
     private string? error;
-    private double? firstFrame, firstPulse, ending, attentionStarted;
-    private double lastNow, nextAttention = 30, excludedTime;
+    private double? firstFrame, firstPulse, ending;
+    private double lastNow, excludedTime;
     private double? lastPulse;
     private double opacityFrom, opacityTarget, opacityStarted, opacityDuration, alpha;
-    private int expected;
+    private bool checksStarted;
+    private bool attentionPassed = true, hadAttention;
+    public bool AttentionPassed => ending is not null || completed ? attentionPassed : checks.Passed;
+    public bool HadAttention => ending is not null || completed ? hadAttention : checks.Spawned > 0;
+    public double DurationSeconds => playback.DurationSeconds;
+    public event Action? Touched;
     public long CueId => cue.Id;
     public bool HasFinished => completed;
     public string? PlaybackError => error ?? playback.LastError;
@@ -36,19 +43,29 @@ internal sealed class VideoWindow : Window
     public event Action? VideoFinished;
     public event Action? AttentionStarted;
     public double PlayedSeconds => playback.PlayedSeconds;
-    public AudioPlaybackSample? GetAudioSample() => completed || ending is not null || IsSuppressed || attentionStarted is not null
+    public AudioPlaybackSample? GetAudioSample() => completed || ending is not null || IsSuppressed || sound.Muted
         ? null : playback.GetAudioSample();
+    public AudioPlaybackSample? GetTimelineSample() => completed || ending is not null || IsSuppressed
+        ? null : playback.GetTimelineSample();
 
     public VideoWindow(VideoCue cue, ClassicSettings settings, ILocalVideoPlayback playback,
-        LocalizationService text, Func<bool> requestStop, Action<Window> configureInput)
+        LocalizationService text, Func<bool> requestStop, Action<Window> configureInput, VideoAttentionTimeline? sharedChecks = null,
+        VideoSoundState? soundState = null)
     {
         this.cue = cue; this.settings = settings; this.playback = playback;
+        sound = soundState ?? new();
+        ownsChecks = sharedChecks is null; checks = sharedChecks ?? new((int)cue.Id);
+        checks.MeasureTarget = value => VideoAttentionLayer.Measure(value, settings.Video);
+        checks.Answered += CheckAnswered; checks.TargetStarted += CheckStarted;
+        attention.HitRequested += id => HitTarget(id);
         Title = text["MandatoryVideos"]; Background = Brushes.Black;
-        Width = 560; Height = 360; MinWidth = 280; MinHeight = 200;
-        ShowInTaskbar = false; Topmost = true;
+        Width = 560; Height = 360; MinWidth = cue.Floating ? 240 : 280; MinHeight = cue.Floating ? 135 : 200;
+        ShowInTaskbar = false; Topmost = true; ShowActivated = !cue.Floating;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         if (!cue.Floating) { WindowDecorations = WindowDecorations.None; CanResize = false; }
-        var grid = new Grid(); grid.Children.Add(image); grid.Children.Add(attention); Content = grid;
+        var grid = new Grid(); grid.Children.Add(backgroundImage); grid.Children.Add(image); grid.Children.Add(attention);
+        grid.Children.Add(MakeControls(text, requestStop)); Content = grid;
+        InitializeFloatingInput();
         configureInput(this);
         Closing += (_, args) =>
         {
@@ -68,14 +85,6 @@ internal sealed class VideoWindow : Window
             pendingOwnerHide = firstFrame is not null && !IsVisible;
             SyncPause();
         };
-        var panel = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center };
-        panel.Children.Add(new TextBlock { Text = text["CountBubbles"], FontSize = 20 });
-        panel.Children.Add(new Canvas { Width = 300, Height = 180, Name = "AttentionBubbles" });
-        panel.Children.Add(answer);
-        var submit = new Button { Content = text["Submit"], Name = "AttentionSubmit" };
-        submit.Click += (_, _) => { if (int.TryParse(answer.Text, out var count)) AnswerCount(count); };
-        panel.Children.Add(submit); attention.Child = panel;
     }
 
     public void Begin(Window owner, int index)
@@ -88,7 +97,7 @@ internal sealed class VideoWindow : Window
 
     private bool OwnerAvailable => owner is { IsVisible: true } && owner.WindowState != WindowState.Minimized;
     private bool IsSuppressed => !OwnerAvailable || WindowState == WindowState.Minimized || firstFrame is not null && !IsVisible;
-    private void SyncPause() => playback.SetPaused(IsSuppressed || attentionStarted is not null);
+    private void SyncPause() => playback.SetPaused(IsSuppressed);
     private void OwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
     {
         // Avalonia hides owned children before changing the owner's own visibility.
@@ -114,15 +123,12 @@ internal sealed class VideoWindow : Window
     {
         if (owner is null || !OwnerAvailable || completed) return;
         Show(owner);
-        var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
+        var screen = TargetScreen ?? owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
         if (screen is not null)
         {
             if (cue.Floating)
             {
-                var area = screen.WorkingArea; var scale = screen.Scaling;
-                Width = Math.Min(560, area.Width / scale * .7); Height = Math.Min(360, area.Height / scale * .7);
-                Position = new PixelPoint(area.X + Math.Max(0, (area.Width - (int)(Width * scale)) / 2 + windowIndex * 28),
-                    area.Y + Math.Max(0, (area.Height - (int)(Height * scale)) / 2 + windowIndex * 28));
+                PlaceFloating(screen);
             }
             else { Position = screen.Bounds.Position; WindowState = WindowState.FullScreen; }
         }
@@ -142,8 +148,17 @@ internal sealed class VideoWindow : Window
         var visible = PreparePresentation();
         if (lastPulse is { } previous && (suppressed || !visible)) excludedTime += now - previous;
         lastPulse = now; suppressed = !visible;
-        playback.SetGain(gain); SyncPause();
-        if (suppressed) return;
+        lastGain = gain; playback.SetGain(sound.Muted ? 0 : gain); SyncPause();
+        if (suppressed)
+        {
+            if (playback.IsFinished)
+            {
+                ObserveCompletion(lastNow);
+                if (firstFrame is null) error ??= playback.LastError ?? "Video did not produce frames.";
+                FinishImmediately();
+            }
+            return;
+        }
         // Watchdogs, fades and attention use only time with an available presentation.
         now -= excludedTime;
         firstPulse ??= now;
@@ -158,18 +173,16 @@ internal sealed class VideoWindow : Window
                 image.Source = null; bitmap?.Dispose();
                 bitmap = new(new PixelSize(frame.Width, frame.Height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
                 image.Source = bitmap;
+                backgroundImage.Source = bitmap;
             }
             using var locked = bitmap.Lock();
             for (var row = 0; row < frame.Height; row++)
                 Marshal.Copy(frame.Pixels, row * frame.Width * 4, locked.Address + row * locked.RowBytes, frame.Width * 4);
             image.InvalidateVisual();
-            if (firstFrame is null) { firstFrame = now; nextAttention = now + 30; ShowFirstFrame(); }
+            if (firstFrame is null) { firstFrame = now; ShowFirstFrame(); }
         }
         if (playback.IsFinished && ending is null)
-        {
-            ending = now;
-            if (!counted && playback.LastError is null && firstFrame is not null) { counted = true; VideoFinished?.Invoke(); }
-        }
+            ObserveCompletion(now);
         // A failed decoder or missing first frame must never leave an invisible topmost blocker.
         if (firstFrame is null && (ending is not null || now - firstPulse.Value >= 15))
         { error ??= playback.LastError ?? "Video did not produce frames."; FinishImmediately(); return; }
@@ -180,47 +193,44 @@ internal sealed class VideoWindow : Window
         alpha = opacityFrom + (opacityTarget - opacityFrom) * Ease((now - opacityStarted) / Math.Max(.001, opacityDuration));
         Opacity = alpha;
         if (ending is not null && alpha == 0) { FinishImmediately(); return; }
-        if (cue.Attention && firstFrame is not null && ending is null && now >= nextAttention && attentionStarted is null)
-            ShowCount(now);
-        if (attentionStarted is { } asked && now - asked >= 15) { CountAnswered?.Invoke(false); Resume(); }
-    }
-
-    private void ShowCount(double now)
-    {
-        expected = 3 + (int)((cue.Id + (long)(nextAttention / 30)) % 5);
-        var canvas = (Canvas)((StackPanel)attention.Child!).Children[1]; canvas.Children.Clear();
-        for (var index = 0; index < expected; index++)
+        backgroundImage.IsVisible = settings.Video.BlurredBackground;
+        if (settings.Video.BlurredBackground && backgroundImage.Effect is null) backgroundImage.Effect = new BlurEffect { Radius = 24 };
+        if (cue.Floating) StepFloating(now);
+        if (cue.Attention && firstFrame is { } start && ending is null)
         {
-            var bubble = new Ellipse { Width = 30, Height = 30, Stroke = Brushes.HotPink, StrokeThickness = 2 };
-            Canvas.SetLeft(bubble, 15 + index % 4 * 70); Canvas.SetTop(bubble, 20 + index / 4 * 80);
-            canvas.Children.Add(bubble);
+            if (!checksStarted) { checksStarted = true;
+                if (!checks.IsStarted) checks.Start(Math.Min(cue.CapSeconds, playback.DurationSeconds > 0 ? playback.DurationSeconds : cue.CapSeconds), settings.Video); }
+            checks.Step(now - start, settings.Video, Math.Max(1, ClientSize.Width), Math.Max(1, ClientSize.Height), settings.GentleVisuals, settings.ReducedMotion);
+            attention.Update(checks.VisualTargets, settings.Video, now - start, settings.GentleVisuals);
         }
-        attentionStarted = now; SyncPause(); attention.IsVisible = true; answer.Text = ""; answer.Focus();
-        AttentionStarted?.Invoke();
     }
 
-    internal bool AnswerCount(int count)
+    internal IReadOnlyList<VideoAttentionTarget> Targets => checks.Targets;
+    private void ObserveCompletion(double now)
     {
-        if (completed || attentionStarted is null) return false;
-        var correct = count == expected; CountAnswered?.Invoke(correct);
-        if (correct) Resume(); else answer.Text = "";
-        return correct;
+        if (ending is not null || completed) return;
+        if (playback.LastError is null) checks.Finish();
+        if (completed) return;
+        attentionPassed = checks.Passed; hadAttention = checks.Spawned > 0; ending = now;
+        if (!counted && playback.LastError is null && firstFrame is not null && attentionPassed)
+        { counted = true; VideoFinished?.Invoke(); }
     }
-    private void Resume()
-    {
-        attentionStarted = null; attention.IsVisible = false;
-        nextAttention = lastNow + 30; SyncPause();
-    }
+    internal bool HitTarget(long id) => !completed && !IsSuppressed && ending is null && checks.Hit(id);
+    private void CheckAnswered(bool correct) => CountAnswered?.Invoke(correct);
+    private void CheckStarted() => AttentionStarted?.Invoke();
     private static double Ease(double value) { var t = Math.Clamp(value, 0, 1); return t * t * (3 - 2 * t); }
     private void ClearVisuals()
     {
-        attentionStarted = null; attention.IsVisible = false;
-        image.Source = null; bitmap?.Dispose(); bitmap = null;
+        floating?.Drop(); captured?.Capture(null); captured = null;
+        if (ownsChecks) checks.Clear(); attention.Update([], settings.Video, 0, settings.GentleVisuals);
+        image.Source = backgroundImage.Source = null; bitmap?.Dispose(); bitmap = null;
     }
     private void ReleasePlayback()
     {
         if (released) return;
         released = true;
+        checks.Answered -= CheckAnswered; checks.TargetStarted -= CheckStarted;
+        sound.Changed -= SoundChanged;
         if (owner is not null) owner.PropertyChanged -= OwnerChanged;
         playback.Dispose();
     }

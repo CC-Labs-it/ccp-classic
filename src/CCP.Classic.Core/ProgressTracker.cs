@@ -19,6 +19,8 @@ public sealed class ProgressData
     public DateTimeOffset? LastPanicUtc { get; set; }
     public int BubbleCountCorrectStreak { get; set; }
     public int BubbleCountBestStreak { get; set; }
+    public int VideoTargetCorrectStreak { get; set; }
+    public int VideoTargetBestStreak { get; set; }
     public long AttentionFailures { get; set; }
     public long LockCardsCompleted { get; set; }
     public HashSet<string> UnlockedAchievements { get; set; } = [];
@@ -36,6 +38,8 @@ public sealed class ProgressData
         ConsecutiveDays = Math.Clamp(ConsecutiveDays, 0, 1_000_000);
         BubbleCountCorrectStreak = Math.Clamp(BubbleCountCorrectStreak, 0, 1_000_000);
         BubbleCountBestStreak = Math.Clamp(BubbleCountBestStreak, BubbleCountCorrectStreak, 1_000_000);
+        VideoTargetCorrectStreak = Math.Clamp(VideoTargetCorrectStreak, 0, 1_000_000);
+        VideoTargetBestStreak = Math.Clamp(VideoTargetBestStreak, VideoTargetCorrectStreak, 1_000_000);
         UnlockedAchievements = (UnlockedAchievements ?? []).Where(id => id is { Length: > 0 and <= 64 }
             && id.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')).Take(27).ToHashSet(StringComparer.Ordinal);
     }

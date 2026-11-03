@@ -67,15 +67,15 @@ public sealed class ProductionRuntimeTests
         interactive.Start(); locks.Start();
         InteractiveEffectsFrame frame = InteractiveEffectsFrame.Empty; LockEffectsFrame locked = LockEffectsFrame.Empty;
         for (var index = 0; index <= 270; index++) { frame = interactive.Step(index / 30d); locked = locks.Step(index / 30d); }
-        Assert.NotEmpty(frame.Bubbles); Assert.NotNull(frame.BouncingText); Assert.NotNull(locked.BrainDrain);
+        Assert.NotEmpty(frame.Bubbles); Assert.NotNull(frame.BouncingText);
         var view = new VisualEffectsControl { Width = 640, Height = 360 };
-        view.UpdateFrame(new EffectFrame { Interactive = frame, BrainDrain = locked.BrainDrain });
+        view.UpdateFrame(new EffectFrame { Interactive = frame });
         using var rendered = Render(view);
         Assert.True(AlphaPixels(rendered).Count(alpha => alpha != 0) > 200);
         if (Environment.GetEnvironmentVariable("CCP_CLASSIC_PROOF_DIR") is { } folder)
         { Directory.CreateDirectory(folder); rendered.Save(Path.Combine(folder, "interactive-effects.png"), PngBitmapEncoderOptions.Default); }
         interactive.Stop(); locks.Stop();
-        view.UpdateFrame(new EffectFrame { Interactive = interactive.Step(10), BrainDrain = locks.Step(10).BrainDrain });
+        view.UpdateFrame(new EffectFrame { Interactive = interactive.Step(10) });
         using var cleared = Render(view); Assert.All(AlphaPixels(cleared), alpha => Assert.Equal(0, alpha));
     });
 

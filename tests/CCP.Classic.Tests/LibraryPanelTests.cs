@@ -40,7 +40,7 @@ public sealed class LibraryPanelTests
             await UiDispatcher.Run(() =>
             {
                 Named<ToggleButton>(panel!, "LibraryFilter_Images").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                var included = Assert.Single(panel!.GetLogicalDescendants().OfType<CheckBox>());
+                var included = Assert.Single(panel!.GetLogicalDescendants().OfType<CheckBox>(), check => check.Name == "LibraryInclude");
                 Assert.True(included.IsChecked); included.IsChecked = false;
                 Assert.False(settings.Library.Includes(Path.Combine(folder, "test-image.png"))); Assert.Equal(1, changes);
                 var tile = Assert.Single(panel!.GetLogicalDescendants().OfType<Button>(), button => button.Classes.Contains("media-card"));
@@ -48,10 +48,10 @@ public sealed class LibraryPanelTests
                 Assert.True(File.Exists(preview.Path));
                 Named<TextBox>(panel!, "LibrarySearch").Text = "does not exist";
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-                Assert.Empty(panel!.GetLogicalDescendants().OfType<CheckBox>());
+                Assert.DoesNotContain(panel!.GetLogicalDescendants().OfType<CheckBox>(), check => check.Name == "LibraryInclude");
                 Named<TextBox>(panel!, "LibrarySearch").Text = "test";
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-                Assert.Single(panel!.GetLogicalDescendants().OfType<CheckBox>());
+                Assert.Single(panel!.GetLogicalDescendants().OfType<CheckBox>(), check => check.Name == "LibraryInclude");
             });
         }
         finally

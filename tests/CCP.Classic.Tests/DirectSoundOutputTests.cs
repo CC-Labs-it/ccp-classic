@@ -1,0 +1,56 @@
+using System.Runtime.InteropServices;
+using CCP.Classic.App.Media;
+using Xunit;
+
+namespace CCP.Classic.Tests;
+
+public sealed class DirectSoundOutputTests
+{
+    [Fact]
+    public void SelectedAndDefaultDevicesAreStoredBeforePlaybackAndAppliedToTheActiveOutput()
+    {
+        var calls = new List<(string? Module, string Id)>();
+        AudioOutputSelection.SetNativeDevice(true, "{B6EC7D2E-166D-4A78-A2B8-3E43B2DBA612}", (module, id) => calls.Add((module, id)));
+        AudioOutputSelection.SetNativeDevice(true, "", (module, id) => calls.Add((module, id)));
+        Assert.Equal(new (string?, string)[] { ("directx", "{B6EC7D2E-166D-4A78-A2B8-3E43B2DBA612}"),
+            (null, "{B6EC7D2E-166D-4A78-A2B8-3E43B2DBA612}"), ("directx", ""), (null, "") }, calls);
+        calls.Clear(); AudioOutputSelection.SetNativeDevice(false, "", (module, id) => calls.Add((module, id)));
+        Assert.Equal((null, ""), Assert.Single(calls));
+    }
+    [Fact]
+    public void RealGuidIdentifiersMatchVlcAndUnicodeNamesArePreservedWithoutDefaultDuplicates()
+    {
+        var speaker = new Guid("b6ec7d2e-166d-4a78-a2b8-3e43b2dba612");
+        var headphones = new Guid("51bdc8f7-bfa3-4fd7-a474-23863f90e822");
+        var outputs = AudioOutputSelection.EnumerateDirectSound(visit =>
+        {
+            Assert.True(visit(null, "Primary Sound Driver")); Assert.True(visit(speaker, "Speakers"));
+            Assert.True(visit(speaker, "Duplicate")); Assert.True(visit(headphones, "ヘッドホン\n")); return 0;
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(new[] { new LocalAudioOutput("{B6EC7D2E-166D-4A78-A2B8-3E43B2DBA612}", "Speakers"),
+            new LocalAudioOutput("{51BDC8F7-BFA3-4FD7-A474-23863F90E822}", "ヘッドホン") }, outputs);
+    }
+    [Fact]
+    public void EnumerationIsBoundedAndDoesNotInventAnOutputWhenTheSystemHasNone()
+    {
+        var outputs = AudioOutputSelection.EnumerateDirectSound(visit =>
+        {
+            for (var index = 0; index < 1000; index++) if (!visit(Guid.NewGuid(), "Native device")) break;
+            return 0;
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(128, outputs.Count);
+        Assert.Empty(AudioOutputSelection.EnumerateDirectSound(visit => { visit(null, "Default"); return 0; }, TestContext.Current.CancellationToken));
+    }
+    [Fact]
+    public void NativeFailureAndCancellationStayVisibleToTheExistingLocalizedUnavailablePath()
+    {
+        var failure = Assert.Throws<IOException>(() => AudioOutputSelection.EnumerateDirectSound(_ => unchecked((int)0x88780078), TestContext.Current.CancellationToken));
+        Assert.IsType<COMException>(failure.InnerException);
+        using var stop = new CancellationTokenSource(); var calls = 0;
+        Assert.Throws<OperationCanceledException>(() => AudioOutputSelection.EnumerateDirectSound(visit =>
+        { calls++; stop.Cancel(); Assert.False(visit(Guid.NewGuid(), "Device")); return 0; }, stop.Token));
+        Assert.Equal(1, calls);
+        Assert.Throws<OperationCanceledException>(() => AudioOutputSelection.EnumerateDirectSound(_ => { calls++; return 0; }, stop.Token));
+        Assert.Equal(1, calls);
+    }
+}

@@ -52,3 +52,7 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'license-sources.json') -Destina
 foreach ($name in @('ASSET-PROVENANCE.md', 'STARTER-PROVENANCE.md')) {
     Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) "docs/$name") -Destination $destination
 }
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'notices/CCP-UPSTREAM.txt') -Destination $destination
+Get-ChildItem -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'docs') -File |
+    Where-Object { $_.Name -like 'PARITY-*.md' -or $_.Name -like 'POLISH-ASSETS-*.md' } |
+    ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $destination }
