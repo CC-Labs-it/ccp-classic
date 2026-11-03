@@ -24,8 +24,14 @@ off). `Companion/CompanionHost` keeps the tube while Avatar is on: idle frames a
 20 fps while motion is allowed (still frame otherwise), session frames and barks from
 the effects tick. A stop or panic ends barks and talk at once and returns the tube to
 idle; turning Avatar off or closing the app releases it. Window size comes from the
-monitor (`TubeLayout.Scale`, 0.4 to 1.0); attached docking is the pure
-`TubeLayout.Dock` and re-runs on main's PositionChanged and size changes. The window
+panel: the painted art (canvas y 380 to 923) is `TubeLayout.ArtToPanelHeight` (0.45) of
+main's visible height, clamped 0.35 to 1.0, times Companion size (0.5 to 1.5, Ctrl+wheel,
+docked or detached), never taller than the work area; an 800 DIP panel gives 0.663
+(window 676 DIP, art 360, avatar 203). Attached docking is the pure `TubeLayout.Dock`
+against main's VISIBLE frame (`PanelFrame`: DWM extended frame bounds on Windows, whose
+Position/FrameSize include about 7 px invisible borders; Position + FrameSize elsewhere);
+the pipes overlap that edge by 1 DIP, no daylight. It re-runs on main's PositionChanged and
+size changes. The window
 shows only the art's band of the 780 x 1020 canvas: Avalonia windows take clicks on
 transparent pixels, so a full-width canvas would cover the left of the main window.
 Existing settings files keep their saved Avatar value; only fresh profiles and

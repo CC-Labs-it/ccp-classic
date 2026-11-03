@@ -102,9 +102,8 @@ internal sealed class CompanionWindow : Window
         hit.PointerCaptureLost += (_, _) => { if (dragged) PersistPlacement(); dragStart = null; dragged = false; };
         hit.PointerWheelChanged += (_, args) =>
         {
-            if (!settings.CompanionPlacement.Detached || !args.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
-            settings.CompanionPlacement.Scale = Math.Clamp(settings.CompanionPlacement.Scale + Math.Sign(args.Delta.Y) * .25, .5, 1.5);
-            ApplyPlacement(); PersistPlacement(); args.Handled = true;
+            if (!args.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+            ResizeBy(Math.Sign(args.Delta.Y) * .25); args.Handled = true;
         };
         speech = new Border { Child = words, Background = new SolidColorBrush(Color.Parse("#E61C1C35")),
             CornerRadius = new(16), Padding = new(16, 10), IsHitTestVisible = false, Opacity = 0, MaxWidth = TubeLayout.BandWidth - 8,
@@ -213,8 +212,10 @@ internal sealed class CompanionWindow : Window
             var options = settings.CompanionPlacement;
             var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
             var scaling = screen is { Scaling: > 0 } ? screen.Scaling : 1;
-            var scale = screen is null ? 1 : TubeLayout.Scale(screen.WorkingArea, scaling);
-            if (options.Detached) scale *= Math.Clamp(options.Scale, .5, 1.5);
+            // Sized from the panel's visible height; Companion size applies docked and detached.
+            var ownerScale = owner.DesktopScaling > 0 ? owner.DesktopScaling : scaling;
+            var panel = PanelFrame.Visible(owner, ownerScale);
+            var scale = TubeLayout.Scale(panel.Height / ownerScale, screen is null ? 0 : screen.WorkingArea.Height / scaling, options.Scale);
             var size = TubeLayout.WindowSize(scale);
             if (Width != size.Width) Width = size.Width;
             if (Height != size.Height) Height = size.Height;
@@ -230,14 +231,19 @@ internal sealed class CompanionWindow : Window
             }
             else if (screen is not null)
             {
-                var frame = owner.FrameSize ?? owner.ClientSize;
-                var ownerScale = owner.DesktopScaling > 0 ? owner.DesktopScaling : scaling;
-                var dock = TubeLayout.Dock(new(owner.Position, PixelSize.FromSize(frame, ownerScale)), screen.WorkingArea, scaling, scale);
+                var dock = TubeLayout.Dock(panel, screen.WorkingArea, scaling, scale);
                 MoveTo(dock.Position); mirror.ScaleX = dock.Mirrored ? -1 : 1; DockSide = dock.Side;
             }
             detached = options.Detached;
         }
         finally { placing = false; }
+    }
+    // Ctrl+wheel: Companion size, docked or detached. A docked tube saves only its size.
+    internal void ResizeBy(double step)
+    {
+        settings.CompanionPlacement.Scale = Math.Clamp(settings.CompanionPlacement.Scale + step, .5, 1.5);
+        ApplyPlacement();
+        if (settings.CompanionPlacement.Detached) PersistPlacement(); else if (!closed) PlacementChanged?.Invoke();
     }
     private void MoveTo(PixelPoint point) { if (Position != point) Position = point; }
     private PixelPoint ClampPosition(PixelPoint point)

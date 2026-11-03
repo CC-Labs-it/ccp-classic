@@ -59,7 +59,9 @@ public sealed class CompanionWindowTests
                 Assert.True(companion.IsMotionActive);
                 // The tube sits beside main with her art clear of it, and she bobs within four canvas units.
                 Assert.Equal(TubeDockSide.Left, companion.DockSide);
-                Assert.True(companion.Position.X + companion.Width * owner.DesktopScaling <= owner.Position.X + 1);
+                // The pipes overlap the panel's visible edge by DockOverlap; allow one more pixel of rounding.
+                Assert.True(companion.Position.X + companion.Width * owner.DesktopScaling
+                    <= owner.Position.X + (TubeLayout.DockOverlap + 1) * owner.DesktopScaling);
                 var bobs = Enumerable.Range(0, 8).Select(step => { companion.Update(null, .25 + step * .25); return companion.BobOffset; }).ToArray();
                 Assert.All(bobs, offset => Assert.InRange(offset, -4, 4)); Assert.Contains(bobs, offset => Math.Abs(offset) > 1);
                 var docked = companion.Position;
