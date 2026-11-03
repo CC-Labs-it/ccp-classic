@@ -6,7 +6,7 @@ namespace CCP.Classic.Tests;
 public sealed class AudioEnvelopeTests
 {
     [Fact]
-    public async Task UnverifiedNativeTimingNeverPublishesAnEnvelope()
+    public async Task MissingLocalFileNeverPublishesAnEnvelope()
     {
         using var cache = new AudioEnvelopeCache(); var envelope = cache.Get(PathFor(0));
         await cache.Completion.WaitAsync(TestContext.Current.CancellationToken);

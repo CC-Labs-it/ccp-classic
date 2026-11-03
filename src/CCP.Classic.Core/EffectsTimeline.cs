@@ -2,7 +2,10 @@ namespace CCP.Classic.Core;
 
 public sealed record FlashCue(long Id, int Image, double X, double Y, double Size, double Opacity);
 public sealed record EffectsSnapshot(IReadOnlyList<FlashCue> Flashes, int Phrase, double TextOpacity,
-    double PinkOpacity, double SpiralOpacity, double SpiralPhase, int SpiralKind, bool Whisper);
+    double PinkOpacity, double SpiralOpacity, double SpiralPhase, int SpiralKind, bool Whisper)
+{
+    public long SubliminalId { get; init; }
+}
 
 // Pure elapsed-time scheduling. The desktop host owns windows, decoded images and recorded audio.
 public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, int phraseCount, int seed = 0)
@@ -15,7 +18,7 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
     private CueEnvelope? textCue;
     private CueEnvelope? spiralPulse;
     private bool requestedWhisper;
-    private long nextId;
+    private long nextId, nextTextId, textId;
     public bool IsRunning { get; private set; }
 
     public void Start()
@@ -24,6 +27,7 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         lastTime = phase = pink = spiral = textAlpha = 0;
         lastFlash = lastText = -1;
         phrase = -1;
+        textId = 0;
         textCue = null; textGain.Reset();
         pinkFade.Reset(); spiralFade.Reset();
     }
@@ -39,6 +43,7 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
     {
         if (!IsRunning || !Enabled("sub") || selectedPhrase < 0 || selectedPhrase >= phraseCount) return false;
         phrase = selectedPhrase; lastText = lastTime;
+        textId = ++nextTextId;
         textCue = new(lastTime, settings.GentleVisuals ? .75 : .08,
             settings.GentleVisuals ? .6 : Value("sub", "frames") / 60, settings.GentleVisuals);
         textGain.Reset(Value("sub", "opacity") / 100);
@@ -98,6 +103,7 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
             && (lastText < 0 ? now >= 1 : now - lastText >= 60 / textRate && now >= textCue!.EndsAt))
         {
             phrase = (phrase + 1) % phraseCount;
+            textId = ++nextTextId;
             lastText = now;
             textCue = new(now, textFade, hold, gentle);
             textGain.Reset(Value("sub", "opacity") / 100);
@@ -108,7 +114,7 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
             : textGain.Sample(now, Value("sub", "opacity") / 100, gentle ? .75 : 0);
         textAlpha = (textCue?.Sample(now, gentle) ?? 0) * textOpacity;
         return new(output, phrase, textAlpha, pink, spiral, phase,
-            (int)Value("spiral", "spiral"), whisper);
+            (int)Value("spiral", "spiral"), whisper) { SubliminalId = textId };
     }
 
     public bool Dismiss(long id)

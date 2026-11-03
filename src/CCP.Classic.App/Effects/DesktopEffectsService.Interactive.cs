@@ -4,6 +4,7 @@ using Avalonia.Media;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
 using CCP.Classic.App.Media;
+using CCP.Classic.Core.LocalDevices;
 
 namespace CCP.Classic.App.Effects;
 
@@ -42,6 +43,7 @@ public sealed partial class DesktopEffectsService
             if (value.PlaySound && settings.Effects["audio"].Enabled && popSound?.IsCompletedSuccessfully == true
                 && popSound.Result is { } path) cueGate.Play(path, .7);
             InteractiveEvent?.Invoke(value);
+            if (value.Kind == InteractiveEffectEventKind.CornerHit) DeviceEvent?.Invoke(LocalDeviceEvent.BouncingText);
         };
         lockEffects.EventOccurred += value => InteractiveEvent?.Invoke(value);
     }
@@ -119,6 +121,7 @@ public sealed partial class DesktopEffectsService
             if (!card.Strict) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (ReferenceEquals(child, lockWindow)) session.Stop(); });
         };
         configureInput(child); lockWindow = child; child.Show(owner); entry.Focus();
+        DeviceEvent?.Invoke(LocalDeviceEvent.LockCard);
     }
     private void CloseLock()
     {
@@ -150,7 +153,7 @@ public sealed partial class DesktopEffectsService
         }
         if (wipeTicket is { } ticket)
         {
-            if (ticket.PlayedSeconds > 0) SetWipePlaying(true);
+            if (ticket.PlayedSeconds > 0) { SetWipePlaying(true); HapticWipeStarted(playingWipe); }
             if (!ticket.IsFinished) return;
             if (ticket.WasSuccessful) lockEffects.CompleteMindWipe(playingWipe);
             else lockEffects.CancelMindWipe(playingWipe);

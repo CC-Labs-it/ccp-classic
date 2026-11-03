@@ -1,5 +1,6 @@
 using CCP.Classic.App.Companion;
 using CCP.Classic.Core;
+using CCP.Classic.Core.LocalDevices;
 
 namespace CCP.Classic.App.Effects;
 
@@ -38,23 +39,26 @@ public sealed partial class DesktopEffectsService
         {
             companionWindow = new(owner, settings, configureInput);
             companionWindow.StopRequested += () => session.Stop();
-            companionWindow.AvatarClicked += () => AvatarClicked?.Invoke();
+            companionWindow.AvatarClicked += () => { AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion); };
         }
         companionWindow?.Update(frame.Bark, elapsed);
         if (frame.Bark is { } bark && bark.Id != lastBark)
         {
             lastBark = bark.Id;
+            DeviceEvent?.Invoke(LocalDeviceEvent.Companion);
             if (settings.Effects["audio"].Enabled && starter.Phrases[bark.AudioIndex].AudioPath is { } path)
                 barkGate.Play(path, 1);
         }
         foreach (var trigger in frame.Triggers)
         {
-            switch (trigger.Effect)
+            var triggered = trigger.Effect switch
             {
-                case CompanionEffect.Flash: timeline.TriggerFlash(); break;
-                case CompanionEffect.Whisper: timeline.TriggerWhisper(); break;
-                case CompanionEffect.SpiralPulse: timeline.TriggerSpiralPulse(); break;
-            }
+                CompanionEffect.Flash => timeline.TriggerFlash(),
+                CompanionEffect.Whisper => timeline.TriggerWhisper(),
+                CompanionEffect.SpiralPulse => timeline.TriggerSpiralPulse(),
+                _ => false
+            };
+            if (triggered && trigger.Source == CompanionTriggerSource.Keyword) DeviceEvent?.Invoke(LocalDeviceEvent.Keyword);
         }
     }
     private void StopCompanion()
