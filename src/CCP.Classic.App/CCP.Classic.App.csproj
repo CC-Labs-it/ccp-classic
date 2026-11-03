@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>CCP.Classic.App</AssemblyName>
+    <Product>CCP Classic</Product>
+    <Company>CodeBambi</Company>
+    <Copyright>Copyright (c) 2026 CodeBambi</Copyright>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <ProjectReference Include="../CCP.Classic.Core/CCP.Classic.Core.csproj" />
+  </ItemGroup>
+</Project>

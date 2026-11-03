@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/CCP.Classic.App/CCP.Classic.App.csproj" />
     <Project Path="src/CCP.Classic.Core/CCP.Classic.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
