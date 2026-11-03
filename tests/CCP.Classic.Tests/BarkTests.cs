@@ -11,11 +11,11 @@ public sealed class BarkTests
     [
         "AppOpened", "StreakMilestone", "SessionStarted", "SessionMinutes", "SessionCompleted", "SessionRefocused", "SetupReady",
         "Flash", "Subliminal", "VideoStarted", "VideoEnded", "AttentionPass", "AttentionFail", "BubblePopped", "BouncingTextCorner",
-        "LockCardCompleted", "MindWipe", "BrainDrain", "KeywordTriggered", "PreviewLockCard", "PreviewVideo",
+        "LockCardCompleted", "MindWipe", "BrainDrain", "PreviewLockCard", "PreviewVideo",
         "LevelUp", "Achievement", "AvatarClicked", "Idle", "Detached", "BarksOn", "PanicOff",
         "Opened.Presets", "Opened.Studio", "Opened.Progress", "Opened.Settings", "Opened.Toys", "Opened.Library",
         .. new[] { "flash", "video", "sub", "spiral", "pink", "bubble", "lock", "bounce", "wipe", "drain" }.Select(id => "Opened.Effect." + id),
-        .. new[] { "sub", "spiral", "pink", "drain", "bubble", "lock", "bounce", "wipe", "wall", "strict", "keywords", "allmonitors", "startup", "autorun" }
+        .. new[] { "sub", "spiral", "pink", "drain", "bubble", "lock", "bounce", "wipe", "wall", "strict", "allmonitors", "startup", "autorun" }
             .Select(id => "Enabled." + id)
     ];
 

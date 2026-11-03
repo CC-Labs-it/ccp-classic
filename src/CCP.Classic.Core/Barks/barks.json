@@ -694,24 +694,6 @@
    ]
   },
   {
-   "id": "set_keywordtriggers_on",
-   "trigger": "Enabled.keywords",
-   "priority": 90,
-   "cooldown": 30.0,
-   "repeatable": true,
-   "chance": 0.4,
-   "always": false,
-   "mood": "conspiratorial",
-   "when": {},
-   "lines": [
-    {
-     "text": "trigger words, pet. say the wrong thing and i will be upon you.",
-     "clip": "set_keywordtriggers_on_1.mp3",
-     "seconds": 6.24
-    }
-   ]
-  },
-  {
    "id": "set_lockcard_on",
    "trigger": "Enabled.lock",
    "priority": 90,
@@ -1577,34 +1559,6 @@
      "text": "you belong right here, being good for me, pet. you've stopped pretending otherwise. good.",
      "clip": "idle_affirm_10_1.mp3",
      "seconds": 10.0
-    }
-   ]
-  },
-  {
-   "id": "kw",
-   "trigger": "KeywordTriggered",
-   "priority": 190,
-   "cooldown": 60.0,
-   "repeatable": true,
-   "chance": 1,
-   "always": false,
-   "mood": "pleased, possessive",
-   "when": {},
-   "lines": [
-    {
-     "text": "ah, there it is... you can't even see those words without going soft now, can you, pet. there you go.",
-     "clip": "kw_reinforce_1.mp3",
-     "seconds": 10.8
-    },
-    {
-     "text": "i saw that... the word found you and you melted for it. exactly as i trained you, sweet thing.",
-     "clip": "kw_reinforce_2.mp3",
-     "seconds": 9.61
-    },
-    {
-     "text": "mm... that word has a hold on you now. i gave it that hold.",
-     "clip": "kw_reinforce_3.mp3",
-     "seconds": 5.8
     }
    ]
   },
