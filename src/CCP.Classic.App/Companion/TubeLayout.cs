@@ -22,7 +22,8 @@ internal static class TubeLayout
     public const double ArtLeft = 239, ArtRight = 430;
     public const double ArtTop = 380, ArtBottom = 923, ArtHeight = ArtBottom - ArtTop;
     // The painted art's height as a share of the panel's visible height. One-line tweak.
-    public const double ArtToPanelHeight = .45;
+    // Owner found 0.788 (monitor-based) too big on 2048x1104; .38 = about 70% of that at an 800 DIP panel.
+    public const double ArtToPanelHeight = .38;
     public const double MinScale = .35, MaxScale = 1;
     // The art overlaps the panel's visible edge by this many DIP, so no daylight shows after
     // rounding; the tube is an owned window above its owner.
