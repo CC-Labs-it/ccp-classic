@@ -37,9 +37,10 @@ CloseApplications=yes
 CloseApplicationsFilter=CCP.Classic.App.exe
 RestartApplications=no
 WizardStyle=modern
+SetupIconFile={#RepoRoot}\src\CCP.Classic.App\Assets\app.ico
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a desktop shortcut"
 
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

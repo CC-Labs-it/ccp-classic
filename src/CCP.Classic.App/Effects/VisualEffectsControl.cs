@@ -101,6 +101,7 @@ public sealed class VisualEffectsControl : Control
                 new Typeface("Arial", FontStyle.Normal, FontWeight.Bold), fontSize, Pink);
             var origin = new Point(bounds.X + bounce.X * Math.Max(0, bounds.Width - text.Width),
                 bounds.Y + bounce.Y * Math.Max(0, bounds.Height - text.Height));
+            using (context.PushRenderOptions(new RenderOptions { RequiresFullOpacityHandling = true }))
             using (context.PushOpacity(Alpha(bounce.Opacity))) context.DrawText(text, origin);
         }
     }
