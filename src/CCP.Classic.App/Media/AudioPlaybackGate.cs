@@ -25,6 +25,16 @@ internal sealed class AudioPlaybackGate(IAudioPlayback playback)
         lock (gate) return enabled && double.IsFinite(gain) && gain > 0 && playback.Play(localPath, Math.Min(gain, 1));
     }
 
+    // One voice per lane: a new cue ends the one still playing, so repeated cues never stack.
+    public bool Replace(string localPath, double gain)
+    {
+        lock (gate)
+        {
+            if (!enabled || !double.IsFinite(gain) || gain <= 0) return false;
+            playback.StopAll(); return playback.Play(localPath, Math.Min(gain, 1));
+        }
+    }
+
     public AudioPlaybackTicket? PlayTracked(string localPath, double gain)
     {
         lock (gate) return enabled && double.IsFinite(gain) && gain > 0 ? playback.PlayTracked(localPath, Math.Min(gain, 1)) : null;

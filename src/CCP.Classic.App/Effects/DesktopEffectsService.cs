@@ -89,7 +89,11 @@ public sealed partial class DesktopEffectsService : IDisposable
     public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
         or "bubble" or "bounce" or "lock" or "wipe" or "drain" || id == "wall" && OperatingSystem.IsWindows();
 
-    public void RefreshSettings() { AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); TickLayeredAudio(); companionHost.Refresh(); Tick(); }
+    public void RefreshSettings()
+    {
+        AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); TickLayeredAudio();
+        RefreshIdleBarkGate(); companionHost.Refresh(); Tick();
+    }
     public void ReloadLibrary() { RefreshInteractiveLibrary(force: true); videos.RefreshLibrary(force: true); Tick(); }
     public void ReloadCustomSpiral() { loom.Reload(); Tick(); }
 

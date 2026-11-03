@@ -42,7 +42,7 @@ public sealed class CompanionWindowTests
     });
 
     [Fact]
-    public async Task NativeCompanionFreezesForMotionGatesAndHidesWhenItsOwnerMinimizes()
+    public async Task NativeCompanionKeepsItsClipUnderMotionPreferencesAndHidesWhenItsOwnerMinimizes()
     {
         Window owner = null!; CompanionWindow companion = null!; ClassicSettings settings = new() { CompanionEnabled = true };
         try
@@ -69,23 +69,33 @@ public sealed class CompanionWindowTests
                 Assert.Equal(new PixelPoint(docked.X + 40, docked.Y + 30), companion.Position);
                 settings.GentleVisuals = true;
             });
-            var frozen = 0;
-            await UiDispatcher.Run(() => { companion.Update(null, .3); frozen = companion.DecodedFrames; });
-            await Task.Delay(50, TestContext.Current.CancellationToken);
+            // Gentle visuals and Reduced motion still the bob only; the clip keeps decoding new frames.
+            var time = await Advances(companion, 2);
             await UiDispatcher.Run(() =>
             {
-                companion.Update(null, 1); Assert.False(companion.IsMotionActive); Assert.Equal(frozen, companion.DecodedFrames);
-                Assert.Equal(0, companion.BobOffset);
+                Assert.False(companion.IsMotionActive); Assert.True(companion.IsClipPlaying); Assert.Equal(0, companion.BobOffset);
                 settings.GentleVisuals = false; settings.ReducedMotion = true;
-                companion.Update(null, 2); Assert.False(companion.IsMotionActive);
-                settings.ReducedMotion = false; settings.PerformanceMode = true;
-                companion.Update(null, 3); Assert.False(companion.IsMotionActive);
-                owner.WindowState = WindowState.Minimized; companion.Update(null, 4); Assert.False(companion.IsVisible);
-                owner.WindowState = WindowState.Normal; settings.PerformanceMode = false; owner.Activate();
-                companion.Update(null, 5); Assert.True(companion.IsVisible);
-                typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, null);
-                companion.Update(null, 6); Assert.False(companion.IsMotionActive);
             });
+            time = await Advances(companion, time);
+            await UiDispatcher.Run(() =>
+            {
+                Assert.False(companion.IsMotionActive); Assert.Equal(0, companion.BobOffset);
+                settings.ReducedMotion = false; settings.PerformanceMode = true;
+            });
+            // Performance mode lowers the clip rate without freezing it.
+            time = await Advances(companion, time);
+            await UiDispatcher.Run(() =>
+            {
+                Assert.Equal(1d / 15, companion.FrameSeconds, 6); Assert.True(companion.IsClipPlaying);
+                owner.WindowState = WindowState.Minimized; companion.Update(null, time += .1);
+                Assert.False(companion.IsVisible); Assert.False(companion.IsClipPlaying);
+                owner.WindowState = WindowState.Normal; settings.PerformanceMode = false; owner.Activate();
+                companion.Update(null, time += .1); Assert.True(companion.IsVisible);
+                Deactivate(owner); Assert.False(owner.IsActive);
+            });
+            // Another app in front: she keeps moving.
+            await Advances(companion, time);
+            await UiDispatcher.Run(() => { Assert.True(companion.IsClipPlaying); Assert.True(companion.IsMotionActive); });
         }
         finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
     }
@@ -126,11 +136,9 @@ public sealed class CompanionWindowTests
     [InlineData("disabled")]
     [InlineData("hidden")]
     [InlineData("minimized")]
-    [InlineData("inactive")]
     public async Task ALateFirstFrameCannotPublishAfterItsPresentationIsSuppressed(string suppression)
     {
         Window owner = null!; CompanionWindow companion = null!;
-        Window? other = null;
         using var decoding = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
         var settings = new ClassicSettings { CompanionEnabled = true };
         try
@@ -151,14 +159,7 @@ public sealed class CompanionWindowTests
             {
                 if (suppression == "disabled") settings.CompanionEnabled = false;
                 else if (suppression == "hidden") owner.Hide();
-                else if (suppression == "minimized") owner.WindowState = WindowState.Minimized;
-                else
-                {
-                    other = new(); other.Show(); other.Activate(); Dispatcher.UIThread.RunJobs();
-                    // Headless activation does not deactivate the previous window automatically.
-                    typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, null);
-                    Assert.True(other.IsActive); Assert.False(owner.IsActive);
-                }
+                else owner.WindowState = WindowState.Minimized;
                 release.Set();
             });
             await Until(() => !companion.IsDecodePending, () => { });
@@ -171,7 +172,7 @@ public sealed class CompanionWindowTests
                     companion.Update(null, 1 + index * .1);
                     Assert.False(companion.IsDecodePending);
                 }
-                other?.Close(); settings.CompanionEnabled = true; owner.WindowState = WindowState.Normal;
+                settings.CompanionEnabled = true; owner.WindowState = WindowState.Normal;
                 if (!owner.IsVisible) owner.Show(); owner.Activate();
             });
             await Until(() => owner.IsActive, owner.Activate);
@@ -186,7 +187,28 @@ public sealed class CompanionWindowTests
                 Assert.Null(companion.LastError);
             });
         }
-        finally { release.Set(); await UiDispatcher.Run(() => { other?.Close(); companion?.FinishImmediately(); owner?.Close(); }); }
+        finally { release.Set(); await UiDispatcher.Run(() => { companion?.FinishImmediately(); owner?.Close(); }); }
+    }
+
+    // The tube is not tied to focus: another app in front still gets the first frame and a moving clip.
+    [Fact]
+    public async Task AnInactiveOwnerStillPublishesTheFirstFrameAndKeepsTheClipPlaying()
+    {
+        Window owner = null!; Window other = null!; CompanionWindow companion = null!;
+        try
+        {
+            await UiDispatcher.Run(() =>
+            {
+                owner = new(); owner.Show(); other = new(); other.Show(); other.Activate(); Dispatcher.UIThread.RunJobs();
+                Deactivate(owner); Assert.False(owner.IsActive);
+                companion = new(owner, new() { CompanionEnabled = true, GentleVisuals = true }, _ => { }, requireTransparency: false);
+                companion.Update(null, 0); Assert.True(companion.IsDecodePending);
+            });
+            await Until(() => companion.DecodedFrames > 0 && companion.IsVisible, () => companion.Update(null, .1));
+            await Advances(companion, .2);
+            await UiDispatcher.Run(() => { Assert.False(owner.IsActive); Assert.Equal(0, companion.BobOffset); });
+        }
+        finally { await UiDispatcher.Run(() => { companion?.FinishImmediately(); other?.Close(); owner?.Close(); }); }
     }
 
     [Fact]
@@ -254,6 +276,73 @@ public sealed class CompanionWindowTests
             });
         }
         finally { await UiDispatcher.Run(() => { host?.Dispose(); owner?.Close(); }); }
+    }
+
+    [Fact]
+    public async Task IdleBarksSpeakOnTheIntervalAndAClickAnswersAtOnce()
+    {
+        Window owner = null!; CompanionHost host = null!; var clock = new ManualClock();
+        var settings = new ClassicSettings { BarkIntervalSeconds = 6, GentleVisuals = true, TriggerPhrasesEnabled = true };
+        var spoken = new List<CompanionBarkCue>(); var clicks = 0;
+        try
+        {
+            await UiDispatcher.Run(() =>
+            {
+                owner = new(); owner.Show(); owner.Activate();
+                Assert.True(settings.BarksEnabled);
+                host = new(owner, settings, window => new(window, settings, _ => { }, requireTransparency: false), clock);
+                host.IdleBark += spoken.Add; host.AvatarClicked += () => clicks++; host.Refresh();
+            });
+            await Until(() => host.Window!.DecodedFrames > 0 && host.Window.IsVisible, host.IdleTick);
+            await UiDispatcher.Run(() =>
+            {
+                var companion = host.Window!;
+                var words = companion.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "CompanionBark");
+                // No session runs: the first word comes one interval after the tube appears.
+                clock.Advance(5.9); host.IdleTick(); Assert.Empty(spoken); Assert.Equal("", words.Text);
+                clock.Advance(.1); host.IdleTick();
+                Assert.Equal("Breathe", Assert.Single(spoken).Text); Assert.Equal("Breathe", words.Text);
+                // A left click answers at once; a second click inside the cooldown does not stack another word.
+                clock.Advance(1); var point = HitPoint(companion);
+                companion.MouseDown(point, MouseButton.Left); companion.MouseUp(point, MouseButton.Left);
+                Assert.Equal(1, clicks); Assert.Equal(new[] { "Breathe", "Relax" }, spoken.Select(bark => bark.Text));
+                Assert.Equal("Relax", words.Text); Assert.Equal("talkA", companion.WantedClip);
+                clock.Advance(.5); companion.MouseDown(point, MouseButton.Left); companion.MouseUp(point, MouseButton.Left);
+                Assert.Equal(2, clicks); Assert.Equal(2, spoken.Count);
+                // A stop silences the word at once; the next one waits a full interval instead of firing straight away.
+                host.EndSession(); Assert.Equal("", words.Text);
+                clock.Advance(5.9); host.IdleTick(); Assert.Equal(2, spoken.Count);
+                clock.Advance(.1); host.IdleTick(); Assert.Equal(3, spoken.Count);
+                // A minimised panel says nothing and does not save words up for its return.
+                owner.WindowState = WindowState.Minimized; clock.Advance(60); host.IdleTick(); Assert.Equal(3, spoken.Count);
+                owner.WindowState = WindowState.Normal; owner.Activate(); host.IdleTick(); Assert.Equal(3, spoken.Count);
+                // Barks off: a click still plays the greeting, with no word.
+                settings.BarksEnabled = false; clock.Advance(2); host.IdleTick(); clock.Advance(1); host.IdleTick();
+                companion.MouseDown(point, MouseButton.Left); companion.MouseUp(point, MouseButton.Left); host.IdleTick();
+                Assert.Equal(3, spoken.Count); Assert.Equal("", words.Text); Assert.Equal("greeting", companion.WantedClip);
+                clock.Advance(60); host.IdleTick(); Assert.Equal(3, spoken.Count);
+            });
+        }
+        finally { await UiDispatcher.Run(() => { host?.Dispose(); owner?.Close(); }); }
+    }
+
+    // Headless activation does not deactivate the previous window automatically.
+    private static void Deactivate(Window window) =>
+        typeof(WindowBase).GetMethod("HandleDeactivated", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+
+    private static async Task<double> Advances(CompanionWindow companion, double time)
+    {
+        var before = 0; await UiDispatcher.Run(() => before = companion.DecodedFrames);
+        await Until(() => companion.DecodedFrames > before, () => companion.Update(null, time += .1));
+        return time;
+    }
+
+    private sealed class ManualClock : TimeProvider
+    {
+        private long timestamp;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => timestamp;
+        public void Advance(double seconds) => timestamp += TimeSpan.FromSeconds(seconds).Ticks;
     }
 
     private static Point HitPoint(CompanionWindow companion)

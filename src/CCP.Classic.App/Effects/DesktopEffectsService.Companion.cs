@@ -18,10 +18,16 @@ public sealed partial class DesktopEffectsService
     {
         companion = new(settings);
         InitializeKeywords();
-        companionHost = new(owner, settings, window => new(window, settings, configureInput), clock);
+        companionHost = new(owner, settings, window => new(window, settings, configureInput), clock, companion);
         companionHost.StopRequested += () => session.Stop();
         companionHost.PlacementChanged += () => CompanionPlacementChanged?.Invoke();
-        companionHost.AvatarClicked += () => { AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion); };
+        // Idle words carry no device pulse and no effect: those stay session behaviour.
+        companionHost.IdleBark += bark => { if (!running) { RefreshIdleBarkGate(); SpeakBark(bark); } };
+        companionHost.AvatarClicked += () =>
+        {
+            if (running) companion.Poke(clock.GetElapsedTime(started).TotalSeconds);
+            AvatarClicked?.Invoke(); DeviceEvent?.Invoke(LocalDeviceEvent.Companion);
+        };
     }
     private void StartCompanion()
     {
@@ -43,13 +49,7 @@ public sealed partial class DesktopEffectsService
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
         var frame = companion.Step(elapsed);
         companionHost.SessionFrame(frame.Bark);
-        if (frame.Bark is { } bark && bark.Id != lastBark)
-        {
-            lastBark = bark.Id;
-            DeviceEvent?.Invoke(LocalDeviceEvent.Companion);
-            if (settings.Effects["audio"].Enabled && starter.Phrases[bark.AudioIndex].AudioPath is { } path)
-                barkGate.Play(path, 1);
-        }
+        if (frame.Bark is { } bark && bark.Id != lastBark) { DeviceEvent?.Invoke(LocalDeviceEvent.Companion); SpeakBark(bark); }
         foreach (var trigger in frame.Triggers)
         {
             var triggered = trigger.Effect switch
@@ -61,6 +61,22 @@ public sealed partial class DesktopEffectsService
             };
             if (triggered && trigger.Source == CompanionTriggerSource.Keyword) DeviceEvent?.Invoke(LocalDeviceEvent.Keyword);
         }
+    }
+    // One voice for idle and session words: the approved recording only, never synthetic speech;
+    // a word with no recording stays text. A new word replaces one still speaking.
+    private void SpeakBark(CompanionBarkCue bark)
+    {
+        if (bark.Id == lastBark) return;
+        lastBark = bark.Id;
+        if (settings.Effects["audio"].Enabled && starter.Phrases[bark.AudioIndex].AudioPath is { } path)
+            barkGate.Replace(path, 1);
+    }
+    // Outside a session nothing else opens the bark lane, and a muted switch must silence it at once.
+    private void RefreshIdleBarkGate()
+    {
+        if (running || disposed) return;
+        var gain = AudioMix(out var audioEnabled);
+        UpdateBarkGate(audioEnabled, gain);
     }
     // A stop ends barks and talk at once; the tube stays and returns to idle.
     private void StopCompanion()

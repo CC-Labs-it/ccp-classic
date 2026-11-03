@@ -22,12 +22,12 @@ public sealed class CompanionPlacementTests
     }
 
     [Fact]
-    public void TheAvatarIsOnByDefaultWithBarksOffAndResetKeepsThat()
+    public void TheAvatarAndItsBarksAreOnByDefaultAndResetKeepsThat()
     {
         var settings = new ClassicSettings();
-        Assert.True(settings.CompanionEnabled); Assert.False(settings.BarksEnabled);
-        settings.CompanionEnabled = false; settings.BarksEnabled = true; settings.ResetToDefaults();
-        Assert.True(settings.CompanionEnabled); Assert.False(settings.BarksEnabled);
+        Assert.True(settings.CompanionEnabled); Assert.True(settings.BarksEnabled);
+        settings.CompanionEnabled = false; settings.BarksEnabled = false; settings.ResetToDefaults();
+        Assert.True(settings.CompanionEnabled); Assert.True(settings.BarksEnabled);
     }
 
     [Fact]

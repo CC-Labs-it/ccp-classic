@@ -46,14 +46,18 @@ internal sealed class CompanionWindow : Window
     internal TubeDockSide DockSide { get; private set; }
     internal bool IsMirrored => mirror.ScaleX < 0;
     internal double BobOffset => bob.Y;
+    internal string WantedClip => wantedClip;
     // Idle callers poll quickly only while something moves or is still loading.
-    internal bool WantsFrames => !closed && (IsMotionActive || pending is not null || Opacity is > 0 and < 1
+    internal bool WantsFrames => !closed && (IsClipPlaying || pending is not null || Opacity is > 0 and < 1
         || portrait.Opacity < 1 || bitmap is null && CanBootstrap);
+    // CCP parity: the clip plays whenever the tube can be seen, focused or not. Gentle visuals and
+    // Reduced motion only still the bob; Performance mode lowers the clip to 15 fps.
+    internal double FrameSeconds => settings.PerformanceMode ? 1d / 15 : .05;
     private bool CanBootstrap => !closed && settings.CompanionEnabled && WindowState != WindowState.Minimized
-        && owner.IsVisible && owner.WindowState != WindowState.Minimized
-        && (owner.IsActive || owner.OwnedWindows.Any(window => window.IsActive));
-    public bool IsMotionActive => CanBootstrap && IsVisible
-        && !settings.GentleVisuals && !settings.ReducedMotion && !settings.PerformanceMode;
+        && owner.IsVisible && owner.WindowState != WindowState.Minimized;
+    internal bool CanPresent => CanBootstrap && LastError is null;
+    public bool IsClipPlaying => CanBootstrap && IsVisible;
+    public bool IsMotionActive => IsClipPlaying && !settings.GentleVisuals && !settings.ReducedMotion;
     public event Action? AvatarClicked;
     public event Action? StopRequested;
     public event Action? PlacementChanged;
@@ -179,15 +183,15 @@ internal sealed class CompanionWindow : Window
         var blend = dissolve.Sample(now, 1, settings.GentleVisuals ? .75 : .25);
         portrait.Opacity = blend; previousPortrait.Opacity = 1 - blend;
         if (blend == 1) { previousPortrait.Source = null; previous?.Dispose(); previous = null; }
-        if (IsMotionActive)
+        if (IsClipPlaying)
         {
             animationTime += dt; reaction = Math.Max(0, reaction - dt);
             var clip = approved ? "talkA" : reaction > 0 ? "greeting" : "idle";
             if (clip != wantedClip) { wantedClip = clip; animationTime = 0; lastRequest = double.NegativeInfinity; }
         }
-        bob.Y = IsMotionActive && IsVisible ? 4 * Math.Sin(now * Math.PI) : 0;
+        bob.Y = IsMotionActive ? 4 * Math.Sin(now * Math.PI) : 0;
         if (pending is null && settings.CompanionEnabled && LastError is null
-            && (bitmap is null ? CanBootstrap : IsMotionActive && now - lastRequest >= .05)) RequestFrame(now);
+            && (bitmap is null ? CanBootstrap : IsClipPlaying && now - lastRequest >= FrameSeconds - .001)) RequestFrame(now);
     }
 
     private void EnsureShown()
@@ -284,7 +288,7 @@ internal sealed class CompanionWindow : Window
             pending = null;
             if (closed) { _ = result.Exception; return; }
             if (result.IsFaulted) { LastError = result.Exception!.GetBaseException().Message; Hide(); return; }
-            if (result.Result is not { } frame || clip != wantedClip || !(bitmap is null ? CanBootstrap : IsMotionActive)) return;
+            if (result.Result is not { } frame || clip != wantedClip || !(bitmap is null ? CanBootstrap : IsClipPlaying)) return;
             if (displayedClip != clip || bitmap is null)
             {
                 previousPortrait.Source = null; previous?.Dispose(); previous = bitmap;
