@@ -64,7 +64,9 @@ public sealed partial class MainWindow
         var title = Label(text[key], 14); title.Name = "SheetTitle"; title.FontWeight = FontWeight.SemiBold;
         header.Children.Add(title);
         var close = Button("Close", CloseSheet); close.Name = "SheetClose";
-        Grid.SetColumn(close, 1); header.Children.Add(close); frame.Children.Add(header);
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        actions.Children.Add(HelpButton(key)); actions.Children.Add(close);
+        Grid.SetColumn(actions, 1); header.Children.Add(actions); frame.Children.Add(header);
         var scroll = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetRow(scroll, 1); frame.Children.Add(scroll);
         var credit = Label(text["ByCredit"], 11); credit.HorizontalAlignment = HorizontalAlignment.Center;
@@ -72,12 +74,15 @@ public sealed partial class MainWindow
         var child = new Window { Title = "CCP Classic · " + text[key], Width = 450, Height = 650,
             MinWidth = 420, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = new Border { Name = "SheetHost", Child = frame } };
+        if (key == "Library") { child.Width = 920; child.Height = 740; child.MinWidth = 880; }
+        VisualPolish.ApplyWindow(child, Settings);
         child.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         child.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
         child.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         child.Closed += (_, _) => { if (ReferenceEquals(SettingsWindow, child)) SettingsWindow = null; capturePanic = false; };
         SettingsWindow = child;
         child.Show(this);
+        VisualPolish.Enter(content, Settings);
         close.Focus();
     }
 
@@ -106,8 +111,8 @@ public sealed partial class MainWindow
         content.Children.Add(Row("PanicKey", panicKey, "PanicKeyHelp"));
         var soft = Toggle(Settings.GentleVisuals, text["GentleVisuals"], SetGentle); soft.Name = "SettingsGentle";
         content.Children.Add(Row("GentleVisuals", soft, "GentleVisualsHelp"));
-        content.Children.Add(Row("Performance", Toggle(Settings.PerformanceMode, text["Performance"], value => Settings.PerformanceMode = value)));
-        content.Children.Add(Row("ReducedMotion", Toggle(Settings.ReducedMotion, text["ReducedMotion"], value => Settings.ReducedMotion = value)));
+        content.Children.Add(Row("Performance", Toggle(Settings.PerformanceMode, text["Performance"], value => { Settings.PerformanceMode = value; VisualPolish.ApplyWindow(this, Settings); })));
+        content.Children.Add(Row("ReducedMotion", Toggle(Settings.ReducedMotion, text["ReducedMotion"], value => { Settings.ReducedMotion = value; VisualPolish.ApplyWindow(this, Settings); })));
         content.Children.Add(Row("Export", Button("Export", ExportSettings)));
         content.Children.Add(Row("Reset", Button("Reset", ResetSettings)));
         var warning = new StackPanel { Spacing = 10, IsVisible = false };

@@ -78,6 +78,21 @@ public sealed class ProductionRuntimeTests
         using var cleared = Render(view); Assert.All(AlphaPixels(cleared), alpha => Assert.Equal(0, alpha));
     });
 
+    [Fact]
+    public Task FadingBouncingTextPreservesTheFullGlyphShape() => UiDispatcher.Run(() =>
+    {
+        var view = new VisualEffectsControl { Width = 640, Height = 360 };
+        view.UpdateFrame(new EffectFrame { Interactive = new([], new("Breathe", .5, .5, .5, 1)) });
+        using var opaque = Render(view);
+        var full = AlphaPixels(opaque);
+        view.UpdateFrame(new EffectFrame { Interactive = new([], new("Breathe", .5, .5, .5, .4)) });
+        using var faded = Render(view);
+        var partial = AlphaPixels(faded);
+        var solid = Enumerable.Range(0, full.Length).Where(index => full[index] >= 250).ToArray();
+        Assert.True(solid.Length > 200);
+        Assert.All(solid, index => Assert.InRange(partial[index], (byte)95, (byte)106));
+    });
+
     private static RenderTargetBitmap Render(Control view)
     {
         view.Measure(new Size(640, 360)); view.Arrange(new Rect(0, 0, 640, 360));

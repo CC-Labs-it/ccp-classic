@@ -59,6 +59,7 @@ public sealed partial class MainWindow : Window
         input = new(Session, globalPanicAvailable ?? (() => effects?.GlobalPanicAvailable == true));
         InitializeToys();
         Title = "CCP Classic";
+        VisualPolish.ApplyWindow(this, Settings);
         ClosingBehavior = WindowClosingBehavior.OwnerWindowOnly;
         Closing += AwaitLocalCleanup;
         Width = 724; Height = 760; MinWidth = 700; MinHeight = 700;
@@ -166,6 +167,8 @@ public sealed partial class MainWindow : Window
             if (name == "Settings") { button.Content = "⚙"; AutomationProperties.SetName(button, text[name]); }
             tools.Children.Add(button);
         }
+        var help = Button("Help", () => OpenHelp(tab)); help.Content = "?"; help.Name = "OpenHelp";
+        AutomationProperties.SetName(help, text["Help"]); tools.Children.Add(help);
         Grid.SetColumn(tools, 1); navigation.Children.Add(tools);
         return grid;
     }
@@ -206,11 +209,12 @@ public sealed partial class MainWindow : Window
         Control body = key switch
         {
             "Presets" => CreatePresetPanel(),
-            "Progress" => new ProgressPanel(Progress, text),
+            "Progress" => new ProgressPanel(Progress, text, Settings),
             _ => Studio()
         };
         page.Content = new ScrollViewer { Content = body, Padding = new(12),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        VisualPolish.Enter(body, Settings);
         foreach (var name in new[] { "Studio", "Presets", "Progress" })
         if (root.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "Tab_" + name) is { } button)
             {
@@ -231,7 +235,7 @@ public sealed partial class MainWindow : Window
     private Control Studio()
     {
         return DashboardMosaic.Build(Settings, text, windows,
-            () => new AnimatedLogo(() => tab == "Studio" && IsActive && WindowState != WindowState.Minimized
+            () => new AnimatedLogo(() => tab == "Studio" && IsVisible && WindowState != WindowState.Minimized
                 && !Settings.GentleVisuals && !Settings.ReducedMotion && !Settings.PerformanceMode),
             definition => OpenEffect(definition.Id));
     }
@@ -282,6 +286,7 @@ public sealed partial class MainWindow : Window
 
     private void ConfigureEffectInput(Window window)
     {
+        VisualPolish.ApplyWindow(window, Settings);
         window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -317,6 +322,7 @@ public sealed partial class MainWindow : Window
     private void SetGentle(bool value)
     {
         Settings.GentleVisuals = value; gentle.IsChecked = value;
+        VisualPolish.ApplyWindow(this, Settings);
         if (SettingsWindow?.GetVisualDescendants().OfType<ToggleButton>().FirstOrDefault(c => c.Name == "SettingsGentle") is { } other)
             other.IsChecked = value;
         effects?.RefreshSettings();
