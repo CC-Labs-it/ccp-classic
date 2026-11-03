@@ -39,6 +39,6 @@ public sealed partial class DesktopEffectsService
         selectedImages?.Dispose(); selectedImages = images.Count > 0 ? new(paths, images[0]) : null;
         timeline.ReplaceImages(selectedImages?.Count ?? 0);
         interactive.ReplaceImages(selectedImages?.Count ?? 0);
-        if (running) remix.Start();
+        if (running && !audioOnlySession) remix.Start();
     }
 }

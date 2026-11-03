@@ -85,6 +85,7 @@ public sealed partial class MainWindow : Window
             {
                 effects = new(this, Settings, Session, ConfigureEffectInput, HandleGlobalKey);
                 effects.StatusChanged += SetStatus;
+                effects.LayeredAudio.StateChanged += LayeredAudioStateChanged;
                 effects.DeviceEvent += EmitToys;
                 effects.KeywordXp += amount => Progress.AddXp(amount);
                 effects.KeywordHaptic += level =>
@@ -121,7 +122,7 @@ public sealed partial class MainWindow : Window
             if (SettingsRecovered) SetStatus("SettingsRecovered");
             timer.Start();
         };
-        Closed += (_, _) => { DisposeToys(); DisposeStartup(); timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
+        Closed += (_, _) => { DisposeToys(); DisposeStartup(); timer.Stop(); if (effects is not null) effects.LayeredAudio.StateChanged -= LayeredAudioStateChanged; effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
     }
 
     private void BuildShell()

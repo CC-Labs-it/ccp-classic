@@ -32,6 +32,8 @@ public sealed partial class DesktopEffectsService : IDisposable
     private string? lastStatus;
     private long started;
     private bool running, disposed;
+    private bool audioOnlySession;
+    internal bool IsAudioOnlySession => audioOnlySession;
     private long lastFlash;
     private InAppEffectWindow? fallback;
     private bool useFallback;
@@ -86,24 +88,33 @@ public sealed partial class DesktopEffectsService : IDisposable
     public static bool IsPlayable(string id) => id is "flash" or "sub" or "spiral" or "pink" or "audio" or "video"
         or "bubble" or "bounce" or "lock" or "wipe" or "drain" || id == "wall" && OperatingSystem.IsWindows();
 
-    public void RefreshSettings() { AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); Tick(); }
+    public void RefreshSettings() { AudioOutputSelection.Configure(settings.Audio); RefreshInteractiveLibrary(); TickLayeredAudio(); Tick(); }
     public void ReloadLibrary() { RefreshInteractiveLibrary(force: true); videos.RefreshLibrary(force: true); Tick(); }
     public void ReloadCustomSpiral() { loom.Reload(); Tick(); }
 
     private void SessionChanged()
     {
         if (session.IsRunning && !running) Start();
-        else if (!session.IsRunning) Stop();
+        else if (running && !session.IsRunning) Stop();
     }
 
     private void Start()
     {
         if (disposed) return;
         running = true; useFallback = false; lastStatus = null;
-        timeline.Start(); videos.Start(); StartInteractive(); StartCompanion(); lastFlash = 0; started = clock.GetTimestamp();
-        StartBrainDrain(); StartHaptics();
+        audioOnlySession = settings.LayeredAudio.AudioOnlySession;
+        lastFlash = 0; started = clock.GetTimestamp();
+        if (audioOnlySession)
+        {
+            videos.Stop(); StopInteractive(); RefreshInteractiveLibrary(force: true);
+        }
+        else
+        {
+            timeline.Start(); videos.Start(); StartInteractive(); StartBrainDrain(); remix.Start();
+        }
+        StartCompanion(); StartHaptics();
         StartSpiralMedia();
-        remix.Start();
+        StartLayeredAudio();
         timer.Start();
         Tick();
     }
@@ -114,6 +125,16 @@ public sealed partial class DesktopEffectsService : IDisposable
         try
         {
             var elapsed = clock.GetElapsedTime(started).TotalSeconds;
+            TickLayeredAudio();
+            if (audioOnlySession)
+            {
+                TickWipe(); TickSpiralMedia(elapsed); TickCompanion(elapsed); TickWallpaper(); TickHaptics(elapsed);
+                timer.Interval = FrameInterval(settings, false, false, companionWindow?.IsVisible == true);
+                Report(SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? LayeredAudioStatus
+                    ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null)
+                    ?? (!panic.IsAvailable ? "GlobalPanicUnavailable" : "Running"));
+                return;
+            }
             videos.Tick(elapsed);
             TickInteractive(elapsed);
             TickBrainDrain(elapsed);
@@ -173,7 +194,7 @@ public sealed partial class DesktopEffectsService : IDisposable
             whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath,
                 settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking) ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1, snapshot.ManualSubliminal);
             TickHaptics(elapsed);
-            Report(videos.Status ?? BrainDrainStatus ?? SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? (useFallback ? "EffectsInWindow" : null)
+            Report(videos.Status ?? BrainDrainStatus ?? SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? LayeredAudioStatus ?? (useFallback ? "EffectsInWindow" : null)
                 ?? (companionWindow?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"
                 : audio.LastError is not null ? "AudioUnavailable" : "Running"));
         }
@@ -260,6 +281,7 @@ public sealed partial class DesktopEffectsService : IDisposable
         timer.Stop(); running = false; StopHaptics(); timeline.Stop(); snapshot = null;
         CloseWindows(); whispers.Stop(); videos.Stop(); StopFlashVoice(); StopBrainDrain(); StopSpiralMedia(); StopInteractive(); StopCompanion();
         remix.Stop();
+        _ = StopLayeredAudioAsync();
         _ = StopWallpaperAsync();
         loom.Reset();
     }
@@ -272,6 +294,7 @@ public sealed partial class DesktopEffectsService : IDisposable
         panic.Dispose(); audio.Dispose(); DisposeInteractiveAudio(); DisposeBrainDrain(); DisposeSpiralMedia(); DisposeWallpaper();
         loom.Dispose(); flashAudio.Dispose(); remix.Dispose();
         DisposeHaptics();
+        DisposeLayeredAudio();
         foreach (var image in images) image.Dispose();
         images.Clear();
     }

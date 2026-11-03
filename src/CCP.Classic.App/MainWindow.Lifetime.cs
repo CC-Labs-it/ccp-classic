@@ -12,7 +12,8 @@ public sealed partial class MainWindow
         if (closingAfterCleanup) return;
         if (waitingForCleanup) { args.Cancel = true; return; }
         Session.Dispose();
-        var cleanup = Task.WhenAll(StopToysAsync(), effects?.StopWallpaperAsync() ?? Task.CompletedTask);
+        var cleanup = Task.WhenAll(StopToysAsync(), effects?.StopWallpaperAsync() ?? Task.CompletedTask,
+            effects?.StopLayeredAudioAsync() ?? Task.CompletedTask);
         if (cleanup.IsCompletedSuccessfully) return;
         args.Cancel = true; waitingForCleanup = true; IsEnabled = false;
         _ = FinishClosingAsync(cleanup);

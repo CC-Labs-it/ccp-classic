@@ -82,13 +82,15 @@ public sealed partial class MainWindow
 
     private void CloseOwner() { if (!startupDisposed) Close(); }
 
+    private void LayeredAudioStateChanged() => Avalonia.Threading.Dispatcher.UIThread.Post(RefreshTrayMenu);
+
     private void RefreshTrayMenu()
     {
         if (startupTray is null || startupDisposed) return;
         var menu = new NativeMenu();
         var show = new NativeMenuItem { Header = text["Studio"] };
         show.Click += (_, _) => ShowOwner();
-        var stop = new NativeMenuItem { Header = text["Stop"], IsEnabled = (Session.IsRunning || startupPending) && Session.PanicEnabled };
+        var stop = new NativeMenuItem { Header = text["Stop"], IsEnabled = (Session.IsRunning || startupPending || effects?.LayeredAudio.IsActive == true) && Session.PanicEnabled };
         stop.Click += (_, _) =>
         {
             CancelPendingStartup();
@@ -136,11 +138,14 @@ public sealed partial class MainWindow
 
     private void ResetSettings()
     {
-        if (Session.IsRunning && !Session.Stop()) { SetStatus("DisabledByPanic"); return; }
+        if ((Session.IsRunning || effects?.LayeredAudio.IsActive == true) && !Session.Stop()) { SetStatus("DisabledByPanic"); return; }
         CancelPendingStartup();
         if (!RegisterStartup(false).Succeeded) { SetStatus("ResetFailed"); return; }
         CloseSheet();
         Settings.ResetToDefaults();
+        haptics.InputEnabled = Settings.Devices.ToyInputEnabled;
+        haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
+        haptics.ConfigureRouting(Settings.Devices.Routing);
         Session.SetPanicEnabled(true);
         text.SetLanguage(Settings.Language);
         SaveSettings(); BuildShell(); effects?.RefreshSettings(); RefreshTrayMenu();

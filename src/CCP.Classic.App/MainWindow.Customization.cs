@@ -39,6 +39,14 @@ public sealed partial class MainWindow
             () => Settings.Effects["audio"].Enabled ? Settings.Effects["audio"].Values["master"] / 100 : 0);
         Session.StopRequested += editor.StopTest;
         editor.DetachedFromVisualTree += (_, _) => { Session.StopRequested -= editor.StopTest; editor.Dispose(); };
-        return editor;
+        var layers = new LayeredAudioEditor(Settings.LayeredAudio, text, () => effects?.RefreshSettings(),
+            () => { if (effects is not null) _ = effects.ApplyLayeredAudioAsync(); },
+            () => effects?.RefreshSettings(), () => effects?.LayeredAudioStatus);
+        if (effects is not null)
+        {
+            effects.LayeredAudio.StateChanged += layers.RefreshStatus;
+            layers.DetachedFromVisualTree += (_, _) => effects.LayeredAudio.StateChanged -= layers.RefreshStatus;
+        }
+        return new StackPanel { Spacing = 14, Children = { editor, layers } };
     }
 }

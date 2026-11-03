@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.VisualTree;
 using CCP.Classic.App;
 using CCP.Classic.Core;
+using CCP.Classic.Core.LocalDevices;
 using Xunit;
 
 namespace CCP.Classic.Tests;
@@ -143,6 +144,22 @@ public sealed class StartupUiTests
         run.Window.Session.Start(); run.FailRegistration = true; run.Call("ResetSettings");
         Assert.False(run.Window.Session.IsRunning); Assert.True(run.Window.Settings.StartWithSystem);
         Assert.True(run.Window.Settings.GentleVisuals); Assert.Equal("ResetFailed", run.Status);
+    });
+
+    [Fact]
+    public Task ResetRestoresLiveDeviceInputIntensityAndRoutingSnapshots() => UiDispatcher.Run(() =>
+    {
+        using var run = new Run(new() { Devices = new() { ToyInputEnabled = false, GlobalIntensity = .2,
+            Routing = new() { MaximumPower = .3 } } });
+        var controller = Assert.IsType<LocalDeviceController>(Field("haptics").GetValue(run.Window));
+        Assert.False(controller.InputEnabled); Assert.Equal(.2, controller.GlobalIntensity);
+        run.Call("ResetSettings");
+        Assert.True(controller.InputEnabled);
+        Assert.Equal(run.Window.Settings.Devices.GlobalIntensity, controller.GlobalIntensity);
+        var routing = Assert.IsType<LocalDeviceRoutingOptions>(typeof(LocalDeviceController)
+            .GetField("routing", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(controller));
+        Assert.Equal(run.Window.Settings.Devices.Routing.MaximumPower, routing.MaximumPower);
+        Assert.Empty(controller.Devices);
     });
 
     [Fact]

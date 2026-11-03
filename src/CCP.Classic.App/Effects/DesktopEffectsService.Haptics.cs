@@ -53,11 +53,12 @@ public sealed partial class DesktopEffectsService
             ? settings.Devices.Level(LocalDeviceEvent.Video) : 0);
         var script = funScript.Sample(timelineSamples, clock, settings.Devices.FunScriptEnabled, settings.Devices.FunScriptToVibration);
         ScriptLevelChanged?.Invoke(script with { Intensity = script.Intensity * settings.Devices.FunScriptIntensity });
-        var audioEnabled = settings.Devices.AudioSyncEnabled && settings.Effects["audio"].Enabled
+        var audioEnabled = settings.Devices.AudioSyncEnabled && (settings.Effects["audio"].Enabled || layeredAudio.IsPlaying)
             && settings.Effects["audio"].Values["master"] > 0;
         if (!audioEnabled) { hapticDsp.Clear(); audioSyncUnavailable = false; AudioLevelChanged?.Invoke(0); AudioBandsChanged?.Invoke(default); return; }
         var sources = audio.GetAudioSamples().Concat(wipeAudio.GetAudioSamples()).Concat(barkAudio.GetAudioSamples())
-            .Concat(keywordAudio.GetAudioSamples()).Concat(flashAudio.GetAudioSamples()).Concat(drainAudio.GetAudioSamples()).Concat(cueAudio.GetAudioSamples()).Concat(videoSamples);
+            .Concat(keywordAudio.GetAudioSamples()).Concat(flashAudio.GetAudioSamples()).Concat(drainAudio.GetAudioSamples()).Concat(cueAudio.GetAudioSamples()).Concat(videoSamples)
+            .Concat(layeredAudio.GetAudioSamples());
         var level = hapticDsp.Sample(sources, hapticEnvelopes.Get, clock, settings.Devices.AudioSyncDsp, out audioSyncUnavailable);
         AudioLevelChanged?.Invoke(level);
         AudioBandsChanged?.Invoke(hapticDsp.LastLevels);
