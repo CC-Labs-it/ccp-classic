@@ -13,14 +13,13 @@ internal static class TubeLayout
 {
     public const double CanvasWidth = 780, CanvasHeight = 1020;
     public const double TubeTop = 150, TubeSize = 780;
-    // AvatarCentre is the mirror axis (CCP's), never moved. The avatar box itself is CCP's 198x306
-    // at 80% (owner 2026-11-03: too big), its figure centred on the glass interior (x 262..406,
+    // AvatarCentre is the mirror axis (CCP's), never moved. The avatar box itself is CCP's 198x306    // at 80% (owner 2026-11-03: too big), its figure centred on the glass interior (x 262..406,
     // y about 560..868): the clips' figure sits about 17 units right of the box centre at full size.
     public const double AvatarCentre = 329.5;
-    public const double AvatarFit = .8, AvatarWidth = 198 * AvatarFit, AvatarHeight = 306 * AvatarFit;
+    public const double AvatarFit = .88, AvatarWidth = 198 * AvatarFit, AvatarHeight = 306 * AvatarFit;
     public const double GlassCentre = 334, AvatarFigureOffset = 17 * AvatarFit;
-    // Owner nudge 2026-11-03: "20 px to the right" at about .72 px per design unit on their panel.
-    public const double AvatarNudge = 28;
+    // Owner nudge 2026-11-03: "20 px to the right", then 7 px back left, at about .72 px per design unit on their panel.
+    public const double AvatarNudge = 18;
     public const double AvatarBoxCentre = GlassCentre - AvatarFigureOffset + AvatarNudge, AvatarFeet = 838;
     // Visible band, symmetric about the avatar's centre so a mirrored tube still fits.
     public const double BandLeft = 229, BandRight = 430;
