@@ -77,6 +77,17 @@ checks. Library test cleanup now waits for canceled thumbnail readers to release
 their handle. The device pulse test uses its existing fake clock to prove expiry.
 These fixes do not change the already-built preview.4 artifacts listed above.
 
+The native Linux timing trail proved that all 29 colored frames presented over
+2.112 seconds at 1x while LibVLC's source position stayed at 0.25 seconds. Video
+allowance now combines the existing source clock with an independent, bounded
+Display-frame clock. Loading, pauses, seek discontinuities and stalled gaps do
+not earn frame credit; audio metering retains the raw source position. Published
+playback time is capped, without trusting duration metadata. Very low frame rates
+below 1 fps or long observer delays may conservatively undercount fallback time.
+The timing fix passed 46 focused Windows checks, including real silent native
+two-second playback and a one-second live cap. The same native cap is now checked
+in the isolated Linux probe. Dispatch can select Linux only for diagnostics.
+
 ## Implemented
 
 - Production continuation: local Library folder pickers and file checkboxes, bounded

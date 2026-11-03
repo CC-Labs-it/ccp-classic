@@ -25,6 +25,8 @@ internal interface ILocalVideoDevice : IDisposable
     bool IsFinished { get; }
     bool IsPlaying { get; }
     long PositionMilliseconds { get; }
+    long PresentedFrameSequence => -1;
+    double FrameIntervalMilliseconds => 0;
     bool TryCopyFrame(out VideoFrame? frame);
     void Start();
     void SetGain(double gain);
@@ -115,7 +117,7 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
             opened.SetGain(initialGain);
             if (!Current()) return;
             opened.Start();
-            var clock = new VideoPlaybackAllowance();
+            var clock = new PresentedVideoAllowance();
             var elapsed = Stopwatch.StartNew();
             double appliedGain = double.NaN;
             bool? appliedPause = null;
@@ -132,8 +134,9 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
                 if (completed) opened.Refresh();
                 lock (gate) if (!disposed) audioSample = new(path, Math.Max(0, opened.PositionMilliseconds) / 1000d,
                     appliedGain, !nextPause && opened.IsPlaying, TimeProvider.System.GetTimestamp());
-                clock.Observe(opened.PositionMilliseconds, elapsed.ElapsedMilliseconds, !nextPause && (opened.IsPlaying || completed));
-                Interlocked.Exchange(ref playedMilliseconds, clock.PlayedMilliseconds);
+                clock.Observe(opened.PositionMilliseconds, elapsed.ElapsedMilliseconds, !nextPause && (opened.IsPlaying || completed),
+                    opened.PresentedFrameSequence, opened.FrameIntervalMilliseconds);
+                Interlocked.Exchange(ref playedMilliseconds, Math.Min(clock.PlayedMilliseconds, (long)(capSeconds * 1000)));
                 if (completed || clock.PlayedMilliseconds >= capSeconds * 1000) break;
                 signal.WaitOne(25);
             }
@@ -204,12 +207,15 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
         private long watchedSequence, lastFrameAt = Environment.TickCount64;
         private string? error;
         private double currentGain;
+        private double frameIntervalMilliseconds;
         private bool pause;
         public int Width => Volatile.Read(ref width);
         public int Height => Volatile.Read(ref height);
         public bool IsFinished => Volatile.Read(ref ended) != 0;
         public bool IsPlaying => player?.State == VLCState.Playing;
         public long PositionMilliseconds => player?.Time ?? -1;
+        public long PresentedFrameSequence => Volatile.Read(ref sequence);
+        public double FrameIntervalMilliseconds => Volatile.Read(ref frameIntervalMilliseconds);
 
         public NativeVideo(string path)
         {
@@ -267,6 +273,8 @@ public sealed class LocalVideoPlayback : ILocalVideoPlayback
                 {
                     var video = actual.Data.Video;
                     (width, height) = FrameSize(video.Width, video.Height, video.SarNum, video.SarDen, (int)video.Orientation >= 4);
+                    Volatile.Write(ref frameIntervalMilliseconds, video.FrameRateNum > 0 && video.FrameRateDen > 0
+                        ? 1000d * video.FrameRateDen / video.FrameRateNum : 0);
                 }
                 else (width, height) = FrameSize(w, h);
                 if (width == 0 || height == 0) return 0;
@@ -325,8 +333,10 @@ internal sealed class VideoPlaybackAllowance
     private long? position;
     private long observedAt;
     public long PlayedMilliseconds { get; private set; }
+    public bool Discontinuity { get; private set; }
     public void Observe(long mediaMilliseconds, long monotonicMilliseconds, bool playing)
     {
+        Discontinuity = false;
         if (!playing || mediaMilliseconds < 0) { position = null; return; }
         if (position is { } previous && mediaMilliseconds == previous) return;
         if (position is { } prior)
@@ -335,8 +345,39 @@ internal sealed class VideoPlaybackAllowance
             var elapsed = Math.Max(0, monotonicMilliseconds - observedAt);
             // Initial seeks and discontinuities never spend the playback allowance.
             if (delta > 0 && delta <= elapsed * 1.25 + 250) PlayedMilliseconds += delta;
+            else Discontinuity = true;
         }
         position = mediaMilliseconds;
         observedAt = monotonicMilliseconds;
+    }
+}
+
+// Display callbacks are paced at the fixed playback rate even when LibVLC's input clock has a stale tail.
+internal sealed class PresentedVideoAllowance
+{
+    private readonly VideoPlaybackAllowance source = new();
+    private long framesPlayed, sequence, lastObserved;
+    private long? presentedAt;
+    public long PlayedMilliseconds => Math.Max(source.PlayedMilliseconds, framesPlayed);
+
+    public void Observe(long mediaMilliseconds, long monotonicMilliseconds, bool playing,
+        long frameSequence, double nominalFrameMilliseconds)
+    {
+        var now = Math.Max(lastObserved, monotonicMilliseconds); lastObserved = now;
+        // Legacy devices do not expose Display evidence and keep the original source-clock behavior.
+        source.Observe(mediaMilliseconds, now, playing && (frameSequence < 0 || frameSequence > 0));
+        if (frameSequence < 0) return;
+        var advanced = frameSequence > sequence;
+        if (!playing || frameSequence < sequence || source.Discontinuity) presentedAt = null;
+        if (playing && advanced)
+        {
+            var nominal = double.IsFinite(nominalFrameMilliseconds) && nominalFrameMilliseconds > 0
+                ? Math.Clamp(nominalFrameMilliseconds, 33, 1000) : 100;
+            var freshness = Math.Clamp(nominal * 1.25 + 75, 150, 1500);
+            if (presentedAt is { } previous && now - previous <= freshness) framesPlayed += now - previous;
+            // A late frame starts a fresh interval; its preceding stalled gap is never credited.
+            presentedAt = now;
+        }
+        sequence = frameSequence;
     }
 }

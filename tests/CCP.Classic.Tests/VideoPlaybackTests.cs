@@ -197,6 +197,69 @@ public sealed class VideoPlaybackTests
         Assert.Equal(2_000, allowance.PlayedMilliseconds);
     }
 
+    [Fact]
+    public void NativeLoadingCannotSpendAllowanceBeforeTheFirstDisplay()
+    {
+        var clock = new PresentedVideoAllowance();
+        clock.Observe(0, 0, true, 0, 66);
+        clock.Observe(1000, 1000, true, 0, 66);
+        Assert.Equal(0, clock.PlayedMilliseconds);
+        clock.Observe(1000, 1100, true, 1, 66);
+        Assert.Equal(0, clock.PlayedMilliseconds);
+        clock.Observe(1000, 1200, true, 2, 66);
+        Assert.Equal(100, clock.PlayedMilliseconds);
+    }
+
+    [Fact]
+    public void PresentedFramesRecoverAStaleClockWithoutAddingBothClocks()
+    {
+        var clock = new PresentedVideoAllowance();
+        for (var i = 0; i <= 20; i++) clock.Observe(Math.Min(i * 100, 250), i * 100, true, i + 1, 100);
+        Assert.Equal(2000, clock.PlayedMilliseconds);
+        var moving = new PresentedVideoAllowance();
+        for (var i = 0; i <= 20; i++) moving.Observe(i * 100, i * 100, true, i + 1, 100);
+        Assert.Equal(2000, moving.PlayedMilliseconds);
+    }
+
+    [Fact]
+    public void PausesBufferingAndStaleFrameGapsCannotAccrueOrBeCreditedOnResume()
+    {
+        var clock = new PresentedVideoAllowance();
+        clock.Observe(250, 0, true, 1, 100); clock.Observe(250, 100, true, 2, 100);
+        clock.Observe(250, 200, false, 2, 100); clock.Observe(250, 5000, false, 2, 100);
+        clock.Observe(250, 5100, true, 2, 100); clock.Observe(250, 5200, true, 3, 100);
+        Assert.Equal(100, clock.PlayedMilliseconds);
+        clock.Observe(250, 5300, true, 4, 100); clock.Observe(250, 9000, true, 4, 100);
+        clock.Observe(250, 9100, true, 5, 100); Assert.Equal(200, clock.PlayedMilliseconds);
+        clock.Observe(250, 9200, true, 6, 100); Assert.Equal(300, clock.PlayedMilliseconds);
+    }
+
+    [Fact]
+    public void SourceSeeksResetPresentedIntervalsAndLegacyDevicesKeepTheirClock()
+    {
+        var clock = new PresentedVideoAllowance();
+        clock.Observe(1000, 0, true, 1, 100); clock.Observe(1100, 100, true, 2, 100);
+        clock.Observe(100_000, 200, true, 3, 100); Assert.Equal(100, clock.PlayedMilliseconds);
+        clock.Observe(100_000, 300, true, 4, 100); Assert.Equal(200, clock.PlayedMilliseconds);
+        clock.Observe(0, 400, true, 5, 100); Assert.Equal(200, clock.PlayedMilliseconds);
+        var legacy = new PresentedVideoAllowance(); legacy.Observe(0, 0, true, -1, 0);
+        legacy.Observe(1000, 1000, true, -1, 0); Assert.Equal(1000, legacy.PlayedMilliseconds);
+    }
+
+    [Fact]
+    public void OneFpsIsSupportedButBogusCadenceCannotCreditLongGaps()
+    {
+        var slow = new PresentedVideoAllowance(); slow.Observe(0, 0, true, 1, 1000);
+        slow.Observe(0, 1000, true, 2, 1000); slow.Observe(0, 2000, true, 3, 1000);
+        Assert.Equal(2000, slow.PlayedMilliseconds);
+        foreach (var cadence in new[] { double.NaN, double.PositiveInfinity, -1, 1e12 })
+        {
+            var clock = new PresentedVideoAllowance(); clock.Observe(0, 0, true, 1, cadence);
+            clock.Observe(0, 5000, true, 2, cadence); Assert.Equal(0, clock.PlayedMilliseconds);
+            clock.Observe(0, 4900, true, 3, cadence); Assert.Equal(0, clock.PlayedMilliseconds);
+        }
+    }
+
     [Theory]
     [InlineData(1920u, 1080u, 960, 540)]
     [InlineData(1080u, 1920u, 304, 540)]

@@ -38,6 +38,9 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
 - Native playback callbacks can finish between worker polls. Sample completion
   once per pass and revalidate terminal errors before release; a healthy Refresh
   does not prove that a subsequent completion succeeded.
+- LibVLC 3 can leave player.Time stale while video Display callbacks keep playing.
+  Video caps combine source time with bounded presented-frame progress. Keep raw
+  source positions for audio metering; do not replace this with metadata duration.
 - Starter recordings use LFS; checkout in CI must fetch LFS. Audio playback uses local
   LibVLC only, forced DirectSound on Windows, never a mixer-wide fallback output.
 - Owner approval 2026-11-03: bundle offline FFmpeg for PCM/RMS analysis only.

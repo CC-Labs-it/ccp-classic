@@ -171,6 +171,23 @@ internal static class Program
             Pass(stage, new { frames, width = 320, height = 180, rate, playedSeconds = video.PlayedSeconds });
         }
         finally { video.Dispose(); await video.Completion.WaitAsync(TimeSpan.FromSeconds(5), token); }
+        stage = "native_video_live_cap";
+        var capped = new LocalVideoPlayback(path, 1); var capClock = Stopwatch.StartNew(); long? firstFrame = null;
+        try
+        {
+            capped.SetGain(0); capped.Start();
+            await Until(() =>
+            {
+                if (capped.TryCopyFrame(out _)) firstFrame ??= capClock.ElapsedMilliseconds;
+                return capped.IsFinished;
+            }, 10);
+            var presentedMs = firstFrame is { } first ? capClock.ElapsedMilliseconds - first : -1;
+            Pass("video_cap_evidence", new { presentedMs, playedSeconds = capped.PlayedSeconds, hasError = capped.LastError is not null });
+            Check(firstFrame is not null && presentedMs is >= 750 and <= 1500
+                && capped.PlayedSeconds is >= .99 and <= 1 && capped.LastError is null, "video_live_cap");
+            Pass(stage);
+        }
+        finally { capped.Dispose(); await capped.Completion.WaitAsync(TimeSpan.FromSeconds(5), token); }
         stage = "native_video_cancel";
         var canceled = new LocalVideoPlayback(path, 10);
         try
