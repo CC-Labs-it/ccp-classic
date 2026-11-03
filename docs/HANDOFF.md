@@ -8,6 +8,14 @@ continued M2-M8 production work with agents on 2026-11-03; that work is active.
 Source design: owner decisions and mockup dated 2026-11-03 in the CCP handoff.
 CCP v7.2.2 was published as Latest on 2026-11-03, satisfying the build start gate.
 
+Latest local installer: `artifacts/packages/CCP.Classic-1.0.0-preview.5-win-x64-setup.exe`.
+It includes the visual polish and playback hardening below, built from clean
+`19d97b4cc9e6020658633dfc031a0124a6ae2920`. All 583 Windows Release tests passed,
+including real silent video pacing/caps and offline FFmpeg analysis, with no skips.
+The installer remains unsigned and has not been installed or published by agents.
+Final source PR 79 passed standard CI on both Windows and Ubuntu. Its isolated
+Linux native acceptance also passed every stage, including the live video cap.
+
 ## Visual polish continuation, 2026-11-03
 
 The owner requested reuse of CCP's finished artwork and interactions after reviewing
@@ -64,8 +72,9 @@ installed, launched or published. Do not call this unsigned preview a signed rel
 Final polish [standard CI](https://github.com/CC-Labs-it/ccp-classic/actions/runs/41651300704)
 passed on Windows and Linux. Native Linux follow-up at the same revision passed
 screen discovery, refusal without a compositor, real transparency/input regions,
-and global panic/keyword input. Its muted-video completion check still needs
-diagnosis; PR 76 adds probe-only measurements without changing the application.
+and global panic/keyword input. Its muted-video completion check failed; PR 76
+added probe-only measurements. The diagnosed timing issue is fixed and the final
+native acceptance below passes.
 
 Post-preview hardening: a LibVLC callback can fail after a healthy worker Refresh
 but before the completion check. Audio and video workers now reuse a single
@@ -87,6 +96,36 @@ below 1 fps or long observer delays may conservatively undercount fallback time.
 The timing fix passed 46 focused Windows checks, including real silent native
 two-second playback and a one-second live cap. The same native cap is now checked
 in the isolated Linux probe. Dispatch can select Linux only for diagnostics.
+
+Final local `1.0.0-preview.5` artifacts, all adjacent checksums verified:
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| CCP.Classic-1.0.0-preview.5-win-x64-setup.exe | 187684251 | e2bfe9e1fab5e92141a287ca70ad1aecc6174f31e8908fc46121e8e749f637c3 |
+| CCP.Classic-1.0.0-preview.5-win-x64.zip | 219368440 | d891e5c311691432a6c82ae1fc0e605d8d0da647344d3d988517fb4ba32c460e |
+| CCP.Classic-1.0.0-preview.5-analysis-sources.zip | 2258080548 | 2e2207ef7e0ed7383d55a2a702b97ea0129a548098caaea77e515b681c7ddd44 |
+
+This package is from clean `19d97b4`, [PR 79](https://github.com/CC-Labs-it/ccp-classic/pull/79).
+Its executable and installer contain the five original icon payloads. Metadata
+confirms complete helper sources, no distribution blocker and no local-review
+exception. `polish-final-release.trx` records the final 583-test Windows pass.
+
+Final cross-platform acceptance on the same `19d97b4` source:
+
+- [PR 79 standard CI](https://github.com/CC-Labs-it/ccp-classic/actions/runs/41655654169):
+  Windows and Ubuntu passed.
+- [Isolated Linux native validation](https://github.com/CC-Labs-it/ccp-classic/actions/runs/41655630819):
+  every native stage passed. Refusal without a compositor, transparency/input
+  regions and global panic/keyword input all passed.
+- The silent natural video presented 29 colored 320 x 180 frames at 1x and credited
+  1.883 seconds. The one-second cap stopped 1037 ms after the first frame and
+  reported exactly 1 second. Video cancellation passed.
+- Muted audio completed at 2 seconds; audio cancellation passed. Offline analysis
+  produced a 2-second silent envelope with RMS 0; analysis cancellation passed.
+
+The native evidence is in job `125985039061` of that Linux run. Local logs and
+proofs remain under ignored `artifacts/`. Signed distribution and owner listening,
+desktop feel and real-device review are separate from these automated results.
 
 ## Implemented
 
