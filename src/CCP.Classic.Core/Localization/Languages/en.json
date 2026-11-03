@@ -338,7 +338,7 @@
   "HelpWallBody": "Wallpaper creates a static or moving wallpaper from your selected local images. Choose the mode and adjust its options before starting.\n\nWallpaper is available on Windows. Classic restores the previous wallpaper when the session ends.",
   "HelpLibraryBody": "Add local folders for images, videos and recordings. Use the folder tree to browse and include whole folders; newly added files follow the folder rules. Save named selection presets and load, update or delete them. Open folder shows the original location. Selection changes apply immediately; playing videos finish normally. Source files are never deleted.",
   "HelpCompanionBody": "The companion uses the approved Breathe, Relax, Focus, Listen and Deeper recordings. More lets you set its position and size. Typed keyword triggers are separate editable rules with words or patterns, cooldowns and actions. They run only when enabled during a session; no typed history is saved.",
-  "HelpToysBody": "Toys connects supported local devices through a localhost provider. Connect the provider and choose intensity and patterns before enabling output.\n\nAudio sync follows decoded sound energy and becomes still during silence, pauses or unavailable analysis. Disconnecting or a permitted stop sends zero output. Device support depends on your local provider.",
+  "HelpToysBody": "Toys connects supported local devices through a localhost provider. Connect the provider and choose intensity and patterns before enabling output.\n\nAudio sync follows decoded sound energy and becomes still during silence, pauses or unavailable analysis. Disconnecting or a permitted stop sends zero output. Device support depends on your local provider.\n\nEnable toy button input and video target answers to use supported Intiface buttons for attention checks. Each press answers one visible target. Button support depends on the device and local provider.",
   "HelpPresetsBody": "A preset recalls a set of effect choices. Choose a built-in card as a starting point, then adjust individual tiles.\n\nSave your current choices as a named local preset. Recalling a preset restores those choices. You can remove your own presets without changing the built-in set.",
   "HelpProgressBody": "Progress records activity locally: session time, completed playback and interactions such as bubble pops and corner hits.\n\nBadge cards show their condition and completion. Interrupted or failed playback does not count as a completed clip. Progress is kept on this computer without an account.",
   "HelpSettingsBody": "Settings contains language, startup behavior, monitor choices, the panic key and visual preferences. Gentle visuals softens effects. Reduced motion holds moving effects still. Performance reduces rendering work.\n\nLearn the panic key before a session. Turning panic off changes every manual stop gesture through the same gate. Closing the main window always exits and releases local playback.",
@@ -578,5 +578,9 @@
   "MaximumConcurrentPulses": "Maximum simultaneous pulses",
   "ToyDuration": "Test duration (ms)",
   "ToyPatternPreview": "Pattern preview",
-  "ToySoftRamp": "Continuous rise time (ms)"
+  "ToySoftRamp": "Continuous rise time (ms)",
+  "ToyInputEnabled": "Toy button input",
+  "ToyAttentionButton": "Answer video targets with toy buttons",
+  "ToyInputHelp": "Supported Intiface buttons can answer one visible video target per press.",
+  "FunScriptIntensity": "Script vibration strength"
 }

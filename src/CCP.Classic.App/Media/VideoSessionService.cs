@@ -35,6 +35,8 @@ internal sealed partial class VideoSessionService(Window owner, ClassicSettings 
     public Func<bool>? LaunchBlocked { get; set; }
     public bool CanTriggerBubble => running && LaunchBlocked?.Invoke() != true && eligibleFiles.Length > 0 && timeline.CanTriggerBubble;
     public bool TryTriggerBubble() => CanTriggerBubble && timeline.TryTriggerBubble();
+    public bool TryAcceptToyAttention(double observedElapsed) => running && runs.Values.Where(run => run.Cue.Attention && !run.Cue.Floating)
+        .SelectMany(run => run.Windows).Any(window => window.TryAcceptToyAttention(observedElapsed));
     public event Action<double>? VideoFinished;
     public event Action<bool>? CountAnswered;
     public event Action? AttentionStarted;

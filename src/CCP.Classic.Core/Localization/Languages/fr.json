@@ -338,7 +338,7 @@
   "HelpWallBody": "Fond d'écran crée un fond fixe ou animé avec les images locales sélectionnées. Choisissez mode et options avant de démarrer.\n\nCette fonction est disponible sous Windows. Classic rétablit le fond précédent à la fin de la session.",
   "HelpLibraryBody": "Ajoutez des dossiers locaux d’images, vidéos et enregistrements. L’arborescence permet de sélectionner des dossiers entiers ; les nouveaux fichiers suivent leurs règles. Enregistrez, chargez, actualisez ou supprimez des sélections nommées. Ouvrir le dossier montre l’emplacement original. Les changements s’appliquent immédiatement ; les vidéos en cours se terminent normalement. Les fichiers d’origine ne sont jamais supprimés.",
   "HelpCompanionBody": "Le compagnon utilise les enregistrements approuvés Breathe, Relax, Focus, Listen et Deeper. Plus règle sa position et sa taille. Les mots-clés saisis sont des règles modifiables avec mots ou motifs, délais et actions. Ils fonctionnent seulement lorsqu’ils sont activés pendant une session ; aucun historique de saisie n’est conservé.",
-  "HelpToysBody": "Appareils connecte les appareils locaux compatibles via un fournisseur localhost. Connectez le service puis réglez intensité et motifs avant la sortie.\n\nLa synchronisation audio suit l'énergie du son décodé et s'arrête pendant silences, pauses ou analyse indisponible. Une déconnexion ou un arrêt autorisé envoie une intensité nulle. La compatibilité dépend du fournisseur local.",
+  "HelpToysBody": "Appareils connecte les appareils locaux compatibles via un fournisseur localhost. Connectez le service puis réglez intensité et motifs avant la sortie.\n\nLa synchronisation audio suit l'énergie du son décodé et s'arrête pendant silences, pauses ou analyse indisponible. Une déconnexion ou un arrêt autorisé envoie une intensité nulle. La compatibilité dépend du fournisseur local.\n\nActivez l'entrée des boutons et les réponses aux cibles vidéo pour utiliser les boutons Intiface compatibles lors des contrôles d'attention. Chaque pression répond à une cible visible. La compatibilité dépend du périphérique et du fournisseur local.",
   "HelpPresetsBody": "Un préréglage rappelle un ensemble d'effets. Choisissez une carte fournie comme point de départ, puis réglez chaque tuile.\n\nEnregistrez vos choix sous un nom local. Charger ce préréglage les rétablit. Vos préréglages peuvent être supprimés sans modifier ceux fournis.",
   "HelpProgressBody": "Progression enregistre localement durée des sessions, lectures terminées et interactions comme les bulles éclatées et les contacts avec les coins.\n\nLes badges indiquent condition et accomplissement. Une lecture interrompue ou échouée ne compte pas comme clip terminé. Les données restent sur cet ordinateur, sans compte.",
   "HelpSettingsBody": "Réglages contient langue, démarrage, moniteurs, touche d'urgence et préférences visuelles. Effets doux adoucit la présentation, Mouvement réduit immobilise les effets et Performance réduit le travail de rendu.\n\nApprenez la touche d'urgence avant une session. La désactiver change tous les gestes d'arrêt manuel selon la même règle. Fermer la fenêtre principale quitte toujours l'application et libère la lecture locale.",
@@ -578,5 +578,9 @@
   "MaximumConcurrentPulses": "Impulsions simultanées maximales",
   "ToyDuration": "Durée du test (ms)",
   "ToyPatternPreview": "Aperçu du motif",
-  "ToySoftRamp": "Temps de montée continue (ms)"
+  "ToySoftRamp": "Temps de montée continue (ms)",
+  "ToyInputEnabled": "Entrée des boutons du périphérique",
+  "ToyAttentionButton": "Répondre aux cibles vidéo avec les boutons",
+  "ToyInputHelp": "Les boutons Intiface compatibles répondent à une cible vidéo visible par pression.",
+  "FunScriptIntensity": "Intensité des vibrations du script"
 }

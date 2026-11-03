@@ -78,11 +78,12 @@ public sealed class ToyRoutingEditor : OptionEditor, IDisposable
             Children.Add(new TextBlock { Text = device.Name, FontWeight = Avalonia.Media.FontWeight.SemiBold });
             Toggle("DeviceEnabled", rule.Enabled, value => rule.Enabled = value);
             String("DeviceNickname", rule.Nickname, value => rule.Nickname = value);
-            Number("DeviceTrim", rule.Trim * 100, 0, 100, value => rule.Trim = value / 100);
+            if (device.Actuators.Count > 0) Number("DeviceTrim", rule.Trim * 100, 0, 100, value => rule.Trim = value / 100);
             var choices = Enum.GetValues<LocalToyRole>().Select(role => new RoleChoice(role, Text["Role" + role])).ToArray();
             var roles = new ComboBox { ItemsSource = choices, SelectedItem = choices.First(item => item.Role == rule.Role), MinWidth = 120 };
             roles.SelectionChanged += (_, _) => { if (roles.SelectedItem is RoleChoice choice) { rule.Role = choice.Role; Changed(); } };
             Children.Add(Row("ToyRole", roles));
+            if (device.Actuators.Count == 0) return;
             var intensity = .3; var duration = 600; var selected = LocalHapticPattern.Constant;
             var graph = new ToyPatternPreview();
             void Refresh() => graph.Configure(selected, intensity, duration, options.Temperament);

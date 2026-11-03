@@ -21,6 +21,8 @@ public sealed partial class MainWindow
     {
         haptics.GlobalIntensity = Settings.Devices.GlobalIntensity; toysLevel = Progress.Level;
         haptics.ConfigureRouting(Settings.Devices.Routing);
+        haptics.InputEnabled = Settings.Devices.ToyInputEnabled;
+        haptics.ButtonPressed += ToysButtonPressed;
         haptics.Changed += ToysChanged;
         Progress.Recorded += ToysProgress;
         Progress.Changed += ToysLevelChanged;
@@ -51,6 +53,7 @@ public sealed partial class MainWindow
             return stopped;
         }));
         more.Children.Add(new AudioSyncDspEditor(Settings.Devices.AudioSyncDsp, text, () => { }));
+        more.Children.Add(new ToyInputOptionsEditor(Settings.Devices, haptics, text, () => { }));
         foreach (var provider in Enum.GetValues<LocalDeviceProvider>())
         {
             var port = new NumericUpDown { Minimum = 1, Maximum = 65535, Increment = 1, FormatString = "0", Width = 110,
@@ -139,6 +142,11 @@ public sealed partial class MainWindow
     }
 
     private void ToysChanged() => Dispatcher.UIThread.Post(() => { if (!toysDisposed) RefreshToys(); });
+    private void ToysButtonPressed(LocalButtonPress press) => Dispatcher.UIThread.Post(() =>
+    {
+        if (!toysDisposed && Session.IsRunning && Settings.Devices.AttentionCheckToyButton && haptics.IsCurrentInput(press))
+            effects?.TryAcceptToyAttention(press.ObservedAt);
+    });
     private void RefreshToys()
     {
         if (toysDisposed) return;
@@ -226,7 +234,8 @@ public sealed partial class MainWindow
             effects.ScriptLevelChanged -= ToysScriptLevel; effects.LuminanceLevelChanged -= ToysLuminanceLevel;
             effects.VideoLevelChanged -= ToysVideoLevel;
         }
-        haptics.Changed -= ToysChanged; Progress.Recorded -= ToysProgress; Progress.Changed -= ToysLevelChanged;
+        haptics.Changed -= ToysChanged; haptics.ButtonPressed -= ToysButtonPressed;
+        Progress.Recorded -= ToysProgress; Progress.Changed -= ToysLevelChanged;
         Progress.AchievementUnlocked -= ToysAchievement; Session.StopRequested -= ToysStopped;
         foreach (var pending in toysConnecting.Values.ToArray()) pending.Cancel();
         haptics.Dispose(); toysRows.Clear();

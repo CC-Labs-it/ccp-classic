@@ -97,7 +97,7 @@ internal sealed partial class VideoWindow : Window
 
     private bool OwnerAvailable => owner is { IsVisible: true } && owner.WindowState != WindowState.Minimized;
     private bool IsSuppressed => !OwnerAvailable || WindowState == WindowState.Minimized || firstFrame is not null && !IsVisible;
-    private void SyncPause() => playback.SetPaused(IsSuppressed);
+    private void SyncPause() { if (IsSuppressed) toyInputResumePending = true; playback.SetPaused(IsSuppressed); }
     private void OwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
     {
         // Avalonia hides owned children before changing the owner's own visibility.
@@ -146,6 +146,7 @@ internal sealed partial class VideoWindow : Window
     {
         now = double.IsFinite(now) ? Math.Max(lastPulse ?? now, now) : lastPulse ?? 0;
         var visible = PreparePresentation();
+        if (visible && (suppressed || toyInputResumePending)) { toyInputResumedAt = now; toyInputResumePending = false; }
         if (lastPulse is { } previous && (suppressed || !visible)) excludedTime += now - previous;
         lastPulse = now; suppressed = !visible;
         lastGain = gain; playback.SetGain(sound.Muted ? 0 : gain); SyncPause();

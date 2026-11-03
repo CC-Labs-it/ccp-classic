@@ -51,7 +51,8 @@ public sealed partial class DesktopEffectsService
         var timelineSamples = videos.GetTimelineSamples().ToArray();
         VideoLevelChanged?.Invoke(settings.Devices.VideoSyncEnabled && timelineSamples.Any(sample => sample.IsPlaying)
             ? settings.Devices.Level(LocalDeviceEvent.Video) : 0);
-        ScriptLevelChanged?.Invoke(funScript.Sample(timelineSamples, clock, settings.Devices.FunScriptEnabled, settings.Devices.FunScriptToVibration));
+        var script = funScript.Sample(timelineSamples, clock, settings.Devices.FunScriptEnabled, settings.Devices.FunScriptToVibration);
+        ScriptLevelChanged?.Invoke(script with { Intensity = script.Intensity * settings.Devices.FunScriptIntensity });
         var audioEnabled = settings.Devices.AudioSyncEnabled && settings.Effects["audio"].Enabled
             && settings.Effects["audio"].Values["master"] > 0;
         if (!audioEnabled) { hapticDsp.Clear(); audioSyncUnavailable = false; AudioLevelChanged?.Invoke(0); AudioBandsChanged?.Invoke(default); return; }

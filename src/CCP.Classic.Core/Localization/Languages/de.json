@@ -338,7 +338,7 @@
   "HelpWallBody": "Hintergrund erzeugt aus ausgewählten lokalen Bildern einen statischen oder bewegten Hintergrund. Wähle Modus und Optionen vor dem Start.\n\nDiese Funktion gibt es unter Windows. Classic stellt nach der Sitzung den vorherigen Hintergrund wieder her.",
   "HelpLibraryBody": "Füge lokale Ordner für Bilder, Videos und Aufnahmen hinzu. Der Ordnerbaum wählt ganze Ordner; neue Dateien folgen ihren Regeln. Speichere benannte Auswahlvorgaben und lade, aktualisiere oder lösche sie. Ordner öffnen zeigt den Originalort. Änderungen gelten sofort; laufende Videos werden normal beendet. Quelldateien werden nie gelöscht.",
   "HelpCompanionBody": "Der Begleiter nutzt die freigegebenen Aufnahmen Breathe, Relax, Focus, Listen und Deeper. Mehr bietet Position und Größe. Getippte Schlüsselwörter sind eigene bearbeitbare Regeln mit Wörtern oder Mustern, Pausen und Aktionen. Sie arbeiten nur bei aktivierter Funktion während einer Sitzung; ein Eingabeverlauf wird nicht gespeichert.",
-  "HelpToysBody": "Geräte verbindet unterstützte lokale Geräte über einen localhost-Dienst. Verbinde den Dienst und wähle Stärke und Muster vor der Ausgabe.\n\nAudiosynchronisierung folgt der decodierten Schallenergie und hält bei Stille, Pausen oder fehlender Analyse an. Trennen und erlaubte Stopps senden null. Die Unterstützung hängt vom lokalen Dienst ab.",
+  "HelpToysBody": "Geräte verbindet unterstützte lokale Geräte über einen localhost-Dienst. Verbinde den Dienst und wähle Stärke und Muster vor der Ausgabe.\n\nAudiosynchronisierung folgt der decodierten Schallenergie und hält bei Stille, Pausen oder fehlender Analyse an. Trennen und erlaubte Stopps senden null. Die Unterstützung hängt vom lokalen Dienst ab.\n\nAktiviere die Tasteneingabe am Gerät und Antworten auf Videoziele, um unterstützte Intiface-Tasten für Aufmerksamkeitsprüfungen zu verwenden. Jeder Druck beantwortet ein sichtbares Ziel. Die Unterstützung hängt vom Gerät und lokalen Anbieter ab.",
   "HelpPresetsBody": "Eine Vorlage ruft eine Kombination von Effekteinstellungen ab. Beginne mit einer vorgegebenen Karte und passe einzelne Kacheln an.\n\nSpeichere deine Auswahl als benannte lokale Vorlage. Laden stellt sie wieder her. Eigene Vorlagen lassen sich löschen, ohne die mitgelieferten zu ändern.",
   "HelpProgressBody": "Fortschritt speichert Sitzungsdauer, abgeschlossene Wiedergaben und Aktionen wie Blasenplatzen oder Ecktreffer lokal.\n\nAbzeichenkarten zeigen Bedingungen und Abschluss. Unterbrochene oder fehlgeschlagene Wiedergaben zählen nicht als fertige Clips. Alles bleibt ohne Konto auf diesem Computer.",
   "HelpSettingsBody": "Einstellungen enthält Sprache, Startverhalten, Monitore, Paniktaste und visuelle Optionen. Sanfte Effekte mildert die Darstellung, Reduzierte Bewegung hält Animationen still, Leistung senkt den Renderaufwand.\n\nLerne die Paniktaste vor einer Sitzung kennen. Sie zu deaktivieren betrifft alle manuellen Stoppgesten nach derselben Regel. Das Hauptfenster zu schließen beendet immer die App und die lokale Wiedergabe.",
@@ -578,5 +578,9 @@
   "MaximumConcurrentPulses": "Maximale gleichzeitige Impulse",
   "ToyDuration": "Testdauer (ms)",
   "ToyPatternPreview": "Mustervorschau",
-  "ToySoftRamp": "Anstiegszeit bei Dauersignalen (ms)"
+  "ToySoftRamp": "Anstiegszeit bei Dauersignalen (ms)",
+  "ToyInputEnabled": "Tasteneingabe am Gerät",
+  "ToyAttentionButton": "Videoziele mit Gerätetasten beantworten",
+  "ToyInputHelp": "Unterstützte Intiface-Tasten beantworten pro Druck ein sichtbares Videoziel.",
+  "FunScriptIntensity": "Skript-Vibrationsstärke"
 }

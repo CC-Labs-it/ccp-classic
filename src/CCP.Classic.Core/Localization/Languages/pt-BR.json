@@ -338,7 +338,7 @@
   "HelpWallBody": "Papel de parede cria um fundo estático ou animado com as imagens locais selecionadas. Escolha modo e opções antes de iniciar.\n\nO recurso está disponível no Windows. Classic restaura o papel de parede anterior ao terminar a sessão.",
   "HelpLibraryBody": "Adicione pastas locais de imagens, vídeos e gravações. Use a árvore para navegar e selecionar pastas inteiras; novos arquivos seguem suas regras. Salve seleções com nome para carregar, atualizar ou excluir. Abrir pasta mostra o local original. As alterações são aplicadas imediatamente; vídeos em reprodução terminam normalmente. Os arquivos originais nunca são apagados.",
   "HelpCompanionBody": "O acompanhante usa as gravações aprovadas Breathe, Relax, Focus, Listen e Deeper. Mais permite ajustar posição e tamanho. Gatilhos digitados são regras editáveis com palavras ou padrões, intervalos e ações. Só funcionam quando ativados durante uma sessão; nenhum histórico digitado é salvo.",
-  "HelpToysBody": "Dispositivos conecta dispositivos locais compatíveis por um provedor localhost. Conecte o serviço e ajuste intensidade e padrões antes de ativar a saída.\n\nA sincronização de áudio segue a energia do som decodificado e para durante silêncio, pausas ou análise indisponível. Desconectar ou uma parada permitida envia intensidade zero. O suporte depende do provedor local.",
+  "HelpToysBody": "Dispositivos conecta dispositivos locais compatíveis por um provedor localhost. Conecte o serviço e ajuste intensidade e padrões antes de ativar a saída.\n\nA sincronização de áudio segue a energia do som decodificado e para durante silêncio, pausas ou análise indisponível. Desconectar ou uma parada permitida envia intensidade zero. O suporte depende do provedor local.\n\nAtive a entrada dos botões e as respostas aos alvos de vídeo para usar botões compatíveis com Intiface nas verificações de atenção. Cada pressão responde a um alvo visível. O suporte depende do dispositivo e do provedor local.",
   "HelpPresetsBody": "Uma predefinição recupera um conjunto de efeitos. Escolha um cartão incluído como ponto de partida e ajuste os blocos individuais.\n\nSalve suas escolhas como uma predefinição local com nome. Carregá-la restaura essas escolhas. Você pode excluir suas predefinições sem mudar as incluídas.",
   "HelpProgressBody": "Progresso registra localmente tempo de sessão, reprodução concluída e interações como estouros de bolhas e acertos nos cantos.\n\nOs emblemas mostram condição e conclusão. Reprodução interrompida ou com falha não conta como clipe concluído. Os dados ficam neste computador, sem conta.",
   "HelpSettingsBody": "Configurações contém idioma, inicialização, monitores, tecla de emergência e preferências visuais. Efeitos suaves suaviza a apresentação. Movimento reduzido mantém os efeitos parados. Desempenho reduz o trabalho de renderização.\n\nConheça a tecla de emergência antes de uma sessão. Desativá-la muda todos os gestos de parada manual pela mesma regra. Fechar a janela principal sempre encerra o aplicativo e libera a reprodução local.",
@@ -578,5 +578,9 @@
   "MaximumConcurrentPulses": "Máximo de pulsos simultâneos",
   "ToyDuration": "Duração do teste (ms)",
   "ToyPatternPreview": "Prévia do padrão",
-  "ToySoftRamp": "Tempo de subida contínua (ms)"
+  "ToySoftRamp": "Tempo de subida contínua (ms)",
+  "ToyInputEnabled": "Entrada dos botões do dispositivo",
+  "ToyAttentionButton": "Responder a alvos de vídeo com botões",
+  "ToyInputHelp": "Botões compatíveis com Intiface respondem a um alvo de vídeo visível por pressão.",
+  "FunScriptIntensity": "Intensidade de vibração do roteiro"
 }

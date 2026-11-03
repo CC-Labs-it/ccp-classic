@@ -79,20 +79,36 @@ without allocating transient patterns. Muted video uses timeline samples;
 old serialized video-pattern values remain unused, matching the source's dead
 compatibility field.
 
-Remaining functional gaps and deliberate distinctions:
+Advertised button input and script scale:
 
 - `ButtplugProviderV2.cs:164,506,778-818` has a real Intiface button path. It hooks
   InputReadingReceived, subscribes only advertised Button features with Subscribe
   support, then emits down/up events. `ToyInputService.cs:24-145` applies a
-  350 ms per-device debounce and supplies attention-check waiters. Classic has
-  no corresponding advertised-button input subscription yet. This is a confirmed
-  functional gap and needs compatibility checks against Classic's native wire
-  transport before a port.
+  350 ms per-device debounce and supplies attention-check waiters. Classic now
+  subscribes only to advertised Subscribe-capable Button features after its
+  existing v4 handshake. One bounded receive pump separates unsolicited Id0
+  input from exact-ID replies; stale reply envelopes cannot reach device parsing.
+  Held edges and per-device debounce prevent repeat counts. Input-only devices
+  remain visible without irrelevant motor-test controls.
+- Feature generations invalidate queued events on removal/index reuse. Controller
+  generations invalidate them on stop, reconnect or input opt-out. UI dispatch
+  rechecks those generations and the active session. Optional video-target input
+  hits one already-existing visible fullscreen target, including muted video,
+  with the original hit/audio/statistics route. Press observation times reject a
+  queued press from before target creation. Hidden/paused/floating/preview paths
+  cannot claim a target, and presentation-clock exclusions survive restoration.
+- Input work is canceled before a safety Stop request competes for the wire.
+  Disconnect tears down subscriptions, receiver, pending replies and held state.
+  Tests use in-memory WebSockets/transports, never real hardware. Physical button
+  support still depends on the connected device and provider.
 - The source Pattern layer row, labeled Deeper, also scales/gates FunScript
   (`MainWindow.Haptics.cs:131`, `HapticUiModels.cs:202-318`). Classic already has
-  explicit script enable/conversion/role plus global cap/trim. An independent
-  FunScript scale is the one optional remaining local strength control; a new
+  explicit script enable/conversion/role plus global cap/trim. Independent script
+  vibration strength is now implemented without reanalysis. It scales vibration
+  output only; absolute position targets preserve the source semantics. A new
   generic layer framework is not needed.
+
+Deliberate distinctions, without dormant controls:
 - `LovenseToyEventsClient.cs:12-32` explicitly calls its /v1 handshake unpublished
   and uses two speculative access-request shapes. Its strength-change backoff
   does not establish functioning parity without protocol/device evidence. The
@@ -110,6 +126,20 @@ Remaining functional gaps and deliberate distinctions:
   sizes are internal analysis tuning with no Views/MainWindow controls. Classic
   uses the same 10 Hz/five-minute defaults with its local buffer/cache budgets;
   absent expert sliders are not functioning source UI gaps.
+
+The input wire layout was checked against the installed official Buttplug 5.0.1
+assembly and its recorded upstream commit
+`ec8e6ff175e33dd75778cc91c485ec1a24353915`, plus the official
+[input specification](https://buttplug.io/docs/spec/input/) and
+[device feature schema](https://buttplug.io/docs/spec/device_information/).
+Classic already negotiated v4; no v3 fallback or guessed button command was added.
+Its connection factory remains idle until an explicit provider connection.
+
+Coordinated Windows Release validation passed 37 focused checks with zero skips
+after the observation-time and hidden-interval corrections. This includes all
+button/transport/attention/editor regressions and the independent input review.
+The native audio-output check also verifies an actual DirectSound GUID and
+return to System Default. No physical toy was connected during these checks.
 
 Tests use fake toy transports and actual FFT response to low/high tones. They
 check identities, disposal/cancellation, emitted per-device commands, routing,

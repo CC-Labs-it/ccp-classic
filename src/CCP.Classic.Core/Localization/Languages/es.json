@@ -338,7 +338,7 @@
   "HelpWallBody": "Fondo crea un fondo estático o animado con imágenes locales seleccionadas. Elige modo y opciones antes de iniciar.\n\nEstá disponible en Windows. Classic restaura el fondo anterior al terminar la sesión.",
   "HelpLibraryBody": "Añade carpetas locales de imágenes, vídeos y grabaciones. Usa el árbol para explorar y seleccionar carpetas enteras; los archivos nuevos siguen sus reglas. Guarda selecciones con nombre y cárgalas, actualízalas o elimínalas. Abrir carpeta muestra el origen. Los cambios se aplican de inmediato; los vídeos en curso terminan normalmente. Nunca se borran los archivos originales.",
   "HelpCompanionBody": "El acompañante utiliza las grabaciones aprobadas Breathe, Relax, Focus, Listen y Deeper. Más permite ajustar posición y tamaño. Los activadores escritos son reglas editables con palabras o patrones, pausas y acciones. Solo funcionan si están activados durante una sesión; no se guarda historial de escritura.",
-  "HelpToysBody": "Dispositivos conecta dispositivos locales compatibles mediante un proveedor localhost. Conecta el servicio y ajusta intensidad y patrones antes de activar la salida.\n\nLa sincronización de audio sigue la energía del sonido decodificado y se detiene con silencio, pausas o análisis no disponible. Desconectar o una parada permitida envía intensidad cero. La compatibilidad depende del proveedor local.",
+  "HelpToysBody": "Dispositivos conecta dispositivos locales compatibles mediante un proveedor localhost. Conecta el servicio y ajusta intensidad y patrones antes de activar la salida.\n\nLa sincronización de audio sigue la energía del sonido decodificado y se detiene con silencio, pausas o análisis no disponible. Desconectar o una parada permitida envía intensidad cero. La compatibilidad depende del proveedor local.\n\nActiva la entrada de botones y las respuestas a objetivos de vídeo para usar botones compatibles con Intiface en las comprobaciones de atención. Cada pulsación responde a un objetivo visible. La compatibilidad depende del dispositivo y del proveedor local.",
   "HelpPresetsBody": "Un preset recupera una combinación de efectos. Elige una ficha incluida como punto de partida y ajusta las demás fichas.\n\nGuarda tus elecciones como preset local con nombre. Cargarlo restaura esas elecciones. Puedes borrar tus presets sin modificar los incluidos.",
   "HelpProgressBody": "Progreso registra localmente duración de sesiones, reproducción completada e interacciones como estallidos y golpes en esquinas.\n\nLas insignias muestran condiciones y finalización. La reproducción interrumpida o fallida no cuenta como un clip completado. Los datos quedan en este equipo sin cuenta.",
   "HelpSettingsBody": "Ajustes contiene idioma, inicio, monitores, tecla de emergencia y preferencias visuales. Efectos suaves suaviza la presentación. Movimiento reducido mantiene quietos los efectos. Rendimiento reduce el trabajo de renderizado.\n\nConoce la tecla de emergencia antes de una sesión. Desactivarla cambia todos los gestos de parada manual con la misma regla. Cerrar la ventana principal siempre sale y libera la reproducción local.",
@@ -578,5 +578,9 @@
   "MaximumConcurrentPulses": "Máximo de pulsos simultáneos",
   "ToyDuration": "Duración de prueba (ms)",
   "ToyPatternPreview": "Vista previa del patrón",
-  "ToySoftRamp": "Tiempo de subida continua (ms)"
+  "ToySoftRamp": "Tiempo de subida continua (ms)",
+  "ToyInputEnabled": "Entrada de botones del dispositivo",
+  "ToyAttentionButton": "Responder a objetivos de vídeo con botones",
+  "ToyInputHelp": "Los botones compatibles con Intiface responden a un objetivo visible por pulsación.",
+  "FunScriptIntensity": "Intensidad de vibración del guion"
 }
