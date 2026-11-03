@@ -156,6 +156,8 @@ public sealed class LocalImageLibrary : IReadOnlyList<IImage>, IDisposable
             : Bitmap.DecodeToHeight(stream, Math.Min(1024, height));
     }
 
+    internal static Bitmap DecodeThumbnail(string path) => Decode(LocalPath(path) ?? throw new IOException("Image is unavailable"));
+
     public void Dispose()
     {
         lock (gate)
