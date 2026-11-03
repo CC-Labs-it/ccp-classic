@@ -77,7 +77,9 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
 - LibVLC 3 decoded-audio callbacks use S16N unless a setup callback changes the
   negotiated format. SetAudioFormat("FL32") alone does not yield float samples.
   The transcode copy packetizer drops its last packet; direct decoded callbacks
-  preserve the tail but run at playback speed. Do not treat fast smem as lossless.
+  preserve the tail. Silent decoding is verified at 4x with S16N/176400 Hz callbacks;
+  actual output remains 44100 Hz/1x. The amem rate field is 18 bits, so 8x overflows.
+  Do not treat fast smem as lossless.
 - Starter recordings use LFS; checkout in CI must fetch LFS. Audio playback uses local
   LibVLC only, forced DirectSound on Windows, never a mixer-wide fallback output.
 - Owner approval 2026-11-03: bundle offline FFmpeg for PCM/RMS analysis only.
