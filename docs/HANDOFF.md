@@ -52,6 +52,7 @@ under roughly 600 changed text lines in a linear review stack.
 ## Review stack
 
 All PRs are drafts. Each targets its predecessor; review from 1 through 9.
+PR 10 follows the M0 stack with the owner's Bouncing Text artwork correction.
 Retarget dependent PRs before removing parent branches during merging.
 
 | PR | Change |
@@ -65,6 +66,7 @@ Retarget dependent PRs before removing parent branches during merging.
 | [7](https://github.com/CC-Labs-it/ccp-classic/pull/7) | Original public artwork and native animated logo |
 | [8](https://github.com/CC-Labs-it/ccp-classic/pull/8) | Compact mosaic and owned settings windows |
 | [9](https://github.com/CC-Labs-it/ccp-classic/pull/9) | Safety, layout, animation and language rendering tests |
+| [10](https://github.com/CC-Labs-it/ccp-classic/pull/10) | Original CCP Bouncing Text artwork |
 
 ## Next
 
