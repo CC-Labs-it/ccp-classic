@@ -93,6 +93,19 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 
 ## Next
 
+### M1 review stack
+
+All five PRs are drafts, each based on its predecessor. Review in order; each
+contains fewer than 600 changed text lines. Retarget children before merging parents.
+
+| PR | Change |
+|---|---|
+| [12](https://github.com/CC-Labs-it/ccp-classic/pull/12) | elapsed-time effects and native visual rendering |
+| [13](https://github.com/CC-Labs-it/ccp-classic/pull/13) | passive Windows and local X11 panic listeners |
+| [14](https://github.com/CC-Labs-it/ccp-classic/pull/14) | verified starter media and cancellable local audio |
+| [15](https://github.com/CC-Labs-it/ccp-classic/pull/15) | transparent desktop hosts and native input regions |
+| [16](https://github.com/CC-Labs-it/ccp-classic/pull/16) | connect the first playable session and shared panic routing |
+
 Review the M1 first-playable stack and try a local session. M2 adds Mandatory
 Videos: fullscreen/floating, Strict Lock, attention checks, length caps and curtain.
 
