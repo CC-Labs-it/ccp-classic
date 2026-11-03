@@ -41,6 +41,7 @@ public sealed class ProductionRuntimeTests
             picker.SelectedItem = ((IEnumerable<PresetDefinition>)picker.ItemsSource!).Single(item => item.Name == "Gentle");
             Dispatcher.UIThread.RunJobs();
             Assert.True(window.Settings.GentleVisuals);
+            Assert.DoesNotContain("motion", window.Classes);
             Assert.True(Named<ToggleButton>(window, "GentleToggle").IsChecked);
             var start = Named<Button>(window, "StartStop");
             var point = start.TranslatePoint(new Point(start.Bounds.Width / 2, start.Bounds.Height / 2), window)!.Value;

@@ -230,7 +230,7 @@ public sealed partial class MainWindow : Window
         return panel;
     }
 
-    private void PresetChanged() { SaveSettings(); BuildShell(); effects?.RefreshSettings(); }
+    private void PresetChanged() { SaveSettings(); VisualPolish.ApplyWindow(this, Settings); BuildShell(); effects?.RefreshSettings(); }
 
     private Control Studio()
     {
