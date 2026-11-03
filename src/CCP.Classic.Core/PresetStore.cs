@@ -12,6 +12,7 @@ public sealed class PresetDefinition
     public bool ReducedMotion { get; set; }
     public int RunMinutes { get; set; }
     public List<TimedEffectChange> TimedChanges { get; set; } = [];
+    public string? CustomSpiralId { get; set; }
 }
 
 public sealed class PresetStore(string directory)
@@ -29,6 +30,7 @@ public sealed class PresetStore(string directory)
         {
             Name = name, Effects = settings.Effects, GentleVisuals = settings.GentleVisuals,
             ReducedMotion = settings.ReducedMotion, RunMinutes = settings.RunMinutes,
+            CustomSpiralId = settings.CustomSpiralId,
             TimedChanges = TimedEffectChange.Normalize(settings.TimedChanges)
         });
     }
@@ -45,6 +47,7 @@ public sealed class PresetStore(string directory)
         settings.ReducedMotion = normalized.ReducedMotion;
         settings.RunMinutes = normalized.RunMinutes;
         settings.TimedChanges = normalized.TimedChanges.ToList();
+        settings.CustomSpiralId = normalized.CustomSpiralId;
         settings.Preset = normalized.Name;
     }
 
@@ -143,6 +146,7 @@ public sealed class PresetStore(string directory)
         {
             Id = definition.Id, Name = name, Effects = settings.Effects, RunMinutes = settings.RunMinutes,
             GentleVisuals = definition.GentleVisuals, ReducedMotion = definition.ReducedMotion,
+            CustomSpiralId = ClassicSettings.NormalizeSpiralId(definition.CustomSpiralId),
             TimedChanges = TimedEffectChange.Normalize(definition.TimedChanges)
         };
     }
