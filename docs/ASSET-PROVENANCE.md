@@ -70,6 +70,47 @@ The files use LFS. All three are 192 x 309 transparent GIFs with 120 frames.
 The fresh native host decodes one frame at a time and honors the session's motion
 gates. Only the five owner-approved words can enter its bark display.
 
+### Full avatar0 emote set (owner 2026-11-03, animation parity)
+
+The rest of CCP's avatar0 clips came from the public repository's `release/7.2.2` branch at
+`5ad49a0c3fea777e32a065badee8a40bad2ed4a6`. Each file's SHA-256 matched its committed LFS pointer
+before it was copied; the three clips above are byte-identical there. Every clip is a 192 x 309
+transparent GIF of 120 frames at 60 ms. `idle2.gif` is not copied: no CCP rule names it.
+
+| Classic asset | Public source | SHA-256 | Bytes |
+|---|---|---|---:|
+| `Assets/Companion/adoring.gif` | `Resources/avatar0_emotes/adoring.gif` | `4c0f158a12a13bb122003530d4a6121af34bccc5db65c29552e151e6d52f0848` | 2040016 |
+| `Assets/Companion/blowkiss.gif` | `Resources/avatar0_emotes/blowkiss.gif` | `b61a6beca0df2c55f760ea729f2af2fd44b9103f796a6ca8812a57af9ea8d7d1` | 2066184 |
+| `Assets/Companion/celebrate.gif` | `Resources/avatar0_emotes/celebrate.gif` | `343ec1a4ad07fe479825857e8b8660d35460244dac2832f9861fb44ccdfa4447` | 1996237 |
+| `Assets/Companion/cheer.gif` | `Resources/avatar0_emotes/cheer.gif` | `dddd46669be5d7181135e07134b5584b16442262a83b2972196264ff9f490b8b` | 2133779 |
+| `Assets/Companion/comehere.gif` | `Resources/avatar0_emotes/comehere.gif` | `e35490f3ff51cd4c2b62a25862fa1a30caa7d03cf65b90a41a83bceeb0c47914` | 2081113 |
+| `Assets/Companion/denial.gif` | `Resources/avatar0_emotes/denial.gif` | `ca7a02b0724b51006189fafa8c49459f22aab0bc6772bd8d161f2f18abfce4f7` | 2095954 |
+| `Assets/Companion/entrancing.gif` | `Resources/avatar0_emotes/entrancing.gif` | `b3f2fc12a998755f938666ff535a9e60e51426099bd42c6e3baeff9b29cb6995` | 2076403 |
+| `Assets/Companion/flirt.gif` | `Resources/avatar0_emotes/flirt.gif` | `05b2de8e8d34294c855a18aac980e257d68e90b124d0141cac76b6515fc47a2f` | 2029689 |
+| `Assets/Companion/giggle.gif` | `Resources/avatar0_emotes/giggle.gif` | `228682c0af3d2a0b57c78254db14369dbaf42191d7d0b6f3cad9038fb2708379` | 2076761 |
+| `Assets/Companion/idle3.gif` | `Resources/avatar0_emotes/idle3.gif` | `ce42a54556c0a6d3447e63a42ccb4c1a2ccf287f6e9fecb268d1e8622e63f5b5` | 2114789 |
+| `Assets/Companion/idle4.gif` | `Resources/avatar0_emotes/idle4.gif` | `0eadd0ced42b225055f1ecf564523eb9abfb32dcc448c122d95ae0edfa035218` | 2133024 |
+| `Assets/Companion/idle5.gif` | `Resources/avatar0_emotes/idle5.gif` | `d354d54cdf7a3d027026f401f154cf6b67e88c028ed5f78dfc4cc9cfa0c7e6b3` | 2129721 |
+| `Assets/Companion/praise.gif` | `Resources/avatar0_emotes/praise.gif` | `7b23fdd17894c89ff674c1901fa1afff0a87e4a19b2738c794846e272ba21c7f` | 2089696 |
+| `Assets/Companion/shy.gif` | `Resources/avatar0_emotes/shy.gif` | `9e09b0e87f0382734d1322e0f5fd0626758649ef0298072f11dc7a0cc0b731bf` | 2091554 |
+| `Assets/Companion/sultry.gif` | `Resources/avatar0_emotes/sultry.gif` | `d0edf61a4145a3b84e1ffa45956c8d99df599ef53f4f0606c938a1d3bf28a6f0` | 2130747 |
+| `Assets/Companion/surprised.gif` | `Resources/avatar0_emotes/surprised.gif` | `c2e61b75173180585a8060aeb65fea561b494e526d4ab3154572db52d5deaeac` | 2081871 |
+| `Assets/Companion/talkB.gif` | `Resources/avatar0_emotes/talkB.gif` | `0b0299cc0d466767a2e93a2336e5e95700381c3cf1f49d757067ccffd6b3e6b9` | 2143246 |
+| `Assets/Companion/talkC.gif` | `Resources/avatar0_emotes/talkC.gif` | `06ca41a5eb19aaa873aeca1791c4c8fa7e80165f4b2c6d0a951d14824c864a9e` | 2152211 |
+| `Assets/Companion/talkD.gif` | `Resources/avatar0_emotes/talkD.gif` | `a5fc14ffd0d0c60a35ef63ac5d6bcef60c58137fbab8d2963883e811c2ad8902` | 2106779 |
+| `Assets/Companion/talkE.gif` | `Resources/avatar0_emotes/talkE.gif` | `361c043ca0c383e62476aca8ca73c444b1be4a9736c1473ad9f99ba6d2a1351e` | 2094065 |
+| `Assets/Companion/talkF.gif` | `Resources/avatar0_emotes/talkF.gif` | `f14f74fcfdb96a78adc2adf0cb85690cbaeb81b3b12ac259aa6489a2b768fe72` | 2171040 |
+| `Assets/Companion/tease.gif` | `Resources/avatar0_emotes/tease.gif` | `9374812f1c49827dc758a0d281bb4eb1aaea1c47ce2aa9da56ce69976be19141` | 2098853 |
+| `Assets/Companion/tender.gif` | `Resources/avatar0_emotes/tender.gif` | `d2dceee9d9a280d3d96fde1da1809adcb50c6eb7f9fbed34be55fda1a82fa2cb` | 2057866 |
+| `Assets/Companion/wink.gif` | `Resources/avatar0_emotes/wink.gif` | `7dccbb06920e4fb7ab03fd85d9fe754a49b0b7ed73d5a10d9ec327f78e42bea0` | 2127109 |
+
+`Assets/Companion/emotes.json` and `clip_timing.json` are trimmed from CCP's
+`Resources/avatar0_emotes/emotes.json` and `clip_timing.json` at the same commit: the rule values
+(fade, idle weights, talk and expressive pools, pacing, click emotes, stem and mood maps, speaking
+windows) are unchanged; comments, `fps`, `longMinSec`, `clipScale`, `layout` and the `confirmed`
+flags are dropped, and `clipMs` (7200) records the shared clip length. Classic plays every clip at
+80% of its GIF rate (owner request), so a clip lasts 9.0 s.
+
 The glass tube art around the avatar is CCP's `ConditioningControlPanel/Resources/tube.png`,
 reused unchanged (identical bytes at `fe40ea7587ac0b09e47d0724e59d7178db3336da` and
 public main `c21d38193746fcc61c2406186ae1936a14571906`). It is a 2048 x 2048 RGBA PNG,
