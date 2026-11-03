@@ -1,0 +1,9 @@
+{
+  "talkA": { "durationMs": 7200, "speakStartMs": 250, "speakEndMs": 7000 },
+  "talkB": { "durationMs": 7200, "speakStartMs": 250, "speakEndMs": 7000 },
+  "talkC": { "durationMs": 7200, "speakStartMs": 250, "speakEndMs": 7000 },
+  "talkD": { "durationMs": 7200, "speakStartMs": 250, "speakEndMs": 7000 },
+  "talkE": { "durationMs": 7200, "speakStartMs": 250, "speakEndMs": 7000 },
+  "talkF": { "durationMs": 7200, "speakStartMs": 250, "speakEndMs": 7000 },
+  "adoring": { "durationMs": 7200, "speakStartMs": 0, "speakEndMs": 7200 }
+}

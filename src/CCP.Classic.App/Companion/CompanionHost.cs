@@ -67,7 +67,15 @@ internal sealed class CompanionHost : IDisposable
     }
 
     // Barks and talk end at once; the tube returns to idle and the next idle word waits a full interval.
-    public void EndSession() { session = false; if (!disposed) barks.Stop(); Refresh(); }
+    public void EndSession() { session = false; if (!disposed) barks.Stop(); Window?.StopReactions(Now); Refresh(); }
+
+    // The one entry point for spoken barks: line id, mood, text and the recording's length in seconds.
+    // The avatar plays CCP's talk clips for the line, then one reaction; a short line plays only its reaction.
+    public void SpeakLine(string? lineId, string? mood, string? text, double seconds) => Window?.SpeakLine(lineId, mood, text, seconds, Now);
+    // A giggle or other short non-verbal sound: one expressive clip with no mouth movement.
+    public void NonVerbal() => Window?.NonVerbal(Now);
+    // A keyword or other repetitive trigger: one expressive clip from idle, never talk.
+    public bool TriggerWord() => Window?.TriggerWord(Now) ?? false;
 
     internal void IdleTick()
     {
