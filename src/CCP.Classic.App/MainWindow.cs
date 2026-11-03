@@ -62,7 +62,7 @@ public sealed partial class MainWindow : Window
         VisualPolish.ApplyWindow(this, Settings);
         ClosingBehavior = WindowClosingBehavior.OwnerWindowOnly;
         Closing += AwaitLocalCleanup;
-        Width = 724; Height = 760; MinWidth = 700; MinHeight = 700;
+        Width = 724; Height = 800; MinWidth = 700; MinHeight = 740;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         BuildShell();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -112,12 +112,14 @@ public sealed partial class MainWindow : Window
 
     private void BuildShell()
     {
-        root = new Grid { RowDefinitions = new("80,*,56") };
+        root = new Grid { RowDefinitions = new("84,*,Auto,56") };
         root.Children.Add(Chrome(Header(), false));
         page = new ContentControl();
         Grid.SetRow(page, 1); root.Children.Add(page);
+        var support = SupportBanner();
+        Grid.SetRow(support, 2); root.Children.Add(support);
         var bottom = Chrome(Bottom(), true);
-        Grid.SetRow(bottom, 2); root.Children.Add(bottom);
+        Grid.SetRow(bottom, 3); root.Children.Add(bottom);
         Content = root;
         SelectTab(tab);
         UpdateSession();
@@ -125,13 +127,13 @@ public sealed partial class MainWindow : Window
 
     private Control Header()
     {
-        var grid = new Grid { ColumnDefinitions = new("*,110,110"), RowDefinitions = new("36,36"), ColumnSpacing = 12,
+        var grid = new Grid { ColumnDefinitions = new("*,130,130"), RowDefinitions = new("40,36"), ColumnSpacing = 12,
             VerticalAlignment = VerticalAlignment.Center };
         grid.Children.Add(new TextBlock { Text = "● CCP Classic", Foreground = Brush("#FF69B4"),
-            FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+            FontSize = 20, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center });
         var presets = PresetStore.BuiltIns.Concat(presetStore.LoadAll(out _)).ToArray();
         var preset = new ComboBox { ItemsSource = presets,
-            SelectedItem = presets.FirstOrDefault(item => item.Name == Settings.Preset), MinHeight = 26, FontSize = 12,
+            SelectedItem = presets.FirstOrDefault(item => item.Name == Settings.Preset), MinHeight = 30, FontSize = 14,
             ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<PresetDefinition>((item, _) =>
                 new TextBlock { Text = item is null ? "" : item.Id.StartsWith("builtin-", StringComparison.Ordinal) ? text[item.Name] : item.Name,
                     TextTrimming = TextTrimming.CharacterEllipsis }) };
@@ -148,6 +150,7 @@ public sealed partial class MainWindow : Window
         foreach (var name in new[] { "Studio", "Presets", "Progress" })
         {
             var button = Button(name, () => SelectTab(name));
+            button.FontSize = 13;
             button.Name = "Tab_" + name;
             tabs.Children.Add(button);
         }
@@ -155,7 +158,8 @@ public sealed partial class MainWindow : Window
         navigation.Children.Add(tabs);
         Grid.SetRow(navigation, 1); Grid.SetColumnSpan(navigation, 3); grid.Children.Add(navigation);
         var level = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-        var levelText = Label(text["Level"] + " " + Progress.Level + "     " + (int)Progress.XpIntoLevel + " " + text["XP"], 11);
+        var levelText = Label(text["Level"] + " " + Progress.Level + "     " + (int)Progress.XpIntoLevel + " " + text["XP"], 13);
+        levelText.Foreground = Brush("#91E3E4"); levelText.FontWeight = FontWeight.SemiBold;
         levelText.Name = "HeaderLevel"; level.Children.Add(levelText);
         level.Children.Add(new ProgressBar { Name = "HeaderXp", Value = Progress.XpIntoLevel, Height = 3, MinHeight = 0, Maximum = Progress.XpForNextLevel });
         Grid.SetColumn(level, 2); grid.Children.Add(level);
@@ -163,6 +167,7 @@ public sealed partial class MainWindow : Window
         foreach (var name in new[] { "Library", "Companion", "Toys", "Settings" })
         {
             var button = Button(name, () => OpenSheet(name));
+            button.FontSize = 13;
             button.Name = "Open_" + name;
             if (name == "Settings") { button.Content = "⚙"; AutomationProperties.SetName(button, text[name]); }
             tools.Children.Add(button);
@@ -171,6 +176,24 @@ public sealed partial class MainWindow : Window
         AutomationProperties.SetName(help, text["Help"]); tools.Children.Add(help);
         Grid.SetColumn(tools, 1); navigation.Children.Add(tools);
         return grid;
+    }
+
+    private Control SupportBanner()
+    {
+        var words = new WrapPanel { Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        words.Children.Add(new TextBlock { Text = text["SupportLead"].TrimEnd(), Margin = new(0, 0, 4, 0),
+            FontSize = 14, FontStyle = FontStyle.Italic, Foreground = Brush("#DCC8E8"), VerticalAlignment = VerticalAlignment.Center });
+        var link = new HyperlinkButton { Name = "SupportLink", Content = text["SupportLink"],
+            NavigateUri = new Uri("https://www.patreon.com/CodeBambi"), Padding = new(2, 3), MinHeight = 24,
+            FontSize = 14, FontWeight = FontWeight.SemiBold, FontStyle = FontStyle.Italic,
+            Foreground = Brush("#FF83C5"), Background = Brushes.Transparent };
+        ToolTip.SetTip(link, "patreon.com/CodeBambi");
+        words.Children.Add(link);
+        return new Border { Name = "SupportBanner", Child = words, Padding = new(12, 5),
+            Background = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative),
+                EndPoint = new(1, 0, RelativeUnit.Relative), GradientStops = [new(Color.Parse("#22172F"), 0), new(Color.Parse("#302039"), .5), new(Color.Parse("#211D36"), 1)] },
+            BorderBrush = Brush("#50324E"), BorderThickness = new(0, 1, 0, 0) };
     }
 
     private Control Bottom()
@@ -190,13 +213,14 @@ public sealed partial class MainWindow : Window
         Grid.SetColumn(elapsed, 1); grid.Children.Add(elapsed);
         var save = Button("Save", SaveSettings); save.Name = "SaveSettings";
         Grid.SetColumn(save, 2); grid.Children.Add(save);
-        status = Label(text[statusKey], 11); status.Classes.Add("muted"); status.TextTrimming = TextTrimming.CharacterEllipsis;
+        status = Label(text[statusKey], 12); status.Classes.Add("muted"); status.TextTrimming = TextTrimming.CharacterEllipsis;
         Grid.SetColumn(status, 3); grid.Children.Add(status);
-        var panicBadge = Label(text["PanicKey"] + ": " + PanicName(), 11);
+        var panicBadge = Label(text["PanicKey"] + ": " + PanicName(), 12);
+        panicBadge.Foreground = Brush("#C7B6EB");
         panicBadge.Name = "PanicBadge";
         Grid.SetColumn(panicBadge, 4); grid.Children.Add(panicBadge);
         var group = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        group.Children.Add(Label(text["GentleVisuals"], 12));
+        group.Children.Add(Label(text["GentleVisuals"], 13));
         gentle = Toggle(Settings.GentleVisuals, text["GentleVisuals"], SetGentle); gentle.Name = "GentleToggle";
         group.Children.Add(gentle);
         Grid.SetColumn(group, 5); grid.Children.Add(group);
@@ -330,7 +354,7 @@ public sealed partial class MainWindow : Window
     private static Border Chrome(Control child, bool bottom) => new() { Child = child, Padding = new(12, 0),
         Background = Brush("#1C1C35"), BorderBrush = Brush("#26263F"), BorderThickness = bottom ? new(0, 1, 0, 0) : new(0, 0, 0, 1) };
     private static SolidColorBrush Brush(string colour) => new(Color.Parse(colour));
-    private static TextBlock Label(string value, double size = 12) => new() { Text = value, FontSize = size, VerticalAlignment = VerticalAlignment.Center };
+    private static TextBlock Label(string value, double size = 14) => new() { Text = value, FontSize = size, VerticalAlignment = VerticalAlignment.Center };
     private Button Button(string key, Action action)
     {
         var result = new Button { Content = text[key], Padding = new(10, 3) }; result.Classes.Add("pill");

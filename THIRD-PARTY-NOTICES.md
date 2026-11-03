@@ -1,7 +1,9 @@
 # Third-party notices
 
-Original CCP Classic code and CodeBambi artwork are covered by the repository's
-MIT license. Bundled third-party components retain their own licenses.
+Original CCP Classic code is copyright CC labs Srls under the repository's MIT
+license. Public CCP artwork retains the historical upstream attribution
+"By CodeBambi" under the same MIT terms. Bundled third-party components retain
+their own licenses.
 Packages include full upstream texts under `licenses`, not just this summary.
 
 | Component | Resolved version | License and notices |

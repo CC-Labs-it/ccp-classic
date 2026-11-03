@@ -18,6 +18,17 @@ Linux native acceptance also passed every stage, including the live video cap.
 
 ## Visual polish continuation, 2026-11-03
 
+Owner follow-up: current copyright, publisher and all ten app credits now read
+`CC labs Srls`. Editors fit their contents and expand for More, bounded by the
+monitor work area. Bundled Inter, larger pink headings, lavender labels and cyan
+values replace the small white hierarchy. The main CCP support wording opens
+`https://www.patreon.com/CodeBambi` through the system browser only on a click.
+The branding/layout checkpoint passed 17 focused Release checks plus the new
+compact/expanded editor regression. Stable visual evidence is in
+`artifacts/proof/flash-settings-compact.png` and `studio-support.png`.
+The next installer will also include the owner's subsequent request to port
+CCP's image-click outros and effect bubbles, including flash previews in bubbles.
+
 The owner requested reuse of CCP's finished artwork and interactions after reviewing
 the functional preview. Three agents and the coordinator implemented this pass:
 

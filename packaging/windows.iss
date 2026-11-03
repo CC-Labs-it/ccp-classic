@@ -18,7 +18,7 @@
 AppId={{D1A33E82-89F5-4850-A610-775AB82314F3}
 AppName=CCP Classic
 AppVersion={#AppVersion}
-AppPublisher=CodeBambi
+AppPublisher=CC labs Srls
 VersionInfoVersion={#FileVersion}
 DefaultDirName={localappdata}\Programs\CCP Classic
 DefaultGroupName=CCP Classic

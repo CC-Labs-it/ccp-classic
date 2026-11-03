@@ -3,8 +3,6 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>CCP.Classic.App</AssemblyName>
     <Product>CCP Classic</Product>
-    <Company>CodeBambi</Company>
-    <Copyright>Copyright (c) 2026 CodeBambi</Copyright>
     <ApplicationIcon>Assets/app.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>

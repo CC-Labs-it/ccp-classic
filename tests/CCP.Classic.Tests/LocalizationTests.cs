@@ -59,9 +59,9 @@ public sealed class LocalizationTests
             {
                 Assert.False(entry.Value.Any(x => x is '\u2013' or '\u2014' or '!' or '\uFF01'),
                     $"{code}/{entry.Key} contains prohibited punctuation");
-                if (entry.Key != "ByCredit")
-                    Assert.DoesNotContain("bambi", entry.Value.ToLowerInvariant());
+                Assert.DoesNotContain("bambi", entry.Value.ToLowerInvariant());
             }
+            Assert.Equal("CC labs Srls", ResourceStrings(code)["ByCredit"]);
         }
         var italian = ResourceStrings("it");
         Assert.DoesNotContain(italian.Values, x => x.Contains("pronto/a", StringComparison.OrdinalIgnoreCase)

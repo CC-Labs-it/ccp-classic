@@ -1,12 +1,14 @@
 # CCP Classic
 
-Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
+Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
 
 - Work only in this repository. CCP and its port are read-only lift sources.
   Never copy server code or private assets here.
 - Target net10.0 and Avalonia 12.1.2. Never reference WPF or the full CCP projects.
 - No networking APIs, embedded browser, accounts, telemetry or update checks.
   Future localhost-only haptics providers live under src/CCP.Classic.Core/LocalDevices.
+  Owner-approved exception: the support banner opens the fixed public Patreon URL
+  in the system browser only when clicked. The app makes no request itself.
 - Ten languages: de, en, es, fr, it, ja, ko, pt-BR, ru, zh-CN.
   Flat JSON, UTF-8 without BOM. Edit existing lines, never reserialize translations.
 - Chrome is neutral, no persona names, no exclamation marks, no en/em dashes.
@@ -28,6 +30,10 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   scope must retain depth, hover/press feedback, transitions and visual flair.
   The visible dashboard logo keeps animating when another app has focus;
   hidden/minimized and motion-preference gates still apply.
+- Owner correction 2026-11-03: current publisher, copyright and app credits are
+  CC labs Srls. Remove the old personal byline from current chrome. Preserve
+  historical upstream asset attribution. Editors fit their content with readable,
+  colored typography; reuse CCP's support banner with its direct Patreon link.
 - Studio / Presets / Progress; Library / Companion / Toys / Settings windows.
   At most three primary controls per editor. Video concurrency goes under More.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.

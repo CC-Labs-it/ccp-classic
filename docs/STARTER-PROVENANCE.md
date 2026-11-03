@@ -3,7 +3,8 @@
 Source repository: public `CC-Labs-it/Conditioning-Control-Panel`.
 Source ref: `origin/main`.
 Source commit: `fe40ea7587ac0b09e47d0724e59d7178db3336da`.
-License: MIT, copyright CodeBambi; retained in the root LICENSE.
+License: MIT, historical upstream attribution "By CodeBambi"; retained in
+THIRD-PARTY-NOTICES.md. Classic's current copyright is in the root LICENSE.
 
 All six assets are copied byte-for-byte. No generation, transcoding or voice synthesis
 was performed. The source repository was read only. LFS content was read from its

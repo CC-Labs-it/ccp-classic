@@ -29,6 +29,43 @@ public sealed class ShellTests
         Assert.True(corner.Y + mosaic.Bounds.Height <= start.Y);
     });
 
+    [Fact]
+    public Task SupportBannerUsesTheFixedSystemBrowserLinkAndLocalizedCaption() => WithWindow(window =>
+    {
+        var expected = new Uri("https://www.patreon.com/CodeBambi");
+        foreach (var code in new[] { "en", "it" })
+        {
+            window.RefreshLanguage(code); Dispatcher.UIThread.RunJobs();
+            var link = Named<HyperlinkButton>(window, "SupportLink");
+            Assert.Equal(expected, link.NavigateUri);
+            Assert.Equal(new LocalizationService(code)["SupportLink"], link.Content);
+            Assert.True(link.IsEffectivelyVisible);
+            var banner = Named<Border>(window, "SupportBanner");
+            Assert.True(banner.Bounds.Width <= window.ClientSize.Width);
+        }
+    });
+
+    [Fact]
+    public Task FlashEditorFitsItsControlsAndMoreExpandsWithinTheScreen() => WithWindow(window =>
+    {
+        window.OpenEffect("flash"); var editor = Owned(window); editor.UpdateLayout();
+        var collapsed = editor.ClientSize.Height;
+        Assert.Equal(SizeToContent.Height, editor.SizeToContent);
+        Assert.InRange(collapsed, 180, 600);
+        Assert.True(collapsed <= editor.MaxHeight);
+        Click(editor, Named<Button>(editor, "More_flash")); editor.UpdateLayout();
+        Assert.True(editor.ClientSize.Height > collapsed);
+        Assert.True(editor.ClientSize.Height <= editor.MaxHeight);
+        var fade = Named<Slider>(editor, "Knob_flash_fade");
+        fade.BringIntoView(); Dispatcher.UIThread.RunJobs();
+        Assert.True(fade.IsEffectivelyVisible); Assert.True(fade.IsEffectivelyEnabled);
+        AssertFrame(editor, "flash-settings-expanded", 300);
+        Click(editor, Named<Button>(editor, "More_flash")); editor.UpdateLayout();
+        Assert.Equal(collapsed, editor.ClientSize.Height, 1);
+        AssertFrame(editor, "flash-settings-compact", 300);
+        AssertFrame(window, "studio-support", 700);
+    }, settings: new() { GentleVisuals = true, ReducedMotion = true });
+
     [Theory]
     [InlineData(true, 12)]
     [InlineData(false, 11)]
@@ -235,9 +272,9 @@ public sealed class ShellTests
             }
         });
 
-    private static Task WithWindow(Action<MainWindow> action, bool windows = true) => UiDispatcher.Run(() =>
+    private static Task WithWindow(Action<MainWindow> action, bool windows = true, ClassicSettings? settings = null) => UiDispatcher.Run(() =>
     {
-        var window = new MainWindow(new ClassicSettings(), windows: windows);
+        var window = new MainWindow(settings ?? new ClassicSettings(), windows: windows);
         try { window.Show(); Dispatcher.UIThread.RunJobs(); action(window); }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });

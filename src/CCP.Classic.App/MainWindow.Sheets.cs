@@ -59,22 +59,32 @@ public sealed partial class MainWindow
     private void ShowSettingsWindow(string key, Control content)
     {
         SettingsWindow?.Close();
-        var frame = new Grid { RowDefinitions = new("44,*,44") };
-        var header = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new(14, 0) };
-        var title = Label(text[key], 14); title.Name = "SheetTitle"; title.FontWeight = FontWeight.SemiBold;
+        var frame = new Grid { RowDefinitions = new("58,*,32") };
+        var header = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 12, Margin = new(18, 0) };
+        var title = Label(text[key], 21); title.Name = "SheetTitle"; title.FontWeight = FontWeight.SemiBold;
+        title.Foreground = Brush("#FF9BD5"); title.TextWrapping = TextWrapping.Wrap; title.MaxLines = 2;
         header.Children.Add(title);
         var close = Button("Close", CloseSheet); close.Name = "SheetClose";
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
         actions.Children.Add(HelpButton(key)); actions.Children.Add(close);
         Grid.SetColumn(actions, 1); header.Children.Add(actions); frame.Children.Add(header);
-        var scroll = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        var maximumHeight = Math.Max(200, (screen?.WorkingArea.Height / (screen?.Scaling ?? 1) ?? 900) - 48);
+        var maximumWidth = Math.Max(320, (screen?.WorkingArea.Width / (screen?.Scaling ?? 1) ?? 1280) - 40);
+        var scroll = new ScrollViewer { Content = content, MaxHeight = Math.Max(100, maximumHeight - 124),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetRow(scroll, 1); frame.Children.Add(scroll);
-        var credit = Label(text["ByCredit"], 11); credit.HorizontalAlignment = HorizontalAlignment.Center;
+        var credit = Label(text["ByCredit"], 12); credit.Foreground = Brush("#AFA6C7"); credit.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(credit, 2); frame.Children.Add(credit);
-        var child = new Window { Title = "CCP Classic · " + text[key], Width = 450, Height = 650,
-            MinWidth = 420, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        var child = new Window { Title = "CCP Classic · " + text[key], Width = Math.Min(key is "Settings" or "Toys" ? 500 : 460, maximumWidth),
+            SizeToContent = SizeToContent.Height, MinWidth = Math.Min(400, maximumWidth), MinHeight = 180,
+            MaxHeight = maximumHeight, MaxWidth = maximumWidth, WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = new Border { Name = "SheetHost", Child = frame } };
-        if (key == "Library") { child.Width = 920; child.Height = 740; child.MinWidth = 880; }
+        if (key == "Library")
+        {
+            child.SizeToContent = SizeToContent.Manual; child.Width = Math.Min(920, maximumWidth);
+            child.Height = Math.Min(740, maximumHeight); child.MinWidth = Math.Min(880, maximumWidth);
+        }
         VisualPolish.ApplyWindow(child, Settings);
         child.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         child.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -149,16 +159,17 @@ public sealed partial class MainWindow
 
     private Control Row(string key, Control control, string? hint = null)
     {
-        var grid = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 8, MinHeight = 36 };
+        var grid = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 12, MinHeight = 40 };
         var words = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-        words.Children.Add(Label(text[key]));
+        var label = Label(text[key], 14); label.Foreground = Brush("#D7C9F0"); label.FontWeight = FontWeight.Medium;
+        label.TextWrapping = TextWrapping.Wrap; words.Children.Add(label);
         if (hint is not null) words.Children.Add(Note(hint));
         grid.Children.Add(words); Grid.SetColumn(control, 1); grid.Children.Add(control);
         return grid;
     }
     private TextBlock Note(string key)
     {
-        var label = Label(text[key], 11); label.Classes.Add("muted"); label.TextWrapping = TextWrapping.Wrap; return label;
+        var label = Label(text[key], 12.5); label.Classes.Add("muted"); label.TextWrapping = TextWrapping.Wrap; return label;
     }
     private Button PendingButton(string key)
     {

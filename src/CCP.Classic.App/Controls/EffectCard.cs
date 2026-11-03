@@ -32,20 +32,19 @@ public sealed class EffectCard : Border
         this.changed = changed;
         Name = "Effect_" + definition.Id;
         Classes.Add("card");
-        MinHeight = 150;
-        Padding = new Thickness(12, 9, 12, 8);
-        var body = new StackPanel { Spacing = 6 };
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("9,19,*,34") };
-        var lamp = new Ellipse { Width = 6, Height = 6, VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(-5, 0, 0, 0), Fill = LampBrush() };
+        Classes.Add("effect-editor-card");
+        Padding = new Thickness(17, 15, 17, 13);
+        var body = new StackPanel { Spacing = 10 };
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("12,28,*,42"), MinHeight = 28 };
+        var lamp = new Ellipse { Width = 7, Height = 7, VerticalAlignment = VerticalAlignment.Center, Fill = LampBrush() };
         header.Children.Add(lamp);
-        var icon = new Path { Data = Geometry.Parse(definition.Icon), Width = 14, Height = 14,
-            Stretch = Stretch.Uniform, Stroke = Brush("#C9C9DE"), StrokeThickness = 1.4 };
+        var icon = new Path { Data = Geometry.Parse(definition.Icon), Width = 19, Height = 19,
+            Stretch = Stretch.Uniform, Stroke = Brush("#83D9E9"), StrokeThickness = 1.6 };
         Grid.SetColumn(icon, 1);
         header.Children.Add(icon);
-        var title = new TextBlock { Text = text[definition.Title], FontSize = 12,
-            FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 5, 0) };
+        var title = new TextBlock { Text = text[definition.Title], FontSize = 18,
+            FontWeight = FontWeight.SemiBold, Foreground = Brush("#FF9BD5"), VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 9, 0) };
         ToolTip.SetTip(title, text[definition.Title]);
         Grid.SetColumn(title, 2);
         header.Children.Add(title);
@@ -62,8 +61,8 @@ public sealed class EffectCard : Border
         foreach (var knob in definition.Primary) body.Children.Add(CreateKnob(knob));
         if (definition.More.Count > 0)
         {
-            var advanced = new StackPanel { Spacing = 6, IsVisible = false,
-                Margin = new Thickness(0, 5, 0, 0) };
+            var advanced = new StackPanel { Spacing = 10, IsVisible = false,
+                Margin = new Thickness(0, 4, 0, 0) };
             foreach (var knob in definition.More) advanced.Children.Add(CreateKnob(knob));
             var more = new Button { Content = text["More"], HorizontalAlignment = HorizontalAlignment.Left };
             more.Classes.Add("more");
@@ -91,7 +90,7 @@ public sealed class EffectCard : Border
         if (!settings.Values.ContainsKey(knob.Key)) settings.Values[knob.Key] = knob.Default;
         var value = settings.Values[knob.Key];
         var label = Label(text[knob.Label]);
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12 };
         switch (knob.Kind)
         {
             case KnobKind.Toggle:
@@ -105,12 +104,12 @@ public sealed class EffectCard : Border
                 }
                 Grid.SetColumn(toggle, 1);
                 row.Children.Add(toggle);
-                row.MinHeight = 23;
+                row.MinHeight = 30;
                 return row;
             case KnobKind.Range:
                 row.Children.Add(label);
                 var output = Label(Format(value, knob.Unit));
-                output.Foreground = Brush("#F0F0F5");
+                output.Foreground = Brush("#91E0EE"); output.FontSize = 16; output.FontWeight = FontWeight.SemiBold;
                 Grid.SetColumn(output, 1);
                 row.Children.Add(output);
                 var slider = new Slider { Minimum = knob.Min, Maximum = knob.Max,
@@ -124,7 +123,7 @@ public sealed class EffectCard : Border
                     Save(knob.Key, Math.Round(slider.Value));
                     output.Text = Format(slider.Value, knob.Unit);
                 };
-                var range = new StackPanel { Spacing = 1 };
+                var range = new StackPanel { Spacing = 4 };
                 range.Children.Add(row);
                 range.Children.Add(slider);
                 return range;
@@ -134,7 +133,7 @@ public sealed class EffectCard : Border
                 var supported = definition.Id == "spiral" && knob.Key == "loom";
                 var action = new Button { Content = text[knob.Label], IsEnabled = supported,
                     Name = "Action_" + definition.Id + "_" + knob.Key,
-                    HorizontalAlignment = HorizontalAlignment.Right, FontSize = 11 };
+                    HorizontalAlignment = HorizontalAlignment.Right, FontSize = 14 };
                 action.Classes.Add("pill");
                 action.Click += (_, _) => ActionRequested?.Invoke(knob.Key);
                 if (!supported) ToolTip.SetTip(action, text["Unavailable"]);
@@ -146,22 +145,22 @@ public sealed class EffectCard : Border
 
     private Control Choice(KnobDefinition knob, TextBlock label, double value)
     {
-        var group = new StackPanel { Spacing = 4 };
+        var group = new StackPanel { Spacing = 6 };
         group.Children.Add(label);
-        var choices = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var choices = new WrapPanel { Orientation = Orientation.Horizontal };
         var buttons = new List<ToggleButton>();
         var names = knob.Choices ?? [];
         for (var index = 0; index < names.Length; index++)
         {
             var pick = index;
-            var button = new ToggleButton { IsChecked = index == (int)value, FontSize = 11,
-                Content = text[names[index]], MinHeight = 25, Padding = new Thickness(8, 2) };
+            var button = new ToggleButton { IsChecked = index == (int)value, FontSize = 13.5,
+                Content = text[names[index]], MinHeight = 32, Padding = new Thickness(10, 4), Margin = new(0, 0, 6, 4) };
             button.Classes.Add("pill");
             if (knob.Label == "Spiral")
             {
                 button.Content = SpiralIcon(index);
-                button.Width = 30;
-                button.Height = 30;
+                button.Width = 36;
+                button.Height = 36;
                 button.Padding = new Thickness(4);
                 AutomationProperties.SetName(button, text["Spiral"] + " " + (index + 1));
             }
@@ -198,7 +197,7 @@ public sealed class EffectCard : Border
 
     private static ToggleButton Switch(bool enabled, string name, Action<bool> update)
     {
-        var toggle = new ToggleButton { IsChecked = enabled, Width = 34, Height = 18,
+        var toggle = new ToggleButton { IsChecked = enabled, Width = 42, Height = 24,
             VerticalAlignment = VerticalAlignment.Center };
         toggle.Classes.Add("switch");
         AutomationProperties.SetName(toggle, name);
@@ -219,6 +218,6 @@ public sealed class EffectCard : Border
         return Math.Round(value).ToString(CultureInfo.CurrentCulture) + suffix;
     }
     private static SolidColorBrush Brush(string colour) => new(Color.Parse(colour));
-    private static TextBlock Label(string value) => new() { Text = value, FontSize = 11,
-        Foreground = Brush("#C9C9DE"), VerticalAlignment = VerticalAlignment.Center };
+    private static TextBlock Label(string value) => new() { Text = value, FontSize = 14, FontWeight = FontWeight.Medium,
+        Foreground = Brush("#D7C9F0"), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
 }

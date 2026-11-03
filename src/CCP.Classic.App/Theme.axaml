@@ -6,8 +6,10 @@
     <SolidColorBrush x:Key="ClassicSurface">#181830</SolidColorBrush>
     <SolidColorBrush x:Key="ClassicLine">#2E2E4A</SolidColorBrush>
     <SolidColorBrush x:Key="ClassicPink">#FF69B4</SolidColorBrush>
-    <SolidColorBrush x:Key="ClassicText">#F0F0F5</SolidColorBrush>
-    <SolidColorBrush x:Key="ClassicMuted">#A0A0BC</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicText">#F1ECF8</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicMuted">#AEA5C6</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicLavender">#D7C9F0</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicCyan">#91E0EE</SolidColorBrush>
     <LinearGradientBrush x:Key="ClassicRaisedSurface" StartPoint="0%,0%" EndPoint="100%,100%">
       <GradientStop Offset="0" Color="#30283E" />
       <GradientStop Offset="1" Color="#1B192C" />
@@ -33,8 +35,8 @@
   <Style Selector="Window">
     <Setter Property="Background" Value="{StaticResource ClassicBackground}" />
     <Setter Property="Foreground" Value="{StaticResource ClassicText}" />
-    <Setter Property="FontFamily" Value="Inter, Segoe UI, sans-serif" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
+    <Setter Property="FontSize" Value="14" />
   </Style>
   <Style Selector=":is(Border).card">
     <Setter Property="Background" Value="{StaticResource ClassicRaisedSurface}" />
@@ -51,19 +53,19 @@
   </Style>
   <Style Selector="TextBlock.chrome-title">
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource ClassicText}" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicLavender}" />
   </Style>
   <Style Selector="TextBlock.muted">
     <Setter Property="Foreground" Value="{StaticResource ClassicMuted}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="12.5" />
   </Style>
   <Style Selector="Button, ToggleButton, ComboBox">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="13.5" />
     <Setter Property="CornerRadius" Value="9" />
     <Setter Property="Background" Value="{StaticResource ClassicRaisedSurface}" />
     <Setter Property="BorderBrush" Value="#51415E" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="MinHeight" Value="32" />
   </Style>
   <Style Selector="Button.pill, ToggleButton.pill">
     <Setter Property="Padding" Value="10,3" />
@@ -156,6 +158,9 @@
     <Setter Property="BoxShadow" Value="inset 0 2 6 0 #90000000" />
   </Style>
   <Style Selector="TextBox, NumericUpDown">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicCyan}" />
+    <Setter Property="MinHeight" Value="32" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Background" Value="#141221" />
     <Setter Property="BorderBrush" Value="#4B3C5A" />
@@ -171,23 +176,24 @@
     <Setter Property="Foreground" Value="#1A0A12" />
   </Style>
   <Style Selector="Button.more">
-    <Setter Property="Foreground" Value="{StaticResource ClassicMuted}" />
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="MinHeight" Value="17" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicLavender}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Background" Value="#242138" />
+    <Setter Property="BorderBrush" Value="#51415E" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Slider.knob">
-    <Setter Property="Height" Value="16" />
+    <Setter Property="Height" Value="22" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Foreground" Value="#F0C1DC" />
     <Setter Property="Background" Value="{StaticResource ClassicLine}" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Grid Height="16">
-          <Border Height="4" Margin="6,0" CornerRadius="2" VerticalAlignment="Center"
+        <Grid Height="22">
+          <Border Height="5" Margin="8,0" CornerRadius="3" VerticalAlignment="Center"
                   Background="#2E2E4A" BoxShadow="inset 0 1 1 0 #80000000" />
           <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}"
                  Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}"
@@ -198,10 +204,10 @@
             <Track.IncreaseButton>
               <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource ClassicTrackButton}" />
             </Track.IncreaseButton>
-            <Thumb Name="thumb" Width="12" Height="16" MinWidth="0" MinHeight="0">
+            <Thumb Name="thumb" Width="16" Height="22" MinWidth="0" MinHeight="0">
               <Thumb.Template>
                 <ControlTemplate>
-                  <Border Width="12" Height="12" CornerRadius="6" Background="#F0C1DC"
+                  <Border Width="16" Height="16" CornerRadius="8" Background="#B2E6F0"
                           BorderBrush="#0E0E1A" BorderThickness="1" VerticalAlignment="Center"
                           BoxShadow="0 1 2 0 #99000000" />
                 </ControlTemplate>
@@ -213,17 +219,17 @@
     </Setter>
   </Style>
   <Style Selector="ToggleButton.switch">
-    <Setter Property="Width" Value="34" />
-    <Setter Property="Height" Value="18" />
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="22" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Border Name="SwitchTrack" CornerRadius="9" Background="#2E2E4A"
+        <Border Name="SwitchTrack" CornerRadius="11" Background="#2E2E4A"
                 BorderBrush="#3A3A5A" BorderThickness="1" BoxShadow="0 1 2 0 #80000000">
-          <Ellipse Name="SwitchThumb" Width="12" Height="12" Fill="#C9C9DE"
-                   HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0" />
+          <Ellipse Name="SwitchThumb" Width="14" Height="14" Fill="#D7C9F0"
+                   HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0" />
         </Border>
       </ControlTemplate>
     </Setter>

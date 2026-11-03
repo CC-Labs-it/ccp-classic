@@ -1,6 +1,6 @@
 # CCP Classic
 
-By CodeBambi. A free, offline conditioning panel for Windows and Linux.
+CC labs Srls. A free, offline conditioning panel for Windows and Linux.
 
 One main window, three tabs, twelve image tiles around the animated CCP logo.
 Click a tile to open its settings window. No accounts, downloads, telemetry,
