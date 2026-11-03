@@ -152,5 +152,10 @@
   "CapturePanicKey": "请按下新的紧急停止键",
   "PanicOff": "紧急停止已禁用",
   "XP": "经验",
+  "LiveSettings": "更改会在运行时生效。",
+  "GlobalPanicUnavailable": "无法使用全局紧急停止。请保持Classic窗口处于活动状态。",
+  "AudioUnavailable": "此电脑无法使用音频。",
+  "StarterPackReady": "入门素材包已就绪。所有内容均从此电脑播放。",
+  "EffectsUnavailable": "此显示器无法使用桌面效果。",
   "ByCredit": "By CodeBambi"
 }

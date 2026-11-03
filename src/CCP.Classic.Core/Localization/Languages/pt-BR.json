@@ -152,5 +152,10 @@
   "CapturePanicKey": "Pressione a nova tecla de pânico",
   "PanicOff": "Pânico desativado",
   "XP": "XP",
+  "LiveSettings": "As alterações se aplicam durante a sessão.",
+  "GlobalPanicUnavailable": "O pânico global está indisponível. Mantenha Classic em primeiro plano.",
+  "AudioUnavailable": "O áudio está indisponível neste PC.",
+  "StarterPackReady": "Pacote inicial disponível. Tudo é reproduzido deste PC.",
+  "EffectsUnavailable": "Os efeitos de área de trabalho estão indisponíveis nesta tela.",
   "ByCredit": "By CodeBambi"
 }

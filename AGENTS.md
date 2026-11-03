@@ -15,6 +15,8 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   Gentle visuals and have entrances and exits. Videos always play at 1x.
   Preserve held keys across owned-window focus changes; reset only after the
   whole Classic window group loses focus.
+  When the global listener is available it owns both key edges. Mixing local
+  keyup with queued global keydown can count a physical press twice.
 - Owner correction 2026-11-03: keep the CURRENT CCP dashboard image mosaic,
   with the animated CCP logo in its central 2x2 cells. Image tiles open owned
   settings windows, replacing the flat mockup grid and slide-in sheets.
@@ -28,3 +30,5 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
 - All UiDispatcher-backed tests share the Avalonia UI collection. RunJobs can
   reenter another queued test; one dispatcher thread alone does not isolate input.
+- Starter recordings use LFS; checkout in CI must fetch LFS. Audio uses local
+  LibVLC only, forced DirectSound on Windows, never a mixer-wide fallback output.

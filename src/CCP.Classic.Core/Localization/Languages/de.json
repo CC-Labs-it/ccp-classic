@@ -152,5 +152,10 @@
   "CapturePanicKey": "Neue Paniktaste drücken",
   "PanicOff": "Panik deaktiviert",
   "XP": "XP",
+  "LiveSettings": "Änderungen gelten auch während der Sitzung.",
+  "GlobalPanicUnavailable": "Die globale Paniktaste ist nicht verfügbar. Lass Classic im Vordergrund.",
+  "AudioUnavailable": "Audio ist auf diesem PC nicht verfügbar.",
+  "StarterPackReady": "Startpaket bereit. Alles wird von diesem PC abgespielt.",
+  "EffectsUnavailable": "Desktop-Effekte sind auf diesem Bildschirm nicht verfügbar.",
   "ByCredit": "By CodeBambi"
 }

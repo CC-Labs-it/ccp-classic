@@ -33,6 +33,9 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
         return Stop();
     }
 
+    public bool ConsumesKey(string key) => PanicEnabled
+        && string.Equals(key, settings.PanicKey, StringComparison.OrdinalIgnoreCase);
+
     public void KeyUp(string key) => held.Remove(key);
     public void ReleaseKeys() => held.Clear();
     public void SetPanicEnabled(bool enabled, bool warningAcknowledged = false)

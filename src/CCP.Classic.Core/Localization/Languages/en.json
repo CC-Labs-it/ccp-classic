@@ -152,5 +152,10 @@
   "CapturePanicKey": "Press the new panic key",
   "PanicOff": "Panic disabled",
   "XP": "XP",
+  "LiveSettings": "Changes apply while running.",
+  "GlobalPanicUnavailable": "Global panic is unavailable. Keep Classic focused.",
+  "AudioUnavailable": "Audio is unavailable on this PC.",
+  "StarterPackReady": "Starter pack ready. Everything plays from this PC.",
+  "EffectsUnavailable": "Desktop effects are unavailable on this display.",
   "ByCredit": "By CodeBambi"
 }

@@ -152,5 +152,10 @@
   "CapturePanicKey": "새 긴급 중지 키를 누르세요",
   "PanicOff": "긴급 중지 꺼짐",
   "XP": "XP",
+  "LiveSettings": "실행 중에도 변경 사항이 적용됩니다.",
+  "GlobalPanicUnavailable": "시스템 전체 긴급 중지를 사용할 수 없습니다. Classic을 활성 창으로 유지하세요.",
+  "AudioUnavailable": "이 PC에서는 오디오를 사용할 수 없습니다.",
+  "StarterPackReady": "스타터 팩이 준비되었습니다. 모든 콘텐츠는 이 PC에서 재생됩니다.",
+  "EffectsUnavailable": "이 화면에서는 데스크톱 효과를 사용할 수 없습니다.",
   "ByCredit": "By CodeBambi"
 }

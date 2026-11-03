@@ -8,6 +8,7 @@ using Avalonia.VisualTree;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using CCP.Classic.App.Controls;
+using CCP.Classic.App.Effects;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
 
@@ -26,7 +27,7 @@ public sealed partial class MainWindow
             case "Library":
                 foreach (var kind in new[] { "Images", "Videos", "Audio" })
                     content.Children.Add(Row(kind, PendingButton("Change"), "NoFolder"));
-                content.Children.Add(Note("StarterPackPending"));
+                content.Children.Add(Note("StarterPackReady"));
                 break;
             case "Companion":
                 foreach (var setting in new[] { "Avatar", "Barks", "TriggerPhrases", "KeywordTriggers" })
@@ -54,7 +55,7 @@ public sealed partial class MainWindow
         {
             foreach (var tile in this.GetVisualDescendants().OfType<EffectTile>()) tile.Refresh();
         }));
-        content.Children.Add(Note("ShellOnly"));
+        content.Children.Add(Note(DesktopEffectsService.IsPlayable(id) ? "LiveSettings" : "Unavailable"));
         ShowSettingsWindow(definition.Title, content);
     }
 
@@ -75,7 +76,7 @@ public sealed partial class MainWindow
             MinWidth = 420, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = new Border { Name = "SheetHost", Child = frame } };
         child.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
-        child.AddHandler(KeyUpEvent, (_, e) => Session.KeyUp(e.Key.ToString()), RoutingStrategies.Tunnel, handledEventsToo: true);
+        child.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
         child.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         child.Closed += (_, _) => { if (ReferenceEquals(SettingsWindow, child)) SettingsWindow = null; capturePanic = false; };
         SettingsWindow = child;

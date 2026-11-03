@@ -152,5 +152,10 @@
   "CapturePanicKey": "新しい緊急停止キーを押してください",
   "PanicOff": "緊急停止は無効",
   "XP": "XP",
+  "LiveSettings": "変更は実行中にも反映されます。",
+  "GlobalPanicUnavailable": "システム全体の緊急停止は利用できません。Classicをアクティブにしてください。",
+  "AudioUnavailable": "このPCでは音声を利用できません。",
+  "StarterPackReady": "スターターパックを利用できます。すべてこのPCから再生されます。",
+  "EffectsUnavailable": "このディスプレイではデスクトップ効果を利用できません。",
   "ByCredit": "By CodeBambi"
 }

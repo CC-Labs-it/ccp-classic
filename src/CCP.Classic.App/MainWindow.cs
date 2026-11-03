@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using CCP.Classic.App.Controls;
+using CCP.Classic.App.Effects;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
 
@@ -30,12 +31,15 @@ public sealed partial class MainWindow : Window
     private string? sheet;
     private string statusKey = "ShellOnly";
     private bool capturePanic;
+    private DesktopEffectsService? effects;
+    private readonly PanicInputRouter input;
     public ClassicSettings Settings { get; }
     public SessionController Session { get; }
     public Window? SettingsWindow { get; private set; }
     public bool SettingsRecovered { get; set; }
 
-    public MainWindow(ClassicSettings? settings = null, SettingsStore? store = null, bool? windows = null)
+    public MainWindow(ClassicSettings? settings = null, SettingsStore? store = null, bool? windows = null,
+        bool desktopEffects = false, Func<bool>? globalPanicAvailable = null)
     {
         Settings = settings ?? new();
         Settings.Normalize();
@@ -45,12 +49,13 @@ public sealed partial class MainWindow : Window
         text = new(Settings.Language);
         Settings.Language = text.Language;
         Session = new(Settings);
+        input = new(Session, globalPanicAvailable ?? (() => effects?.GlobalPanicAvailable == true));
         Title = "CCP Classic";
         Width = 724; Height = 760; MinWidth = 700; MinHeight = 700;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         BuildShell();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(KeyUpEvent, (_, e) => Session.KeyUp(e.Key.ToString()), RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
         Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         Session.Changed += UpdateSession;
         Session.StopRequested += () => { statusKey = "Stopped"; UpdateSession(); };
@@ -59,8 +64,18 @@ public sealed partial class MainWindow : Window
             Session.Tick();
             elapsed.Text = Session.Elapsed.ToString(@"hh\:mm\:ss");
         });
-        Opened += (_, _) => { if (SettingsRecovered) SetStatus("SettingsRecovered"); timer.Start(); };
-        Closed += (_, _) => { timer.Stop(); SettingsWindow?.Close(); Session.Dispose(); };
+        Opened += (_, _) =>
+        {
+            if (desktopEffects)
+            {
+                effects = new(this, Settings, Session, ConfigureEffectInput, HandleGlobalKey);
+                effects.StatusChanged += SetStatus;
+                SetStatus("Idle");
+            }
+            if (SettingsRecovered) SetStatus("SettingsRecovered");
+            timer.Start();
+        };
+        Closed += (_, _) => { timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); };
     }
 
     private void BuildShell()
@@ -186,10 +201,17 @@ public sealed partial class MainWindow : Window
             Settings.PanicKey = e.Key.ToString(); capturePanic = false;
             RefreshLanguage(Settings.Language); e.Handled = true; return;
         }
-        if (Session.KeyDown(e.Key.ToString()))
+        if (input.LocalDown(e.Key.ToString()))
         {
             SetStatus("PanicStopped"); CloseSheet(); e.Handled = true;
         }
+        if (input.ConsumesKey(e.Key.ToString())) e.Handled = true;
+    }
+
+    private void OnKeyUp(object? sender, KeyEventArgs e)
+    {
+        input.LocalUp(e.Key.ToString());
+        if (input.ConsumesKey(e.Key.ToString())) e.Handled = true;
     }
 
     private void ReleaseKeysWhenUnfocused()
@@ -197,8 +219,19 @@ public sealed partial class MainWindow : Window
         // Let an owned window finish activating before deciding that Classic lost focus.
         Dispatcher.UIThread.Post(() =>
         {
-            if (!IsActive && SettingsWindow?.IsActive != true) Session.ReleaseKeys();
+            if (!input.GlobalAvailable && !IsActive && SettingsWindow?.IsActive != true) Session.ReleaseKeys();
         }, DispatcherPriority.Background);
+    }
+
+    private void ConfigureEffectInput(Window window)
+    {
+        window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
+        window.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    private void HandleGlobalKey(string key, bool down)
+    {
+        if (input.GlobalChanged(key, down)) { SetStatus("PanicStopped"); CloseSheet(); }
     }
 
     private void UpdateSession()
