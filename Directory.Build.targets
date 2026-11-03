@@ -1,0 +1,4 @@
+<Project>
+  <!-- Disable the framework's build-time statistics as well as runtime telemetry. -->
+  <Target Name="AvaloniaStats" />
+</Project>
