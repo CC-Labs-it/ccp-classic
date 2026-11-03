@@ -147,7 +147,7 @@ internal sealed class LayeredAudioNative(bool silentOutput = false) : ILayeredAu
             if (player.SetRate(1) != 0 || !player.Play()) throw new IOException("Layered audio output could not start");
             observed = clock.GetTimestamp(); progress.Start();
             }
-            catch { Dispose(); throw; }
+            catch { stream.AbortReads(); Dispose(); throw; }
         }
         public void Poll(bool pause)
         {

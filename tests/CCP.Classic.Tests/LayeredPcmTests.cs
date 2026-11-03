@@ -67,6 +67,19 @@ public sealed class LayeredPcmTests
         Assert.Equal(2, growing.Read(0, samples)); Assert.True(growing.Append([3, 4])); growing.Finish(true);
         Assert.Equal(512, growing.Read(0, samples)); Assert.Equal(new short[] { 1, 2, 3, 4, 1, 2, 3, 4 }, samples[..8]);
     }
+    [Fact]
+    public async Task ConstructorCleanupCanAbortAReadWaitingForItsFirstPcmBlock()
+    {
+        using var fixture = new Fixture(); using var cache = new LayeredPcmCache(fixture.Root, resources: () => true);
+        var track = cache.Create(Guid.NewGuid(), "waiting.wav", () => { });
+        using var stopped = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        using var stream = new LayeredMixStream([track], stopped.Token, () => { }, stopped.Cancel);
+        var read = Task.Run(() => stream.Read(new byte[2048], 0, 2048), TestContext.Current.CancellationToken);
+        for (var i = 0; i < 100 && !stream.Waiting; i++) await Task.Delay(5, TestContext.Current.CancellationToken);
+        Assert.True(stream.Waiting); stream.AbortReads();
+        Assert.Equal(44, await read.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
+        Assert.True(stopped.IsCancellationRequested); Assert.Equal(0, stream.Read(new byte[8], 0, 8));
+    }
     private sealed class Fixture : IDisposable
     {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "classic-layers-" + Guid.NewGuid().ToString("N"));

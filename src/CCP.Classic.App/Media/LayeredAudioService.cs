@@ -141,7 +141,7 @@ public sealed class LayeredAudioService : IDisposable
                 try { decoders.Add(native.OpenDecoder(track, token, Wake)); }
                 catch (Exception error) when (error is not OutOfMemoryException) { track.Finish(false); decoders.Add(null); }
             }
-            using var stream = new LayeredMixStream(tracks.ToArray(), token, Wake);
+            using var stream = new LayeredMixStream(tracks.ToArray(), token, Wake, request.Stop.Cancel);
             lock (gate) request.Stream = stream;
             while (!token.IsCancellationRequested)
             {

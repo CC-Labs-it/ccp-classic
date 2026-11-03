@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using CCP.Classic.App.Effects;
 using CCP.Classic.App.Input;
 using CCP.Classic.App.Media;
+using CCP.Classic.Core;
 using LibVLCSharp.Shared;
 
 namespace CCP.Classic.Probe;
@@ -99,6 +100,7 @@ internal static class Program
             await Analysis(Path.Combine(Path.GetFullPath(args[1]), "silent.wav"));
             await Audio(Path.Combine(Path.GetFullPath(args[1]), "neutral.wma"), "wma");
             await Analysis(Path.Combine(Path.GetFullPath(args[1]), "neutral.wma"), true);
+            await LayeredAudio(Path.GetFullPath(args[1]));
         }
         finally { XCloseDisplay(display); }
     }
@@ -245,6 +247,68 @@ internal static class Program
         try { await Task.Run(() => decoder.Decode(path, new(new RmsEnvelope()), stop.Token), token); }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { canceled = true; }
         Check(canceled, "analysis_cancel_immediate"); Pass(stage);
+    }
+
+    private static async Task LayeredAudio(string fixtureDirectory)
+    {
+        stage = "native_layered_audio";
+        var wav = Path.Combine(fixtureDirectory, "silent.wav");
+        var cacheRoot = Path.Combine(fixtureDirectory, "layered-pcm"); var graphs = 0;
+        var options = new LayeredAudioOptions { Enabled = true, MasterVolume = 70,
+            Tracks = Enumerable.Range(0, LayeredAudioOptions.MaximumTracks).Select(index => new AudioLayerTrack
+            { Path = index % 2 == 0 ? wav : Path.Combine(fixtureDirectory, "neutral.wma"), Volume = 60 }).ToList() };
+        var service = new LayeredAudioService(() =>
+        {
+            Interlocked.Increment(ref graphs);
+            // Decoded callbacks discard this output; the private Pulse null sink remains a second guard.
+            return new LayeredAudioNative(silentOutput: true);
+        }, () => new LayeredPcmCache(cacheRoot));
+        try
+        {
+            await service.StartAsync(options, .5).WaitAsync(TimeSpan.FromSeconds(10), token);
+            await Until(() => service.IsPlaying && service.GetAudioSamples().Count == 8 && service.StatusKey == "AudioLayersPlaying", 10);
+            Check(graphs == 1, "layered_start");
+            Check(service.GetAudioSamples().All(sample => Math.Abs(sample.Gain - .21) < .0001), "layered_initial_gain");
+            var lastPosition = 0d; var maximumPosition = 0d; var looped = false;
+            await Until(() =>
+            {
+                Check(service.IsActive && service.StatusKey != "AudioLayersUnavailable", "layered_loop_active");
+                var sample = service.GetAudioSamples().FirstOrDefault(item => item.Path == wav);
+                if (sample is null) return false;
+                Check(sample.IsPlaying && sample.SourceSeconds is >= 0 and <= 2.01, "layered_source_position");
+                maximumPosition = Math.Max(maximumPosition, sample.SourceSeconds);
+                looped |= lastPosition > 1.25 && sample.SourceSeconds < .75;
+                lastPosition = sample.SourceSeconds; return looped;
+            }, 8);
+            var files = Directory.GetFiles(cacheRoot, "*.pcm", SearchOption.AllDirectories);
+            var pcmBytes = files.Sum(file => new FileInfo(file).Length);
+            Check(files.Length == 8 && files.All(file => new FileInfo(file).Length > 0)
+                && pcmBytes < 8 * 1024 * 1024, "layered_private_pcm_bounds");
+
+            options.MasterVolume = 35; options.Tracks[0].Volume = 0; options.Tracks[1].Volume = 25;
+            service.UpdateGains(options, .5, .2);
+            await Until(() =>
+            {
+                var live = service.GetAudioSamples();
+                return live.Count == 7 && live.Count(sample => Math.Abs(sample.Gain - .035) < .0001) == 1
+                    && live.Count(sample => Math.Abs(sample.Gain - .084) < .0001) == 6;
+            }, 3);
+            Check(graphs == 1 && service.IsPlaying, "layered_gain_without_restart");
+            var stopping = Stopwatch.StartNew(); var ended = service.StopAsync();
+            Check(!service.IsPlaying && service.GetAudioSamples().Count == 0, "layered_stop_immediate");
+            await ended.WaitAsync(TimeSpan.FromSeconds(5), token);
+            var stopMs = stopping.Elapsed.TotalMilliseconds;
+            Check(!service.IsActive && !Directory.EnumerateFileSystemEntries(cacheRoot).Any(), "layered_stop_cleanup");
+            service.UpdateGains(options, 1); await Task.Delay(75, token);
+            Check(graphs == 1 && !service.IsActive && service.GetAudioSamples().Count == 0, "layered_no_stale_restart");
+            Pass(stage, new { tracks = 8, graphs, looped, maximumPosition, pcmBytes,
+                liveSamples = 7, stopMs, cacheEmpty = true, physicalOutput = false });
+        }
+        finally
+        {
+            var ended = service.StopAsync(); service.Dispose();
+            await ended.WaitAsync(TimeSpan.FromSeconds(5), token);
+        }
     }
 
     private static float? Rate(LocalVideoPlayback playback)

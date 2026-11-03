@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace CCP.Classic.App.Media;
 
-internal sealed class LayeredMixStream(LayeredPcmTrack[] tracks, CancellationToken cancellationToken, Action buffering) : Stream
+internal sealed class LayeredMixStream(LayeredPcmTrack[] tracks, CancellationToken cancellationToken, Action buffering, Action? abort = null) : Stream
 {
     private const int Rate = LayeredPcmTrack.Rate;
     private readonly byte[] header = Header(), pending = new byte[2048];
@@ -20,6 +20,7 @@ internal sealed class LayeredMixStream(LayeredPcmTrack[] tracks, CancellationTok
     internal double AudibleSeconds => Math.Max(0, ProducedFrames / (double)Rate - .12);
     internal double MaximumAheadSeconds { get; private set; }
     internal bool Waiting => waiting;
+    internal void AbortReads() => abort?.Invoke();
     internal void SetGain(Guid id, double gain)
     { for (var i = 0; i < tracks.Length; i++) if (tracks[i].Id == id) Volatile.Write(ref gains[i], Finite(gain)); }
     internal void SetMaster(double gain) => Volatile.Write(ref master, Finite(gain));
