@@ -221,6 +221,9 @@ Source: `Views/Tabs/AssetsTabView.xaml:95-136,734-950`.
 
 ## Companion and typed triggers
 
+Removed 2026-11-03 (owner): keyword triggers are not part of Classic. The typed-trigger rows
+below are historical; the global listener now watches only the panic key.
+
 Source: `Views/Tabs/AwarenessTabView.xaml:216-581`,
 `Views/Controls/Companion/KeywordTriggersPanel.xaml:72-206`, `Services/KeywordTriggerService.cs`.
 Existing avatar placement source: `AvatarTube/AvatarTubeWindow.Windowing.cs`.

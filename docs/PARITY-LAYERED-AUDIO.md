@@ -24,8 +24,8 @@ Gain-only refresh cannot restart a graph stopped by panic. AudioOnlySession is
 captured for the next session and starts the layered bed even if its standalone
 switch is off. The source suppresses Flash, Video, Subliminal, spiral/pink
 overlay, Bubbles, LockCard, BouncingText, MindWipe, BrainDrain and excluded visual
-games. Wallpaper, companion, user corner GIFs and global typed input remain
-independent. Classic's authoritative panic/app-close gate stops all local audio.
+games. Wallpaper, companion and user corner GIFs remain independent (global
+typed input left with keyword triggers, removed 2026-11-03). Classic's authoritative panic/app-close gate stops all local audio.
 
 ## Native architecture and resource limits
 

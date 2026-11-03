@@ -1,5 +1,22 @@
 # CCP Classic handoff
 
+## Keyword triggers removed, 2026-11-03 (fix/remove-keywords)
+
+Owner: "we need to remove the keyword triggers feature, no need to have it in CCP Classic".
+Gone: the typed-text path of the global listener (`KeywordInput`, Windows ToUnicodeEx and X11
+keysym translation), `KeywordTriggerTimeline`, `KeywordOptions`, `KeywordEditor`, the
+KeywordTriggers help loop, `DesktopEffectsService.Keywords.cs` (actions, audio lane, ducking,
+XP and toy response), the Companion window's switch and editor, local text input feeding,
+`LocalDeviceEvent.Keyword` (toy routing row), the `kw` and `set_keywordtriggers_on` bark rules
+with their 4 clips, and 47 loc keys in all ten languages. `GlobalPanicMonitor` now watches only
+the panic key; its key transitions are unchanged and tests pin that typing around the panic key
+still fires it once per press. Old settings and presets that carry `KeywordTriggersEnabled`,
+`Keywords` or a `Keyword` toy level load normally and drop them on the next save (System.Text.Json
+ignores unknown members; device dictionaries are rebuilt from the enum). Kept: the companion's
+trigger phrases (timed Relax/Focus/Deeper and the phrase buttons); the never-wired typed path in
+`CompanionTimeline` went with this. No achievement depended on keywords (Careful Typing is the
+Lock Card one); the 27 stay. The Companion help topic has no illustration now.
+
 ## Companion bark library, 2026-11-03 (fix/tube-barks)
 
 Owner asked for every gender-neutral Circe line from CCP Default, tied to real actions.
@@ -30,8 +47,8 @@ single trigger words play one expressive clip from idle (never talk), a click pl
 new clip has a frame. Rate: 16.7 fps (7.2 s clips) before, 13.3 fps (9.0 s) now
 (`CompanionEmoteDirector.PlaybackRate` 0.8). Gentle and Reduced motion still only still the bob,
 as before. Bark hook for fix/tube-barks: `CompanionHost.SpeakLine(lineId, mood, text, seconds)`,
-plus `NonVerbal()` and `TriggerWord()` (keyword triggers are not wired to it yet: that lives in
-DesktopEffectsService.Companion.cs). 24 clips added (50.3 MB, LFS); provenance in
+plus `NonVerbal()` and `TriggerWord()` (keyword triggers, once meant to use it, were removed
+later the same day). 24 clips added (50.3 MB, LFS); provenance in
 docs/ASSET-PROVENANCE.md. Not packaged or launched; the owner judges the feel.
 
 ## Tube right-click menu, 2026-11-03 (fix/tube-menu)
@@ -519,8 +536,8 @@ desktop feel and real-device review are separate from these automated results.
   achievement rules. Classic awards 1 XP per 5 seconds, 2 per popped bubble,
   50 per finished video and 10 per correct attention answer. There are no unlock gates.
 - The verified original companion tube and five approved recorded barks are wired.
-  Timed phrases and opted-in keyword capture feed bounded native effect triggers;
-  the Wayland fallback accepts text only inside Classic. Panic clears every queue.
+  Timed phrases and the trigger phrase buttons feed bounded native effect triggers.
+  Panic clears every queue. (Keyword triggers were removed 2026-11-03.)
 - M6: explicit literal-loopback Intiface spec4 and Lovense connections, six bounded
   patterns, event controls, global gain and shared Stop. Audio sync samples real
   LibVLC source positions and effective gain every 100 ms. An expired sample goes
@@ -705,7 +722,7 @@ contains fewer than 600 changed text lines. Retarget children before merging par
 | [17](https://github.com/CC-Labs-it/ccp-classic/pull/17) | review fixes for captured cue timing and continuous Gentle opacity |
 | [18](https://github.com/CC-Labs-it/ccp-classic/pull/18) | review fixes for live audio, monitor selection and X11 parser parity |
 
-Continue companion/global keyword integration, local haptics, native Loom, Windows
+Continue companion integration, local haptics, native Loom, Windows
 wallpaper, startup behavior and installers. Keep cross-platform CI and the small
 review stack current. The owner-approved tube GIFs are being verified from public
 source; never substitute private assets or new companion identity/copy.

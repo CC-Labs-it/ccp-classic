@@ -5,12 +5,12 @@ Circe's voice for CCP's CCP Default companion, tied to what the player actually 
 
 ## What ships
 
-- `src/CCP.Classic.Core/Barks/barks.json` (embedded in Core): 108 rules, 285 lines. Each rule
+- `src/CCP.Classic.Core/Barks/barks.json` (embedded in Core): 106 rules, 281 lines. Each rule
   has an event key (`trigger`), priority, cooldown (seconds), repeatable, chance, `always`,
   mood, optional `when` conditions (`{"fact": [min, max]}`, inclusive) and its lines
   (`text`, `clip`, `seconds` = clip length measured with ffprobe).
-- `src/CCP.Classic.App/Starter/Barks/*.mp3`: the 285 recordings, unchanged (64 kbps mono),
-  18.3 MB, stored in LFS like the other starter recordings. Packaging checks them for pointers.
+- `src/CCP.Classic.App/Starter/Barks/*.mp3`: the 281 recordings, unchanged (64 kbps mono),
+  18.0 MB, stored in LFS like the other starter recordings. Packaging checks them for pointers.
 - Text and recordings are copied verbatim from CCP's
   `Resources/sounds/companion_audio/mods/builtin-ccp-default/` (`bark_rules.json`, 625 rules,
   702 lines). Lines were regrouped into Classic events; no line was rewritten.
@@ -59,7 +59,6 @@ controller. The bark system itself never chooses an animation clip.
 | BouncingTextCorner | bouncing text hits a corner (once per session) | 1 |
 | LockCardCompleted | lock card finished; `mistakes` 0 or more | 2 |
 | MindWipe / BrainDrain | a mind wipe completes / brain drain starts | 1 / 1 |
-| KeywordTriggered | a typed keyword trigger fires | 3 |
 | PreviewLockCard / PreviewVideo | the lock card or video preview button | 1 / 1 |
 | LevelUp | level up; `level` 10/25/50/75/100/500 have their own line | 7 |
 | Achievement | achievement unlocked; `achievements_left` 0 for the last one | 3 |
@@ -68,14 +67,14 @@ controller. The bark system itself never chooses an animation clip.
 | Opened.Presets / Studio / Progress | the player switches to that page | 2 / 4 / 1 |
 | Opened.Settings / Library / Toys | the player opens that window | 3 / 2 / 1 |
 | Opened.Effect.&lt;id&gt; | an effect tile's settings window (flash, video, sub, spiral, pink, bubble, lock, bounce, wipe, drain) | 1 each |
-| Enabled.&lt;id&gt; | the player turns an effect on (sub, spiral, pink, drain, bubble, lock, bounce, wipe, wall), Strict video (`strict`), keyword triggers, all monitors, start with system, auto run | 1 each |
+| Enabled.&lt;id&gt; | the player turns an effect on (sub, spiral, pink, drain, bubble, lock, bounce, wipe, wall), Strict video (`strict`), all monitors, start with system, auto run | 1 each |
 | BarksOn / Detached / PanicOff | barks turned back on / tube detached / panic switched off | 1 / 1 / 2 |
 
 Switch events come from `BarkSwitchWatch` (polled every 250 ms): only an off-to-on flip by the
 player counts; three or more switches flipping together (a preset, a reset) say nothing, and
 timed effect changes rebase it.
 
-## Dropped (417 of 702 lines)
+## Dropped (421 of 702 lines)
 
 | Reason | Lines |
 |---|---|
@@ -98,6 +97,7 @@ timed effect changes rebase it.
 | Counting Practice (replaced by Target Practice), missed bubbles, XP ticks, mute egg | 5 |
 | Panic line ("nothing barks during panic"), stop line ("a stop silences barks") | 2 |
 | Longer than 160 characters (does not fit the tube bubble) | 1 |
+| Keyword triggers (removed from Classic 2026-11-03: `kw`, `set_keywordtriggers_on`) | 4 |
 
 Every kept line is checked by tests: its recording exists in the shipped folder and is not an
 LFS pointer, the folder holds no unused clip, and no text names a gender, Bambi, a removed

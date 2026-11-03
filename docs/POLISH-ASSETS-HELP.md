@@ -22,7 +22,6 @@ All paths below are relative to `ConditioningControlPanel/Controls/HelpLoops/Sce
 | BrainDrainLoop.cs | Brain Drain | 7600 / 4300 |
 | AudioLoop.cs | Audio | 6800 / 3400 |
 | PresetsLoop.cs | Presets | 6800 / 3000 |
-| KeywordTriggersLoop.cs | Companion | 7000 / 3300 |
 
 The shared `LoopFrame.cs`, `LoopFrame.Kit.cs`, `LoopMath.cs` and `LoopPalette.cs` are native Avalonia adaptations of the corresponding public drawing kit. `LoopContext` and `LoopGeometry` adapt the original drawing operations without a WPF reference. The background blur uses Avalonia's bounded native effect and leaves the ground layer outside that blur. The font uses Classic's installed font fallback rather than the source's WPF font URI.
 

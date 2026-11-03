@@ -38,5 +38,5 @@ lifecycle policy, not a missing editor. The dedicated audio picker is implemente
 session, enable, loop and audio gates already own its runtime lifecycle.
 
 Validation includes FlashParityTests, FlashTimingTests, LockEffectsTimelineTests,
-KeywordParityTests and SettingsTests. Full integrated results and packaging state
+SettingsTests (KeywordParityTests left with keyword triggers, removed 2026-11-03). Full integrated results and packaging state
 are recorded in HANDOFF.md. Remix has separate composition and renderer evidence.

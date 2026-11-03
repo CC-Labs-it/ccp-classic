@@ -5,7 +5,8 @@ Public CCP pin: `fe40ea7587ac0b09e47d0724e59d7178db3336da`.
 `BtnAddTrack_Click`, includes WMA with MP3, WAV, OGG, FLAC, M4A and AAC.
 Classic also already supported local Ogg Opus playback. A shared eight-format
 list now drives library discovery, every recording picker and saved clip paths,
-including subliminal phrases, keyword actions, Mind Wipe and layered tracks.
+including subliminal phrases, Mind Wipe and layered tracks (keyword actions
+left with keyword triggers, removed 2026-11-03).
 
 WMA remains a local file input. Playback reads all 16 bytes of the ASF Header
 Object GUID `75B22630-668E-11CF-A6D9-00AA0062CE6C`, with stored bytes
