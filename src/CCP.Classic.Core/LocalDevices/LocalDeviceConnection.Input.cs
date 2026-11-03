@@ -33,6 +33,7 @@ public sealed partial class LocalDeviceConnection
             if (inputEnabled == value) return; inputEnabled = value;
             foreach (var key in featureGenerations.Keys.ToArray()) featureGenerations[key] = ++nextFeatureGeneration;
             if (!value) unwanted.UnionWith(attempted);
+            subscribed.Clear();
             held.Clear(); lastPress.Clear(); failedInput.Clear(); inputCancellation?.Cancel();
             inputDirty = true; QueueInputLocked();
         }
@@ -73,7 +74,7 @@ public sealed partial class LocalDeviceConnection
         {
             while (true)
             {
-                ButtonKey? selected = null; var enable = false;
+                ButtonKey? selected = null; var enable = false; long generation = 0;
                 lock (gate)
                 {
                     if (!ReferenceEquals(inputOwner, current) || disconnecting || stop.IsCancellationRequested) return;
@@ -84,6 +85,7 @@ public sealed partial class LocalDeviceConnection
                         if (missing.Length > 0) { selected = missing[0]; enable = true; attempted.Add(selected.Value); }
                     }
                     else if (unwanted.Count > 0 || subscribed.Count > 0) selected = unwanted.Concat(subscribed).First();
+                    if (selected is { } pending) featureGenerations.TryGetValue(pending, out generation);
                 }
                 if (selected is not { } key) return;
                 try
@@ -93,12 +95,19 @@ public sealed partial class LocalDeviceConnection
                         ["FeatureIndex"] = key.Feature, ["Type"] = "Button", ["Command"] = enable ? "Subscribe" : "Unsubscribe" }, "Ok", timeout.Token).ConfigureAwait(false);
                     lock (gate)
                     {
-                        if (!ReferenceEquals(inputOwner, current) || !advertised.Contains(key)) continue;
+                        if (!ReferenceEquals(inputOwner, current) || !featureGenerations.TryGetValue(key, out var latest) || latest != generation) continue;
                         if (enable) subscribed.Add(key); else { unwanted.Remove(key); subscribed.Remove(key); attempted.Remove(key); held.Remove(key); }
                     }
                 }
                 catch (Exception error) when (error is not OutOfMemoryException)
-                { lock (gate) { if (!enable) unwanted.Remove(key); attempted.Remove(key); subscribed.Remove(key); held.Remove(key); if (!stop.IsCancellationRequested) failedInput.Add(key); } }
+                {
+                    lock (gate)
+                    {
+                        if (!ReferenceEquals(inputOwner, current) || !featureGenerations.TryGetValue(key, out var latest) || latest != generation) continue;
+                        if (!enable) unwanted.Remove(key); attempted.Remove(key); subscribed.Remove(key); held.Remove(key);
+                        if (!stop.IsCancellationRequested) failedInput.Add(key);
+                    }
+                }
             }
         }
         finally

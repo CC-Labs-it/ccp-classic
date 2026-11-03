@@ -48,6 +48,52 @@ public sealed class IntifaceButtonTests
         Assert.All(wire.Stops, body => { Assert.False(body.GetProperty("Inputs").GetBoolean()); Assert.True(body.GetProperty("Outputs").GetBoolean()); });
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ADelayedOldSubscriptionReplyCannotSuppressReusedFeatureSubscription(bool rejected)
+    {
+        var wire = new Wire { HoldDeviceZeroCommand = "Subscribe", RejectHeldCommand = rejected };
+        await using var controller = new LocalDeviceController(() => new(() => wire));
+        var presses = new ConcurrentQueue<LocalButtonPress>(); controller.ButtonPressed += presses.Enqueue;
+        try
+        {
+            Assert.True(await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken));
+            await wire.SubscribeEntered.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+            wire.Button(0, 4, 1); var old = Assert.Single(presses);
+            wire.Present = false; wire.DeviceList(); wire.Present = true; wire.DeviceList();
+            Assert.False(controller.IsCurrentInput(old));
+            wire.Button(0, 4, 1); Assert.Single(presses);
+            wire.ReleaseSubscribe.TrySetResult();
+            await Until(() => wire.Commands.Count(command => command.Device == 0 && command.Command == "Subscribe") == 2);
+            wire.Button(0, 4, 1); Assert.Equal(2, presses.Count);
+            Assert.True(controller.IsCurrentInput(presses.Last())); Assert.False(controller.IsCurrentInput(old));
+        }
+        finally { wire.ReleaseSubscribe.TrySetResult(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReenablingDuringAnOldUnsubscribeAlwaysCreatesACurrentSubscription(bool rejected)
+    {
+        var wire = new Wire { HoldDeviceZeroCommand = "Unsubscribe", RejectHeldCommand = rejected };
+        await using var controller = new LocalDeviceController(() => new(() => wire));
+        var presses = new ConcurrentQueue<LocalButtonPress>(); controller.ButtonPressed += presses.Enqueue;
+        try
+        {
+            Assert.True(await controller.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken));
+            await Until(() => wire.Commands.Count(command => command.Command == "Subscribe") == 2);
+            wire.Button(0, 4, 1); var old = Assert.Single(presses); controller.InputEnabled = false;
+            await wire.SubscribeEntered.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+            controller.InputEnabled = true; wire.ReleaseSubscribe.TrySetResult();
+            await Until(() => wire.Commands.Count(command => command.Device == 0 && command.Command == "Subscribe") == 2);
+            wire.Button(0, 4, 1); Assert.Equal(2, presses.Count);
+            Assert.True(controller.IsCurrentInput(presses.Last())); Assert.False(controller.IsCurrentInput(old));
+        }
+        finally { wire.ReleaseSubscribe.TrySetResult(); }
+    }
+
     [Fact]
     public async Task StopCancelsAStalledSubscriptionAndNoInputIsSentBeforeAV4Handshake()
     {
@@ -102,7 +148,11 @@ public sealed class IntifaceButtonTests
         public readonly ConcurrentQueue<JsonElement> Stops = new();
         public readonly TaskCompletionSource SubscribeEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public readonly TaskCompletionSource SubscribeCanceled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public readonly TaskCompletionSource ReleaseSubscribe = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Present = true, BlockSubscribe;
+        public string? HoldDeviceZeroCommand;
+        public bool RejectHeldCommand;
+        private int heldDeviceZeroCommand;
         public int Version = 4;
         public event Action<string>? MessageReceived;
         public Task OpenAsync(Uri endpoint, CancellationToken token) => Task.CompletedTask;
@@ -136,6 +186,13 @@ public sealed class IntifaceButtonTests
             {
                 Assert.Equal("Button", body.GetProperty("Type").GetString()); var action = body.GetProperty("Command").GetString()!;
                 Commands.Enqueue((body.GetProperty("DeviceIndex").GetInt32(), body.GetProperty("FeatureIndex").GetInt32(), action));
+                if (action == HoldDeviceZeroCommand && body.GetProperty("DeviceIndex").GetInt32() == 0
+                    && Interlocked.Exchange(ref heldDeviceZeroCommand, 1) == 0)
+                {
+                    // Keep the old reply pending even if its timeout fires, to exercise late completion deterministically.
+                    SubscribeEntered.TrySetResult(); await ReleaseSubscribe.Task;
+                    if (RejectHeldCommand) return JsonSerializer.Serialize(new[] { new { Error = new { Id = id } } });
+                }
                 if (BlockSubscribe && action == "Subscribe")
                 {
                     SubscribeEntered.TrySetResult();
