@@ -15,5 +15,9 @@ dotnet test -c Release
 dotnet run --project src/CCP.Classic.App
 ```
 
+Run `git lfs install` before cloning, or `git lfs pull` after cloning, to obtain
+the bundled neutral recordings. Linux audio needs the system LibVLC runtime
+(`libvlc5` on Debian/Ubuntu). Windows includes its native runtime.
+
 M0 builds the compact dashboard and its safety controls. Effects remain inert until their
 implementation milestones. See [the handoff](docs/HANDOFF.md) for current status.
