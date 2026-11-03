@@ -1,6 +1,9 @@
 namespace CCP.Classic.Core;
 
-public sealed record FlashCue(long Id, int Image, double X, double Y, double Size, double Opacity);
+public sealed record FlashCue(long Id, int Image, double X, double Y, double Size, double Opacity)
+{
+    public FlashExitState? Exit { get; init; }
+}
 public sealed record EffectsSnapshot(IReadOnlyList<FlashCue> Flashes, int Phrase, double TextOpacity,
     double PinkOpacity, double SpiralOpacity, double SpiralPhase, int SpiralKind, bool Whisper)
 {
@@ -17,6 +20,8 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
     private int phrase;
     private CueEnvelope? textCue;
     private CueEnvelope? spiralPulse;
+    private CueEnvelope? pinkPulse;
+    private FlashExitStyle? lastExit;
     private bool requestedWhisper;
     private long nextId, nextTextId, textId;
     public bool IsRunning { get; private set; }
@@ -32,12 +37,12 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         pinkFade.Reset(); spiralFade.Reset();
     }
 
-    public void Stop() { IsRunning = false; flashes.Clear(); textCue = spiralPulse = null; requestedWhisper = false; pink = spiral = textAlpha = 0; }
+    public void Stop() { IsRunning = false; flashes.Clear(); textCue = spiralPulse = pinkPulse = null; requestedWhisper = false; pink = spiral = textAlpha = 0; }
 
-    public bool TriggerFlash()
+    public bool TriggerFlash(int? selectedImage = null)
     {
-        if (!IsRunning || !Enabled("flash") || imageCount == 0) return false;
-        var before = flashes.Count; Spawn(lastTime); return flashes.Count > before;
+        if (!IsRunning || !Enabled("flash") || imageCount == 0 || selectedImage is < 0 || selectedImage >= imageCount) return false;
+        var before = flashes.Count; Spawn(lastTime, selectedImage); return flashes.Count > before;
     }
     public bool TriggerWhisper(int selectedPhrase = 0)
     {
@@ -53,6 +58,11 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
     {
         if (!IsRunning) return false;
         spiralPulse = new(lastTime, settings.GentleVisuals ? .75 : .3, 1, settings.GentleVisuals); return true;
+    }
+    public bool TriggerPinkPulse()
+    {
+        if (!IsRunning) return false;
+        pinkPulse = new(lastTime, settings.GentleVisuals ? .75 : .3, 1, settings.GentleVisuals); return true;
     }
 
     public void SetImageCount(int count)
@@ -71,6 +81,11 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         var fade = gentle ? .75 : .3;
         var whisper = requestedWhisper; requestedWhisper = false;
         pink = pinkFade.Sample(now, Enabled("pink") ? Value("pink", "opacity") / 100 * (gentle ? .5 : 1) : 0, fade);
+        if (pinkPulse is { } pinkCue)
+        {
+            pink = Math.Max(pink, pinkCue.Sample(now, gentle) * (gentle ? .1 : .25));
+            if (pinkCue.Done) pinkPulse = null;
+        }
         spiral = spiralFade.Sample(now, Enabled("spiral") ? Value("spiral", "opacity") / 100 * (gentle ? .5 : 1) : 0, fade);
         if (spiralPulse is { } pulse)
         {
@@ -88,6 +103,15 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         var output = new List<FlashCue>();
         foreach (var flash in flashes.ToArray())
         {
+            if (flash.Exit is { } exit)
+            {
+                if (gentle && exit.DurationSec < .75 || settings.ReducedMotion && exit.Style != FlashExitStyle.Mix)
+                { flash.Exit = exit = FlashExit.Soften(exit, gentle ? .75 : .12); flash.ExitStarted = now; }
+                flash.Exit = exit = exit with { ElapsedSec = now - flash.ExitStarted };
+                if (exit.Done) flashes.Remove(flash);
+                else output.Add(new(flash.Id, flash.Image, flash.X, flash.Y, flash.Size, flash.Alpha) { Exit = exit });
+                continue;
+            }
             if (!Enabled("flash")) flash.Cue.End(now, gentle);
             var gain = flash.Cue.Ending ? flash.Gain.Value
                 : flash.Gain.Sample(now, Value("flash", "opacity") / 100, gentle ? .75 : 0);
@@ -120,18 +144,27 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
     public bool Dismiss(long id)
     {
         if (!IsRunning || Value("flash", "dismiss") == 0) return false;
-        var flash = flashes.FirstOrDefault(f => f.Id == id && !f.Cue.Ending && !f.Cue.Done);
+        var flash = flashes.FirstOrDefault(f => f.Id == id && f.Exit is null && !f.Cue.Ending && !f.Cue.Done);
         if (flash is null) return false;
-        flash.Cue.End(lastTime, settings.GentleVisuals);
+        var style = FlashExit.Pick((FlashExitStyle)(int)Math.Clamp(settings.Effects["flash"].Values.GetValueOrDefault("exit"), 0, 6), lastExit, random);
+        if (style is null && (settings.GentleVisuals || settings.ReducedMotion)) style = FlashExitStyle.Mix;
+        if (style is null) flashes.Remove(flash);
+        else
+        {
+            lastExit = style; flash.ExitStarted = lastTime;
+            flash.Exit = FlashExit.Begin(style.Value, random.Next(), settings.GentleVisuals, settings.ReducedMotion, settings.PerformanceMode);
+            flash.Alpha = flash.Cue.Sample(lastTime, settings.GentleVisuals) * flash.Gain.Value;
+            while (flashes.Count(item => item.Exit is not null) > 32) flashes.Remove(flashes.First(item => item.Exit is not null));
+        }
         if (Value("flash", "hydra") != 0 && Enabled("flash")) { Spawn(lastTime); Spawn(lastTime); }
         return true;
     }
 
-    private void Spawn(double now)
+    private void Spawn(double now, int? selectedImage = null)
     {
-        if (imageCount == 0 || flashes.Count >= (int)Value("flash", "maximum")) return;
+        if (imageCount == 0 || flashes.Count(item => item.Exit is null) >= (int)Value("flash", "maximum")) return;
         var size = Math.Clamp(Value("flash", "size") / 100, .1, 1);
-        var flash = new Flash { Id = ++nextId, Image = random.Next(imageCount), Size = size,
+        var flash = new Flash { Id = ++nextId, Image = selectedImage ?? random.Next(imageCount), Size = size,
             X = random.NextDouble() * (1 - size), Y = random.NextDouble() * (1 - size),
             Cue = new(now, Math.Max(Value("flash", "fade") / 1000, settings.GentleVisuals ? .75 : .05), 4, settings.GentleVisuals) };
         flash.Gain.Reset(Value("flash", "opacity") / 100);
@@ -146,6 +179,8 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
         public long Id; public int Image;
         public double X, Y, Size, Alpha;
         public CueEnvelope Cue = null!;
+        public FlashExitState? Exit;
+        public double ExitStarted;
         public readonly FadeTrack Gain = new();
     }
     private sealed class CueEnvelope

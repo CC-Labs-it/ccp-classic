@@ -34,6 +34,10 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   CC labs Srls. Remove the old personal byline from current chrome. Preserve
   historical upstream asset attribution. Editors fit their content with readable,
   colored typography; reuse CCP's support banner with its direct Patreon link.
+- Owner effect parity request 2026-11-03: reuse CCP's free image-click outros
+  and ambient effect bubbles, including the same flash image inside the bubble
+  and after its pop. Keep timed image expiry soft, motion preferences effective,
+  and effect/video capacity bounds. Defaults are Mix exits and 10% effect bubbles.
 - Studio / Presets / Progress; Library / Companion / Toys / Settings windows.
   At most three primary controls per editor. Video concurrency goes under More.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.

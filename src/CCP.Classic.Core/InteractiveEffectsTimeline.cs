@@ -1,10 +1,12 @@
 namespace CCP.Classic.Core;
 
-public sealed record BubbleCue(long Id, double X, double Y, double Size, double Opacity, bool CanPop);
+public enum BubbleEffectKind { None, Flash, Subliminal, Pink, Spiral, BrainDrain, Video }
+public sealed record BubbleCue(long Id, double X, double Y, double Size, double Opacity, bool CanPop,
+    BubbleEffectKind Effect = BubbleEffectKind.None, int Image = -1, double PopProgress = 0);
 public sealed record BouncingTextCue(string Text, double X, double Y, double Size, double Opacity);
 public sealed record BounceMotion(double X, double Y, double VelocityX, double VelocityY);
 public enum InteractiveEffectEventKind { BubblePopped, CornerHit, LockCompleted, WipeCompleted }
-public sealed record InteractiveEffectEvent(InteractiveEffectEventKind Kind, bool PlaySound = false);
+public sealed record InteractiveEffectEvent(InteractiveEffectEventKind Kind, bool PlaySound = false, BubbleCue? Bubble = null);
 public sealed record InteractiveEffectsFrame(IReadOnlyList<BubbleCue> Bubbles, BouncingTextCue? BouncingText)
 {
     public static InteractiveEffectsFrame Empty { get; } = new([], null);
@@ -22,6 +24,8 @@ public sealed class InteractiveEffectsTimeline(ClassicSettings settings, int see
     private long nextId;
     private double lastTime, nextBubble, bubbleRate, x, y, vx, vy;
     private int word = 2;
+    private int imageCount;
+    public bool VideoAvailable { get; set; }
     public bool IsRunning { get; private set; }
     public event Action<InteractiveEffectEvent>? EventOccurred;
 
@@ -37,14 +41,17 @@ public sealed class InteractiveEffectsTimeline(ClassicSettings settings, int see
     }
 
     public void Stop() { IsRunning = false; bubbles.Clear(); bounceFade.Reset(); }
+    public void SetImageCount(int count) => imageCount = Math.Clamp(count, 0, 100000);
 
     public bool Pop(long id)
     {
         if (!IsRunning || !Enabled("bubble") || Value("bubble", "click") == 0) return false;
         var bubble = bubbles.FirstOrDefault(item => item.Id == id && !item.Ending && item.Fade.Value > .01);
         if (bubble is null) return false;
-        bubble.Ending = true;
-        EventOccurred?.Invoke(new(InteractiveEffectEventKind.BubblePopped, Value("bubble", "sound") != 0));
+        bubble.Ending = bubble.Popped = true;
+        var effect = BubbleValue("effects", 1, 0, 1) != 0 && Available(bubble.Effect) ? bubble.Effect : BubbleEffectKind.None;
+        EventOccurred?.Invoke(new(InteractiveEffectEventKind.BubblePopped, Value("bubble", "sound") != 0,
+            new(bubble.Id, bubble.X, bubble.Y, BubbleSize(bubble.Effect), bubble.Fade.Value, false, effect, bubble.Image)));
         return true;
     }
 
@@ -60,19 +67,25 @@ public sealed class InteractiveEffectsTimeline(ClassicSettings settings, int see
         if (Enabled("bubble") && now >= nextBubble)
         {
             nextBubble = now + Interval(bubbleRate);
-            if (bubbles.Count < 8) bubbles.Add(new(++nextId, .05 + random.NextDouble() * .8,
-                .7 + random.NextDouble() * .15, now + 12));
+            if (bubbles.Count < 8)
+            {
+                var effect = RollEffect();
+                bubbles.Add(new(++nextId, .05 + random.NextDouble() * .75, .7 + random.NextDouble() * .1,
+                    now + 12, effect, effect == BubbleEffectKind.Flash ? random.Next(imageCount) : -1));
+            }
         }
         var output = new List<BubbleCue>();
         foreach (var bubble in bubbles.ToArray())
         {
             bubble.Ending |= !Enabled("bubble") || now >= bubble.Expires;
+            if (bubble.Effect != BubbleEffectKind.None && BubbleValue("effects", 1, 0, 1) == 0) bubble.Ending = true;
             if (!settings.ReducedMotion && !bubble.Ending)
                 bubble.Y = Math.Max(0, bubble.Y - dt * (settings.GentleVisuals ? .0075 : .015));
             var alpha = bubble.Fade.Sample(now, bubble.Ending ? 0 : 1, fade);
             if (bubble.Ending && alpha == 0) bubbles.Remove(bubble);
-            else output.Add(new(bubble.Id, bubble.X, bubble.Y, .1, alpha,
-                !bubble.Ending && alpha > .01 && Value("bubble", "click") != 0));
+            else output.Add(new(bubble.Id, bubble.X, bubble.Y, BubbleSize(bubble.Effect), alpha,
+                !bubble.Ending && alpha > .01 && Value("bubble", "click") != 0,
+                bubble.Effect, bubble.Image, bubble.Popped ? 1 - alpha : 0));
         }
 
         var bounceEnabled = Enabled("bounce");
@@ -107,6 +120,29 @@ public sealed class InteractiveEffectsTimeline(ClassicSettings settings, int see
     }
 
     private bool Enabled(string id) => settings.Effects[id].Enabled;
+    private BubbleEffectKind RollEffect()
+    {
+        // CCP ambient trigger bubbles are benign payloads fired only by a deliberate pop.
+        if (Value("bubble", "click") == 0 || BubbleValue("effects", 1, 0, 1) == 0
+            || bubbles.Count(b => b.Effect != BubbleEffectKind.None) >= 4
+            || random.Next(100) >= BubbleValue("chance", 10, 0, 100)) return BubbleEffectKind.None;
+        var chosen = (int)BubbleValue("kind", 0, 0, 6);
+        var pool = Enum.GetValues<BubbleEffectKind>().Where(kind => kind != BubbleEffectKind.None
+            && (chosen == 0 || (int)kind == chosen) && Available(kind)).ToArray();
+        return pool.Length > 0 ? pool[random.Next(pool.Length)] : BubbleEffectKind.None;
+    }
+    private bool Available(BubbleEffectKind kind) => kind switch
+    {
+        BubbleEffectKind.Flash => imageCount > 0 && Enabled("flash"),
+        BubbleEffectKind.Subliminal => Enabled("sub"), BubbleEffectKind.Pink => Enabled("pink"),
+        BubbleEffectKind.Spiral => Enabled("spiral"), BubbleEffectKind.BrainDrain => Enabled("drain"),
+        BubbleEffectKind.Video => VideoAvailable && Enabled("video") && settings.Effects["video"].Values["strict"] == 0,
+        _ => false
+    };
+    private static double BubbleSize(BubbleEffectKind effect) => effect == BubbleEffectKind.None ? .1 : .16;
+    private double BubbleValue(string key, double fallback, double min, double max) =>
+        settings.Effects["bubble"].Values.TryGetValue(key, out var value) && double.IsFinite(value)
+            ? Math.Clamp(value, min, max) : fallback;
     private double Value(string id, string key)
     {
         var knob = Knobs[id][key];
@@ -115,12 +151,14 @@ public sealed class InteractiveEffectsTimeline(ClassicSettings settings, int see
     }
     private static double Clamp(double value, double min, double max) => double.IsFinite(value) ? Math.Clamp(value, min, max) : min;
     private static double Interval(double frequency) => frequency > 0 ? 60 / frequency : double.PositiveInfinity;
-    private sealed class Bubble(long id, double x, double y, double expires)
+    private sealed class Bubble(long id, double x, double y, double expires, BubbleEffectKind effect, int image)
     {
         public readonly long Id = id;
         public readonly double X = x, Expires = expires;
         public double Y = y;
-        public bool Ending;
+        public bool Ending, Popped;
+        public readonly BubbleEffectKind Effect = effect;
+        public readonly int Image = image;
         public readonly EaseTrack Fade = new();
     }
     private sealed class EaseTrack
