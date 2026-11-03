@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using CCP.Classic.Core;
 
@@ -13,7 +12,9 @@ public sealed class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new Window { Title = "CCP Classic", Width = 724, Height = 760 };
+            var store = new SettingsStore(SettingsStore.DefaultPath);
+            var settings = store.Load(out var recovered);
+            desktop.MainWindow = new MainWindow(settings, store) { SettingsRecovered = recovered };
         }
         base.OnFrameworkInitializationCompleted();
     }
