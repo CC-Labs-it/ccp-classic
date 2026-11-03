@@ -76,7 +76,9 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
 - LibVLCSharp SetOutputDevice takes deviceId before module, unlike the native C
   function. Use named arguments. Windows lists real DirectSound GUIDs through
   DirectSoundEnumerateW; VLC's legacy instance enumeration can return empty.
-  Empty device ID restores default; null is ignored. Native identity tests guard this.
+  Empty device ID restores default on Windows; null is ignored. Native identity tests guard this.
+  Linux never sends an empty ID: VLC3's PulseAudio output treats it as a sink name, the
+  server refuses the stream and playback falls to a silent ALSA output (WSL repro 2026-11-03).
 - LibVLC 3 decoded-audio callbacks use S16N unless a setup callback changes the
   negotiated format. SetAudioFormat("FL32") alone does not yield float samples.
   The transcode copy packetizer drops its last packet; direct decoded callbacks
