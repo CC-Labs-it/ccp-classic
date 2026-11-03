@@ -143,6 +143,8 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
   to an idle system launch, and a session restores the panel for owned windows.
   Local device providers/mixer and wallpaper services use injected native tests.
   Audio-sync PCM metering is still under native timestamp alignment investigation.
+  The owner approved an offline FFmpeg analysis helper after the prototype preserved
+  the intentional 400 ms delay. Playback stays LibVLC; helper bundling is in progress.
   No actual hardware connections, startup registration or wallpaper writes were sent.
 - All six M1 review findings are fixed in PRs #17 and #18. Three agents implemented
   and cross-reviewed the fixes. Both new PRs passed Windows and Linux Release CI.

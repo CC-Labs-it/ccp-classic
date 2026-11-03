@@ -30,8 +30,11 @@ Fresh public MIT application, By CodeBambi. Follow the owner's global brief.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
 - All UiDispatcher-backed tests share the Avalonia UI collection. RunJobs can
   reenter another queued test; one dispatcher thread alone does not isolate input.
-- Starter recordings use LFS; checkout in CI must fetch LFS. Audio uses local
+- Starter recordings use LFS; checkout in CI must fetch LFS. Audio playback uses local
   LibVLC only, forced DirectSound on Windows, never a mixer-wide fallback output.
+- Owner approval 2026-11-03: bundle offline FFmpeg for PCM/RMS analysis only.
+  Playback remains LibVLC. Restrict helper inputs to local files/pipes, cap CPU
+  use and stop analysis if total system RAM exceeds the owner's 75% ceiling.
 - Owner approval 2026-11-03: Companion barks are Breathe, Relax, Focus, Listen,
   Deeper, using the approved starter recordings. Relax triggers a flash, Focus
   a whisper, Deeper a spiral pulse. The 27 neutral badge names and four legacy
