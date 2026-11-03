@@ -42,17 +42,24 @@ public interface ILocalDeviceTransport : IAsyncDisposable
     Task OpenAsync(Uri endpoint, CancellationToken cancellationToken);
     Task<string> ExchangeAsync(string json, CancellationToken cancellationToken);
 }
+public interface ILocalDeviceEventTransport
+{
+    // Notification handlers must stay bounded and must not wait for a request on this receive thread.
+    event Action<string>? MessageReceived;
+}
 
 // Construction never connects. HTTP redirects/proxies are disabled even for the WebSocket handshake.
-public sealed class LoopbackJsonTransport : ILocalDeviceTransport
+public sealed class LoopbackJsonTransport(Func<Uri, CancellationToken, Task<WebSocket>>? socketFactory = null) : ILocalDeviceTransport, ILocalDeviceEventTransport
 {
     private const int MaximumBytes = 64 * 1024;
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private readonly SemaphoreSlim wire = new(1, 1);
     private HttpClient? client;
-    private ClientWebSocket? socket;
+    private WebSocket? socket;
+    private LocalDeviceSocket? incoming;
     private Uri? endpoint;
     private bool disposed;
+    public event Action<string>? MessageReceived;
 
     public async Task OpenAsync(Uri value, CancellationToken cancellationToken)
     {
@@ -64,10 +71,15 @@ public sealed class LoopbackJsonTransport : ILocalDeviceTransport
         var handler = new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false, UseCookies = false };
         client = new(handler) { Timeout = Timeout.InfiniteTimeSpan };
         if (local.Scheme != "ws") return;
-        socket = new(); socket.Options.Proxy = null;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(3));
-        await socket.ConnectAsync(local, client, timeout.Token).ConfigureAwait(false);
+        if (socketFactory is not null) socket = await socketFactory(local, timeout.Token).ConfigureAwait(false);
+        else
+        {
+            var native = new ClientWebSocket(); native.Options.Proxy = null; socket = native;
+            await native.ConnectAsync(local, client, timeout.Token).ConfigureAwait(false);
+        }
+        incoming = new(socket, json => MessageReceived?.Invoke(json)); incoming.Start();
     }
 
     public async Task<string> ExchangeAsync(string json, CancellationToken cancellationToken)
@@ -79,7 +91,7 @@ public sealed class LoopbackJsonTransport : ILocalDeviceTransport
         try
         {
             if (disposed || endpoint is null || client is null) throw new InvalidOperationException("Transport is not open");
-            if (socket is not null) return await ExchangeSocket(json, timeout.Token).ConfigureAwait(false);
+            if (incoming is not null) return await incoming.ExchangeAsync(json, timeout.Token).ConfigureAwait(false);
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
                 { Content = new StringContent(json, Utf8, "application/json") };
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
@@ -98,43 +110,11 @@ public sealed class LoopbackJsonTransport : ILocalDeviceTransport
         finally { wire.Release(); }
     }
 
-    private async Task<string> ExchangeSocket(string json, CancellationToken token)
+    public async ValueTask DisposeAsync()
     {
-        using var request = JsonDocument.Parse(json);
-        var id = request.RootElement[0].EnumerateObject().Single().Value.GetProperty("Id").GetInt32();
-        await socket!.SendAsync(Utf8.GetBytes(json).AsMemory(), WebSocketMessageType.Text, true, token).ConfigureAwait(false);
-        var messages = new List<JsonElement>(); var total = 0;
-        for (var frame = 0; frame < 32; frame++)
-        {
-            var bytes = new byte[MaximumBytes + 1]; var count = 0;
-            ValueWebSocketReceiveResult received;
-            do
-            {
-                received = await socket.ReceiveAsync(bytes.AsMemory(count), token).ConfigureAwait(false);
-                if (received.MessageType != WebSocketMessageType.Text) throw new IOException("Device connection closed or sent binary data");
-                count += received.Count;
-                if (count > MaximumBytes || (count == bytes.Length && !received.EndOfMessage)) throw new IOException("Device message is too large");
-            } while (!received.EndOfMessage);
-            total += count; if (total > MaximumBytes) throw new IOException("Device response is too large");
-            using var response = JsonDocument.Parse(Utf8.GetString(bytes, 0, count), new JsonDocumentOptions { MaxDepth = 16 });
-            if (response.RootElement.ValueKind != JsonValueKind.Array) throw new IOException("Invalid device response");
-            var matched = false;
-            foreach (var message in response.RootElement.EnumerateArray())
-            {
-                if (messages.Count >= 256) throw new IOException("Too many device messages");
-                messages.Add(message.Clone());
-                foreach (var body in message.EnumerateObject())
-                    if (body.Value.TryGetProperty("Id", out var replyId) && replyId.GetInt32() == id) matched = true;
-            }
-            if (matched) return JsonSerializer.Serialize(messages);
-        }
-        throw new IOException("Missing device response");
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        if (disposed) return ValueTask.CompletedTask;
-        disposed = true; socket?.Abort(); socket?.Dispose(); client?.Dispose();
-        return ValueTask.CompletedTask;
+        if (disposed) return;
+        disposed = true;
+        if (incoming is not null) await incoming.DisposeAsync().ConfigureAwait(false);
+        socket?.Abort(); socket?.Dispose(); client?.Dispose();
     }
 }
