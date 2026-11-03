@@ -11,6 +11,12 @@ internal sealed class NativeAudioDevice : IAudioDevice
 
     public NativeAudioDevice()
     {
+        EnsureInitialized();
+        vlc = new LibVLC(Options(OperatingSystem.IsWindows()));
+    }
+
+    internal static void EnsureInitialized()
+    {
         lock (InitializationGate)
         {
             if (!initialized)
@@ -28,7 +34,6 @@ internal sealed class NativeAudioDevice : IAudioDevice
                 initialized = true;
             }
         }
-        vlc = new LibVLC(Options(OperatingSystem.IsWindows()));
     }
 
     internal static string[] Options(bool windows)
