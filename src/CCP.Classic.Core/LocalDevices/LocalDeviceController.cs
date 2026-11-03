@@ -1,6 +1,6 @@
 namespace CCP.Classic.Core.LocalDevices;
 
-public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
+public sealed partial class LocalDeviceController : IDisposable, IAsyncDisposable
 {
     private sealed class ProviderState(LocalDeviceProvider provider, LocalDeviceConnection connection)
     {
@@ -9,6 +9,7 @@ public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
         public bool Faulted;
         public long LastSend, LastRefresh, LastPing;
         public string LastLevels = "";
+        public Action<LocalButtonPress>? InputHandler;
     }
     private readonly object gate = new();
     private readonly SemaphoreSlim signal = new(0, 1), outputLane = new(1, 1);
@@ -76,8 +77,9 @@ public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
             providers.Remove(provider, out old); floors.Clear();
             state = new(provider, factory()); providers.Add(provider, state); epoch++;
             state.Connection.Changed += ConnectionChanged;
+            AttachControllerInput(state); inputGeneration++;
         }
-        if (old is not null) { old.Connection.Changed -= ConnectionChanged; await old.Connection.DisposeAsync().ConfigureAwait(false); }
+        if (old is not null) { old.Connection.Changed -= ConnectionChanged; DetachControllerInput(old); await old.Connection.DisposeAsync().ConfigureAwait(false); }
         try
         {
             var connected = await state.Connection.ConnectAsync(provider, port, token).ConfigureAwait(false);
@@ -97,7 +99,7 @@ public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
         catch
         {
             lock (gate) { if (IsCurrent(state)) providers.Remove(provider); }
-            state.Connection.Changed -= ConnectionChanged; await state.Connection.DisposeAsync().ConfigureAwait(false);
+            state.Connection.Changed -= ConnectionChanged; DetachControllerInput(state); await state.Connection.DisposeAsync().ConfigureAwait(false);
             Changed?.Invoke(); throw;
         }
     }
@@ -290,7 +292,7 @@ public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
         ProviderState[] states;
         lock (gate)
         {
-            pulses.Clear(); floors.Clear(); ClearAudio(); ClearScript(); luminanceLevel = videoLevel = 0; activeStops++; stopping = true; muted = true; mutedAt = clock.GetTimestamp(); epoch++;
+            pulses.Clear(); floors.Clear(); ClearAudio(); ClearScript(); luminanceLevel = videoLevel = 0; activeStops++; stopping = true; muted = true; mutedAt = clock.GetTimestamp(); epoch++; inputGeneration++;
             states = providers.Values.ToArray(); Wake();
         }
         await outputLane.WaitAsync().ConfigureAwait(false);
@@ -321,9 +323,9 @@ public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
         lock (gate)
         {
             removed = providers.Values.Where(p => provider is null || p.Provider == provider).ToArray();
-            foreach (var state in removed) { providers.Remove(state.Provider); state.Connection.Changed -= ConnectionChanged; }
+            foreach (var state in removed) { providers.Remove(state.Provider); state.Connection.Changed -= ConnectionChanged; DetachControllerInput(state); }
             floors.Clear();
-            if (providers.Count == 0) { pulses.Clear(); ClearAudio(); ClearScript(); luminanceLevel = videoLevel = 0; } epoch++; Wake();
+            if (providers.Count == 0) { pulses.Clear(); ClearAudio(); ClearScript(); luminanceLevel = videoLevel = 0; } epoch++; inputGeneration++; Wake();
         }
         await outputLane.WaitAsync().ConfigureAwait(false);
         try
@@ -344,7 +346,7 @@ public sealed class LocalDeviceController : IDisposable, IAsyncDisposable
         lock (gate)
         {
             if (disposed) return;
-            disposed = true; pulses.Clear(); floors.Clear(); ClearAudio(); ClearScript(); luminanceLevel = videoLevel = 0; epoch++; Wake(); cleanup = Cleanup();
+            disposed = true; pulses.Clear(); floors.Clear(); ClearAudio(); ClearScript(); luminanceLevel = videoLevel = 0; epoch++; inputGeneration++; Wake(); cleanup = Cleanup();
         }
     }
     private async Task Cleanup()

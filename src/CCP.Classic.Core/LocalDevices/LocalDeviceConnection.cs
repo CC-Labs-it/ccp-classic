@@ -4,7 +4,7 @@ namespace CCP.Classic.Core.LocalDevices;
 
 public enum LocalDeviceStatus { Disconnected, Connecting, Connected, Unavailable }
 
-public sealed class LocalDeviceConnection(Func<ILocalDeviceTransport>? transportFactory = null) : IAsyncDisposable
+public sealed partial class LocalDeviceConnection(Func<ILocalDeviceTransport>? transportFactory = null, TimeProvider? timeProvider = null) : IAsyncDisposable
 {
     private readonly object gate = new();
     private readonly Func<ILocalDeviceTransport> factory = transportFactory ?? (() => new LoopbackJsonTransport());
@@ -25,6 +25,7 @@ public sealed class LocalDeviceConnection(Func<ILocalDeviceTransport>? transport
         await DisconnectAsync().ConfigureAwait(false);
         var candidate = factory();
         lock (gate) { transport = candidate; provider = selected; status = LocalDeviceStatus.Connecting; disconnecting = false; }
+        AttachInput(candidate, selected);
         Changed?.Invoke();
         try
         {
@@ -45,6 +46,7 @@ public sealed class LocalDeviceConnection(Func<ILocalDeviceTransport>? transport
             {
                 if (!ReferenceEquals(transport, candidate) || disconnecting) return false;
                 status = LocalDeviceStatus.Connected;
+                QueueInputLocked();
             }
             Changed?.Invoke(); return true;
         }
@@ -125,13 +127,17 @@ public sealed class LocalDeviceConnection(Func<ILocalDeviceTransport>? transport
     public async Task StopAsync(CancellationToken token = default)
     {
         ILocalDeviceTransport? current; LocalDeviceProvider selected;
-        lock (gate) { outputEpoch++; current = transport; selected = provider; }
-        if (current is null) return;
-        if (selected == LocalDeviceProvider.Intiface)
-            await Request(current, "StopCmd", new() { ["Inputs"] = false, ["Outputs"] = true }, "Ok", token).ConfigureAwait(false);
-        else
-            LocalDeviceProtocol.CheckLovense(LocalDeviceProtocol.Parse(await current.ExchangeAsync(
-                "{\"command\":\"Function\",\"action\":\"Stop\",\"timeSec\":0,\"apiVer\":1,\"stopPrevious\":1}", token).ConfigureAwait(false)));
+        lock (gate) { outputEpoch++; current = transport; selected = provider; inputPauses++; inputCancellation?.Cancel(); }
+        try
+        {
+            if (current is null) return;
+            if (selected == LocalDeviceProvider.Intiface)
+                await Request(current, "StopCmd", new() { ["Inputs"] = false, ["Outputs"] = true }, "Ok", token).ConfigureAwait(false);
+            else
+                LocalDeviceProtocol.CheckLovense(LocalDeviceProtocol.Parse(await current.ExchangeAsync(
+                    "{\"command\":\"Function\",\"action\":\"Stop\",\"timeSec\":0,\"apiVer\":1,\"stopPrevious\":1}", token).ConfigureAwait(false)));
+        }
+        finally { lock (gate) { inputPauses--; QueueInputLocked(); } }
     }
 
     public async Task DisconnectAsync()
@@ -167,15 +173,17 @@ public sealed class LocalDeviceConnection(Func<ILocalDeviceTransport>? transport
     private void SetDevices(ILocalDeviceTransport current, IReadOnlyList<LocalDeviceInfo> values)
     {
         lock (gate) { if (!ReferenceEquals(transport, current) || disconnecting) return; devices = values; }
+        UpdateInputs(current);
         Changed?.Invoke();
     }
     private async Task CloseCandidate(ILocalDeviceTransport current, LocalDeviceStatus result)
     {
+        var inputDone = DetachInput(current);
         lock (gate)
         {
             if (ReferenceEquals(transport, current)) { transport = null; devices = []; status = result; PingIntervalMilliseconds = 0; disconnecting = false; outputEpoch++; }
         }
-        await current.DisposeAsync().ConfigureAwait(false); Changed?.Invoke();
+        await current.DisposeAsync().ConfigureAwait(false); await inputDone.ConfigureAwait(false); Changed?.Invoke();
     }
     public async ValueTask DisposeAsync() => await DisconnectAsync().ConfigureAwait(false);
 }

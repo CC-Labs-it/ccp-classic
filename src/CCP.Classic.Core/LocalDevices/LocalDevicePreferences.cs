@@ -7,8 +7,11 @@ public sealed class LocalDevicePreferences
     public double GlobalIntensity { get; set; } = .7;
     public bool AudioSyncEnabled { get; set; }
     public bool VideoSyncEnabled { get; set; } = true;
+    public bool ToyInputEnabled { get; set; } = true;
+    public bool AttentionCheckToyButton { get; set; }
     public bool FunScriptEnabled { get; set; } = true;
     public bool FunScriptToVibration { get; set; } = true;
+    public double FunScriptIntensity { get; set; } = 1;
     public bool LuminanceSyncEnabled { get; set; }
     public double LuminanceSyncIntensity { get; set; } = .5;
     public LocalDeviceRoutingOptions Routing { get; set; } = new();
@@ -23,6 +26,7 @@ public sealed class LocalDevicePreferences
         if (LovensePort is < 1 or > 65535) LovensePort = 20010;
         GlobalIntensity = double.IsFinite(GlobalIntensity) ? Math.Clamp(GlobalIntensity, 0, 1) : .7;
         LuminanceSyncIntensity = double.IsFinite(LuminanceSyncIntensity) ? Math.Clamp(LuminanceSyncIntensity, 0, 1) : .5;
+        FunScriptIntensity = double.IsFinite(FunScriptIntensity) ? Math.Clamp(FunScriptIntensity, 0, 1) : 1;
         Routing ??= new(); Routing.Normalize();
         AudioSyncDsp ??= new(); AudioSyncDsp.Normalize();
         EventLevels ??= []; EventPatterns ??= [];

@@ -9,6 +9,7 @@ public sealed record LocalActuator(int Index, LocalActuatorKind Kind, int Minimu
 public sealed record LocalDeviceInfo(string Id, string Name, IReadOnlyList<LocalActuator> Actuators)
 {
     public LocalDeviceProvider Provider { get; init; }
+    public IReadOnlyList<int> ButtonFeatures { get; init; } = [];
 }
 
 // Public CCP's ProviderV2 names an architecture. Intiface wire is spec4, not spec2.
@@ -38,12 +39,16 @@ public static class LocalDeviceProtocol
             if (!int.TryParse(device.Name, out var deviceIndex) || deviceIndex < 0 || device.Value.ValueKind != JsonValueKind.Object
                 || !device.Value.TryGetProperty("DeviceIndex", out var actualIndex) || Integer(actualIndex) != deviceIndex
                 || !device.Value.TryGetProperty("DeviceFeatures", out var features) || features.ValueKind != JsonValueKind.Object) continue;
-            var actuators = new List<LocalActuator>();
+            var actuators = new List<LocalActuator>(); var buttons = new List<int>();
             foreach (var feature in features.EnumerateObject().Take(16))
             {
                 if (!int.TryParse(feature.Name, out var index) || index < 0 || feature.Value.ValueKind != JsonValueKind.Object
-                    || !feature.Value.TryGetProperty("FeatureIndex", out var actualFeature) || Integer(actualFeature) != index
-                    || !feature.Value.TryGetProperty("Output", out var output) || output.ValueKind != JsonValueKind.Object) continue;
+                    || !feature.Value.TryGetProperty("FeatureIndex", out var actualFeature) || Integer(actualFeature) != index) continue;
+                if (feature.Value.TryGetProperty("Input", out var input) && input.ValueKind == JsonValueKind.Object
+                    && input.TryGetProperty("Button", out var button) && button.ValueKind == JsonValueKind.Object
+                    && button.TryGetProperty("Command", out var commands) && commands.ValueKind == JsonValueKind.Array
+                    && commands.EnumerateArray().Any(command => command.ValueKind == JsonValueKind.String && command.GetString() == "Subscribe")) buttons.Add(index);
+                if (!feature.Value.TryGetProperty("Output", out var output) || output.ValueKind != JsonValueKind.Object) continue;
                 foreach (var item in output.EnumerateObject())
                 {
                     var command = item.Name;
@@ -60,7 +65,8 @@ public static class LocalDeviceProtocol
                 }
             }
             var display = Text(device.Value, "DeviceDisplayName"); if (string.IsNullOrWhiteSpace(display)) display = Text(device.Value, "DeviceName");
-            if (actuators.Count > 0) result.Add(new(device.Name, Name(display), actuators.Take(16).ToList().AsReadOnly()));
+            if (actuators.Count > 0 || buttons.Count > 0) result.Add(new(device.Name, Name(display), actuators.Take(16).ToList().AsReadOnly())
+                { ButtonFeatures = buttons.AsReadOnly() });
         }
         return result.AsReadOnly();
     }
