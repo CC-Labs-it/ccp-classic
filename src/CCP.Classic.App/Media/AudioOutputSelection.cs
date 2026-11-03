@@ -11,9 +11,9 @@ public static class AudioOutputSelection
     private static string selected = "";
     public static void Configure(AudioOptions options)
     {
-        var id = options.OutputDeviceId;
-        Volatile.Write(ref selected, id is not null && id.Length <= 1024 && !id.Any(char.IsControl) ? id : "");
+        Volatile.Write(ref selected, Sanitize(options.OutputDeviceId));
     }
+    internal static string Sanitize(string? id) => id is not null && id.Length <= 1024 && !id.Any(char.IsControl) ? id : "";
     // Called only on the native player worker. The output module stays DirectSound on Windows.
     internal static void Apply(MediaPlayer player, ref string? previous)
         => Apply(Volatile.Read(ref selected), ref previous, id => SetNativeDevice(OperatingSystem.IsWindows(), id,
@@ -38,11 +38,27 @@ public static class AudioOutputSelection
         if (OperatingSystem.IsWindows()) return EnumerateDirectSound(ReadDirectSound, token);
         NativeAudioDevice.EnsureInitialized();
         using var vlc = new LibVLC(NativeAudioDevice.Options(OperatingSystem.IsWindows()));
-        var result = vlc.AudioOutputDevices("pulse").Where(item => !string.IsNullOrWhiteSpace(item.DeviceIdentifier))
-            .Take(128).Select(item => new LocalAudioOutput(item.DeviceIdentifier, item.Description))
-            .DistinctBy(item => item.Id, StringComparer.Ordinal).ToArray();
+        // VLC3's instance-level AudioOutputDevices("pulse") is always empty. A player creates its output
+        // module up front, and that module reports the server's sinks (PulseAudio or PipeWire's pulse layer).
+        using var player = new MediaPlayer(vlc);
+        var result = FromVlcDevices(player.AudioOutputDeviceEnum.Select(item => ((string?)item.DeviceIdentifier, (string?)item.Description)), token);
         token.ThrowIfCancellationRequested(); return result;
     }, token);
+
+    // Ids follow Configure's limits so a listed output can always be selected. The empty id is System default.
+    internal static IReadOnlyList<LocalAudioOutput> FromVlcDevices(IEnumerable<(string? Id, string? Name)> devices, CancellationToken token)
+    {
+        var result = new List<LocalAudioOutput>(); var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (id, description) in devices)
+        {
+            token.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(id) || Sanitize(id).Length == 0 || !seen.Add(id)) continue;
+            var name = new string((description ?? "").Where(character => !char.IsControl(character)).Take(256).ToArray());
+            result.Add(new(id, string.IsNullOrWhiteSpace(name) ? id : name));
+            if (result.Count >= 128) break;
+        }
+        return result.AsReadOnly();
+    }
 
     // VLC3 directsound.c uses DirectSoundEnumerate and StringFromGUID2, then IIDFromString on selection.
     // Its legacy instance-level AudioOutputDevices API does not enumerate this module reliably.

@@ -56,4 +56,22 @@ public sealed class DirectSoundOutputTests
         Assert.Throws<OperationCanceledException>(() => AudioOutputSelection.EnumerateDirectSound(_ => { calls++; return 0; }, stop.Token));
         Assert.Equal(1, calls);
     }
+    [Fact]
+    public void LinuxOutputsComeFromThePlayerListAndStaySelectable()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var outputs = AudioOutputSelection.FromVlcDevices(new (string?, string?)[]
+        {
+            ("", "Default"), (null, "Missing"), ("alsa_output.pci-0000_00_1f.3.analog-stereo", "Built-in Audio\n"),
+            ("alsa_output.pci-0000_00_1f.3.analog-stereo", "Duplicate"), ("bluez_output.AA_BB", ""),
+            ("bad\nid", "Control"), (new string('x', 1025), "Too long"), ("ヘッドホン", "ヘッドホン")
+        }, token);
+        Assert.Equal(new[] { new LocalAudioOutput("alsa_output.pci-0000_00_1f.3.analog-stereo", "Built-in Audio"),
+            new LocalAudioOutput("bluez_output.AA_BB", "bluez_output.AA_BB"), new LocalAudioOutput("ヘッドホン", "ヘッドホン") }, outputs);
+        // Every listed id survives Configure, so picking it never silently falls back to System default.
+        Assert.All(outputs, output => Assert.Equal(output.Id, AudioOutputSelection.Sanitize(output.Id)));
+        Assert.Equal(128, AudioOutputSelection.FromVlcDevices(Enumerable.Range(0, 1000).Select(index => ((string?)$"sink{index}", (string?)"Sink")), token).Count);
+        using var stop = new CancellationTokenSource(); stop.Cancel();
+        Assert.Throws<OperationCanceledException>(() => AudioOutputSelection.FromVlcDevices(new (string?, string?)[] { ("sink", "Sink") }, stop.Token));
+    }
 }
