@@ -109,6 +109,8 @@ public sealed partial class MainWindow : Window
                 effects.FlashShown += Progress.FlashShown;
                 effects.AvatarClicked += Progress.AvatarClicked;
                 effects.CompanionPlacementChanged += SaveSettings;
+                effects.CompanionMenu += CompanionMenuChosen;
+                effects.CompanionMenuSession = CompanionMenuSession;
                 effects.LockCompleted += (errors, phrases, seconds) => Progress.LockResult(errors, phrases, seconds);
                 effects.WipePlayingChanged += playing => { if (playing) Progress.WipeStarted(); else Progress.WipeEnded(); };
                 effects.CountAnswered += correct =>
@@ -221,7 +223,7 @@ public sealed partial class MainWindow : Window
             {
                 if (!Session.Stop(finishUntilStopped: true)) SetStatus("DisabledByPanic");
             }
-            else { statusKey = "ShellOnly"; Session.Start(); }
+            else StartSession();
         });
         startStop.Name = "StartStop"; startStop.Classes.Add("primary"); grid.Children.Add(startStop);
         elapsed = Label("00:00:00", 15);
@@ -351,6 +353,7 @@ public sealed partial class MainWindow : Window
         if (root.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(b => b.Name == "PanicBadge") is { } badge)
             badge.Text = Session.PanicEnabled ? text["PanicKey"] + ": " + PanicName() : text["PanicOff"];
     }
+    private void StartSession() { statusKey = "ShellOnly"; Session.Start(); }
     private void SetStatus(string key) { statusKey = key; status.Text = text[key]; }
     private string PanicName() => Settings.PanicKey == "Escape" ? "Esc" : Settings.PanicKey;
     private void SaveSettings()

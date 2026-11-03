@@ -61,6 +61,11 @@ internal sealed class CompanionWindow : Window
     public event Action? AvatarClicked;
     public event Action? StopRequested;
     public event Action? PlacementChanged;
+    // Panel work chosen from the right-click menu; raised after the menu has closed.
+    public event Action<CompanionMenuCommand>? MenuCommand;
+    internal Func<CompanionSessionState>? SessionState { get; set; }
+    private readonly CompanionMenu menu;
+    internal ContextMenu Menu => menu.Menu;
 
     public CompanionWindow(Window owner, ClassicSettings settings, Action<Window> configureInput, bool requireTransparency = true,
         Action? beforeDecode = null)
@@ -86,7 +91,7 @@ internal sealed class CompanionWindow : Window
                 else { reaction = 7.2; AvatarClicked?.Invoke(); }
                 args.Handled = true;
             }
-            else if (pointer.IsRightButtonPressed) { StopRequested?.Invoke(); args.Handled = true; }
+            // A right press is left unhandled: its release opens the menu and never pokes her.
         };
         hit.PointerMoved += (_, args) =>
         {
@@ -120,6 +125,10 @@ internal sealed class CompanionWindow : Window
         Place(stage, new Panel { Width = TubeLayout.BandWidth, Height = TubeLayout.AvatarFeet - TubeLayout.AvatarHeight - 12,
             Children = { speech } }, 0, 0);
         Place(stage, hit, 0, TubeLayout.TubeTop + 230);
+        // CCP parity: right-click opens the tube menu on the same box that takes the left click.
+        menu = new(Choose);
+        menu.Menu.Opening += (_, _) => menu.Refresh(settings, SessionState?.Invoke() ?? CompanionSessionState.Unavailable);
+        hit.ContextMenu = menu.Menu;
         Content = new Viewbox { Stretch = Stretch.Uniform, Child = stage };
         owner.PositionChanged += OwnerMoved; owner.PropertyChanged += OwnerChanged;
         configureInput(this);
@@ -246,9 +255,48 @@ internal sealed class CompanionWindow : Window
     internal void ResizeBy(double step)
     {
         settings.CompanionPlacement.Scale = Math.Clamp(settings.CompanionPlacement.Scale + step, .5, 1.5);
+        PlacementEdited();
+    }
+    private void PlacementEdited()
+    {
         ApplyPlacement();
         if (settings.CompanionPlacement.Detached) PersistPlacement(); else if (!closed) PlacementChanged?.Invoke();
     }
+
+    // Placement, size, barks and hiding apply here at once; session and settings go to the panel.
+    // Nothing here touches panic or Strict Lock: Stop asks the panel, which uses the panic gate.
+    internal void Choose(string item)
+    {
+        if (closed) return;
+        var placement = settings.CompanionPlacement;
+        switch (item)
+        {
+            case "Detach":
+                // She floats from where she stands instead of jumping to a corner.
+                if (prepared && IsVisible) { placement.Left = Position.X; placement.Top = Position.Y; }
+                placement.Detached = true; PlacementEdited(); break;
+            case "Attach": placement.Detached = false; PlacementEdited(); break;
+            case "AlwaysOnTop": placement.AlwaysOnTop = !placement.AlwaysOnTop; PlacementEdited(); break;
+            case "Grow": ResizeBy(CompanionMenu.ScaleStep); break;
+            case "Shrink": ResizeBy(-CompanionMenu.ScaleStep); break;
+            case "ResetSize": placement.Scale = 1; PlacementEdited(); break;
+            case "Barks": settings.BarksEnabled = !settings.BarksEnabled; Send(CompanionMenuCommand.BarksChanged); break;
+            case "Hide":
+                // The Avatar switch in Companion brings her back.
+                settings.CompanionEnabled = false; menu.Menu.Close(); Hide(); Send(CompanionMenuCommand.AvatarHidden); break;
+            case "Session":
+                var state = SessionState?.Invoke() ?? CompanionSessionState.Unavailable;
+                if (state == CompanionSessionState.Idle) Send(CompanionMenuCommand.StartSession);
+                else if (state == CompanionSessionState.Running) Send(CompanionMenuCommand.StopSession);
+                break;
+            case "Settings": Send(CompanionMenuCommand.OpenSettings); break;
+            case "ShowPanel":
+                if (owner.WindowState == WindowState.Minimized) owner.WindowState = WindowState.Normal;
+                owner.Activate(); break;
+        }
+    }
+    // Panel work runs once the menu has closed: hiding releases this window and its menu.
+    private void Send(CompanionMenuCommand command) => Dispatcher.UIThread.Post(() => MenuCommand?.Invoke(command));
     private void MoveTo(PixelPoint point) { if (Position != point) Position = point; }
     private PixelPoint ClampPosition(PixelPoint point)
     {
@@ -309,7 +357,7 @@ internal sealed class CompanionWindow : Window
     {
         if (closed) return;
         closed = true; owner.PositionChanged -= OwnerMoved; owner.PropertyChanged -= OwnerChanged;
-        Hide(); portrait.Source = previousPortrait.Source = tube.Source = null; speech.IsVisible = false; bob.Y = 0;
+        menu.Menu.Close(); Hide(); portrait.Source = previousPortrait.Source = tube.Source = null; speech.IsVisible = false; bob.Y = 0;
         bitmap?.Dispose(); previous?.Dispose(); bitmap = previous = null;
         if (pending is { } work) _ = work.ContinueWith(_ => decoder?.Dispose(), TaskScheduler.Default);
         else decoder?.Dispose();

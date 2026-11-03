@@ -122,9 +122,11 @@ public sealed class CompanionWindowTests
                 companion.Update(new(2, "Unapproved", 0, 1), .2); Assert.Equal("", words.Text);
                 var point = HitPoint(companion);
                 companion.MouseDown(point, MouseButton.Left); companion.MouseUp(point, MouseButton.Left);
+                // Right-click opens the tube menu (CCP parity): no poke and no stop of its own.
                 companion.MouseDown(point, MouseButton.Right); companion.MouseUp(point, MouseButton.Right);
-                Assert.Equal(1, clicked); Assert.Equal(1, stops); Assert.True(companion.IsVisible);
-                companion.Close(); Dispatcher.UIThread.RunJobs(); Assert.Equal(2, stops); Assert.True(companion.IsVisible);
+                Assert.Equal(1, clicked); Assert.Equal(0, stops); Assert.True(companion.Menu.IsOpen); Assert.True(companion.IsVisible);
+                companion.Menu.Close();
+                companion.Close(); Dispatcher.UIThread.RunJobs(); Assert.Equal(1, stops); Assert.True(companion.IsVisible);
                 companion.FinishImmediately(); Assert.False(companion.IsVisible);
                 Assert.All(Portraits(companion), image => Assert.Null(image.Source));
             });
@@ -261,10 +263,12 @@ public sealed class CompanionWindowTests
                 var words = companion.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "CompanionBark");
                 host.BeginSession(); Assert.False(host.IdleRunning);
                 host.SessionFrame(new(1, "Focus", 0, 1)); Assert.Equal("Focus", words.Text);
-                // Right-click still asks the owner to stop; the stop itself is the owner's panic path.
+                // Closing the tube still asks the owner to stop; the stop itself is the owner's panic path.
+                // Right-click opens the menu, whose Stop also goes to the owner (CompanionMenuTests).
                 var point = HitPoint(companion);
                 companion.MouseDown(point, MouseButton.Right); companion.MouseUp(point, MouseButton.Right);
-                Assert.Equal(1, stops);
+                Assert.Equal(0, stops); Assert.True(companion.Menu.IsOpen); companion.Menu.Close();
+                companion.Close(); Dispatcher.UIThread.RunJobs(); Assert.Equal(1, stops);
                 host.EndSession();
                 Assert.Same(companion, host.Window); Assert.True(companion.IsVisible);
                 Assert.Equal("", words.Text); Assert.True(host.IdleRunning);

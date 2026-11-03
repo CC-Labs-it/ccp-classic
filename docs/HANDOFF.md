@@ -1,5 +1,22 @@
 # CCP Classic handoff
 
+## Tube right-click menu, 2026-11-03 (fix/tube-menu)
+
+Owner: "nothing happens clicking right click on the avatar". Right-click on the tube's hit box
+now opens CCP's AvatarContextMenu look (`Companion/CompanionMenu.cs`: #121220 body, 2 px pink
+rim, radius 8, #3D3D60 hover, pink separators, green Start, red Stop/barks off). Items:
+Companion settings (pink, bold), Detach / Attach to main window, Grow, Shrink, Reset size,
+Always on top (detached only), Hide avatar, Start/Stop session, Barks check, Show main window.
+Placement, size and barks apply at once and save like Ctrl+wheel (whole settings file, as
+PlacementChanged did). Hide sets Avatar off and saves; the Companion window's Avatar switch
+brings her back (status line says so). Start/Stop go to MainWindow (same Start as the button;
+Stop = tray Stop through the panic gate, shown disabled while panic is off). Right-click no
+longer stops a session by itself (it used to call Stop silently); closing the tube still does.
+Dropped from CCP: Talk to, Trigger mode, Takeover, Personality, remote emotes, Rain wardrobe,
+chat history, mute whispers, pause browser (AI, mods, remote, browser: none exist in Classic).
+Wiring avoids DesktopEffectsService.Companion.cs: host events surface through the new
+DesktopEffectsService.CompanionMenu.cs partial. Not yet seen on a real desktop or X11.
+
 ## Tube fixes after the owner's beta.4 look, 2026-11-03 (feat/companion-tube)
 
 Owner saw a still avatar, a tube too big with a gap to the panel, clicks that did
