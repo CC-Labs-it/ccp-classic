@@ -50,3 +50,20 @@ The native layered logo renderer was lifted from
 `ConditioningControlPanel/Controls/DashboardLogoRenderer.cs` at the same source commit.
 Its allocation strategy and original animation maths are retained; the host is
 fresh Avalonia code with a single background frame in flight and motion gates.
+
+## Original companion tube
+
+The owner-selected CCP Default tube is reused unchanged from the public source at
+`fe40ea7587ac0b09e47d0724e59d7178db3336da`, under the owner's Classic MIT reuse
+instructions. These public bytes differ from the older optimized local checkout;
+each download was verified against its public Git blob before entering this repo.
+The files use LFS. All three are 192 x 309 transparent GIFs with 120 frames.
+
+| Classic asset | Public source | SHA-256 | Bytes |
+|---|---|---|---:|
+| `Assets/Companion/idle.gif` | `Resources/avatar0_emotes/idle.gif` | `9a8a1707902c1392d827c8b987a5150deb194818c33dd52fe50fbb0bff6602aa` | 2114976 |
+| `Assets/Companion/talkA.gif` | `Resources/avatar0_emotes/talkA.gif` | `5588d0ff0a05a5fee9934a0fd196a760f47ec4aec8c8f8299e4d639cc7c85859` | 2130010 |
+| `Assets/Companion/greeting.gif` | `Resources/avatar0_emotes/greeting.gif` | `84cc43cbf520a38623d8d9bfcea452a1be6f269dd78ec022ae9d95f7cc9eaa3a` | 2126396 |
+
+The fresh native host decodes one frame at a time and honors the session's motion
+gates. Only the five owner-approved words can enter its bark display.
