@@ -102,6 +102,26 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
 
 ## Next
 
+### Conversation checkpoint, 2026-11-03
+
+- Current branch: `codex/m1-07-live-session-review-fixes`. The implementation tip
+  is `246f6b08ce87e141dcb4ad6daab197287542393d`; subsequent checkpoint changes are docs only.
+- All six M1 review findings are fixed in PRs #17 and #18. Three agents implemented
+  and cross-reviewed the fixes. Both new PRs passed Windows and Linux Release CI.
+  The complete suite passed 148 tests, with zero failures or skips, including 26 new cases.
+- M0 PRs #1-#11 are merged. M1 PRs #12-#18 remain drafts in a linear stack.
+  The user has not requested merging M1 or starting M2. All PR titles and descriptions
+  reflect the seven-part stack. Each slice remains below 600 changed text lines.
+- Latest request before this checkpoint: open the app. A native CCP Classic window
+  was created successfully; the launch process subsequently exited with code 0.
+  Confirm whether the owner still needs it open when resuming. Native desktop feel
+  and actual audio listening are still manual checks, not covered by headless CI.
+- Use `C:\Users\Admin\.dotnet10\dotnet.exe`, not the global .NET 9 SDK.
+  Launch from `src/CCP.Classic.App/bin/Release/net10.0` with that executable and
+  `CCP.Classic.App.dll`. The latest Release build already exists. For tests, run
+  `dotnet test -c Release -m:4` through the same SDK and set `CCP_CLASSIC_PROOF_DIR`
+  to this repository's `artifacts/proof` directory for rendered previews.
+
 ### M1 review stack
 
 All seven PRs are drafts, each based on its predecessor. Review in order; each
