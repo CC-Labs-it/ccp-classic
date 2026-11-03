@@ -50,15 +50,15 @@ public sealed class VideoOptionsEditor : OptionEditor
                 check.IsCheckedChanged += (_, _) => { options.TargetPhrases[phrase.Key] = check.IsChecked == true; Changed(); };
                 var remove = new Button { Content = text["Remove"], Padding = new Thickness(8, 3) };
                 remove.Click += (_, _) => { options.TargetPhrases.Remove(phrase.Key); Refresh(); Changed(); };
-                var row = new DockPanel(); DockPanel.SetDock(remove, Dock.Right); row.Children.Add(remove); row.Children.Add(check); pool.Children.Add(row);
+                var row = new DockPanel(); var removeHelp = OptionHelp.Wrap(remove, "Remove", text); DockPanel.SetDock(removeHelp, Dock.Right); row.Children.Add(removeHelp); row.Children.Add(OptionHelp.Wrap(check, "VideoTargetPhrases", text)); pool.Children.Add(row);
             }
         }
         Refresh(); Children.Add(pool);
-        var input = new TextBox { Name = "VideoNewPhrase", MaxLength = 2000 }; Children.Add(input);
+        var input = new TextBox { Name = "VideoNewPhrase", MaxLength = 2000 }; Children.Add(OptionHelp.Wrap(input, "VideoNewPhrase", text));
         var add = new Button { Name = "VideoAddPhrase", Content = text["Add"], HorizontalAlignment = HorizontalAlignment.Right };
         add.Click += (_, _) => { if (!string.IsNullOrWhiteSpace(input.Text) && options.TargetPhrases.Count < 500)
-            { options.TargetPhrases[input.Text.Trim()] = true; input.Text = ""; Refresh(); Changed(); } }; Children.Add(add);
+            { options.TargetPhrases[input.Text.Trim()] = true; input.Text = ""; Refresh(); Changed(); } }; Children.Add(OptionHelp.Wrap(add, "Add", text));
         var preview = new Button { Name = "TestVideo", Content = text["Test"], HorizontalAlignment = HorizontalAlignment.Right };
-        preview.Click += (_, _) => test?.Invoke(); Children.Add(preview);
+        preview.Click += (_, _) => test?.Invoke(); Children.Add(OptionHelp.Wrap(preview, "Test", text));
     }
 }

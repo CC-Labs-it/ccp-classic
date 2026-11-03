@@ -71,7 +71,7 @@ public sealed partial class MainWindow
         {
             var line = new Grid { ColumnDefinitions = new("*,130"), ColumnSpacing = 8 };
             var level = ToySlider("ToyLevel_" + kind, Settings.Devices.Level(kind), value => Settings.Devices.EventLevels[kind.ToString()] = value);
-            line.Children.Add(level);
+            line.Children.Add(OptionHelp.Wrap(level, "Intensity", text));
             if (kind is not (LocalDeviceEvent.AudioSync or LocalDeviceEvent.Video))
             {
                 var patterns = Enum.GetValues<LocalHapticPattern>().Select(pattern => new ToyPattern(pattern, text["Pattern" + pattern])).ToArray();
@@ -80,7 +80,7 @@ public sealed partial class MainWindow
                 AutomationProperties.SetName(choice, text["HapticPattern"] + " · " + text[ToyEventTitle(kind)]);
                 choice.SelectionChanged += (_, _) =>
                 { if (choice.SelectedItem is ToyPattern selected) Settings.Devices.EventPatterns[kind.ToString()] = (int)selected.Pattern; };
-                Grid.SetColumn(choice, 1); line.Children.Add(choice);
+                var patternHelp = OptionHelp.Wrap(choice, "HapticPattern", text); Grid.SetColumn(patternHelp, 1); line.Children.Add(patternHelp);
             }
             more.Children.Add(Label(text[ToyEventTitle(kind)], 12)); more.Children.Add(line);
         }
@@ -89,21 +89,24 @@ public sealed partial class MainWindow
             Settings.Devices.AudioSyncEnabled = value;
             if (!value) haptics.SetAudioLevel(0);
         });
-        sync.Name = "ToyAudioSync"; more.Children.Add(Row("AudioSync", sync));
-        more.Children.Add(Row("FunScriptEnabled", Toggle(Settings.Devices.FunScriptEnabled, text["FunScriptEnabled"], value =>
+        sync.Name = "ToyAudioSync"; content.Children.Add(Row("AudioSync", sync));
+        content.Children.Add(Row("FunScriptEnabled", Toggle(Settings.Devices.FunScriptEnabled, text["FunScriptEnabled"], value =>
         { Settings.Devices.FunScriptEnabled = value; if (!value) haptics.SetScriptLevel(0, null); })));
         more.Children.Add(Row("FunScriptToVibration", Toggle(Settings.Devices.FunScriptToVibration, text["FunScriptToVibration"], value => Settings.Devices.FunScriptToVibration = value)));
         more.Children.Add(Note("FunScriptHelp"));
-        more.Children.Add(Row("MandatoryVideos", Toggle(Settings.Devices.VideoSyncEnabled, text["MandatoryVideos"], value =>
+        content.Children.Add(Row("MandatoryVideos", Toggle(Settings.Devices.VideoSyncEnabled, text["MandatoryVideos"], value =>
         { Settings.Devices.VideoSyncEnabled = value; if (!value) haptics.SetVideoLevel(0); })));
-        more.Children.Add(Row("LuminanceSync", Toggle(Settings.Devices.LuminanceSyncEnabled, text["LuminanceSync"], value =>
+        content.Children.Add(Row("LuminanceSync", Toggle(Settings.Devices.LuminanceSyncEnabled, text["LuminanceSync"], value =>
         { Settings.Devices.LuminanceSyncEnabled = value; if (!value) haptics.SetLuminanceLevel(0); })));
-        more.Children.Add(Row("LuminanceIntensity", ToySlider("LuminanceIntensity", Settings.Devices.LuminanceSyncIntensity,
+        content.Children.Add(Row("LuminanceIntensity", ToySlider("LuminanceIntensity", Settings.Devices.LuminanceSyncIntensity,
             value => Settings.Devices.LuminanceSyncIntensity = value)));
         var test = Button("Test", () => EmitToys(LocalDeviceEvent.Manual)); test.Name = "ToyTest";
         var stop = Button("Stop", () => { if (!Session.Stop(finishUntilStopped: true)) SetStatus("DisabledByPanic"); }); stop.Name = "ToyStop";
         var manual = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        manual.Children.Add(test); manual.Children.Add(stop); more.Children.Add(manual);
+        manual.Children.Add(OptionHelp.Wrap(test, "Test", text)); manual.Children.Add(OptionHelp.Wrap(stop, "Stop", text)); content.Children.Add(manual);
+        var rows = content.Children.ToArray(); content.Children.Clear(); content.Spacing = 0;
+        content.Children.Add(OptionLayout.Group(rows.Take(4), text["OptionsGeneral"]));
+        content.Children.Add(OptionLayout.Group(rows.Skip(4), text["AudioSync"], 1));
         content.Children.Add(new Expander { Name = "ToyMore", Header = text["More"], Content = more });
         RefreshToys();
     }

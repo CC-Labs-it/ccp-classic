@@ -6,12 +6,14 @@ param(
     [string]$InnoCompiler,
     [switch]$SkipTests,
     [switch]$RequireInstaller,
-    [switch]$LocalReview
+    [switch]$LocalReview,
+    [switch]$SignWindows
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repo = Split-Path -Parent $PSScriptRoot
 $windowsPackage = $Runtime -eq 'win-x64'
+if ($SignWindows -and !$windowsPackage) { throw 'Authenticode signing requires win-x64.' }
 if (($windowsPackage -and !$IsWindows) -or (!$windowsPackage -and !$IsLinux)) {
     throw "Build $Runtime on its matching operating system so native permissions and archives are preserved."
 }
@@ -73,11 +75,12 @@ try {
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $payload 'Starter/Spirals') -Filter '*.gif' -File) {
         if ($file.Length -lt 256) { throw "Starter animation is missing or an LFS pointer: $($file.Name)" }
     }
+    if ($SignWindows) { & (Join-Path $PSScriptRoot 'sign-windows.ps1') -Path (Join-Path $payload 'CCP.Classic.App.exe') }
     $commit = (& git rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Could not record source revision.' }
     $dirty = @(& git status --porcelain).Count -gt 0
     @{ product = 'CCP Classic'; company = 'CC labs Srls'; version = $Version; runtime = $Runtime; sourceCommit = $commit; dirty = $dirty;
-        sdk = (& $DotNet --version).Trim(); selfContained = $true; signed = $false; ownerLocalReview = [bool]$LocalReview;
+        sdk = (& $DotNet --version).Trim(); selfContained = $true; signed = [bool]$SignWindows; ownerLocalReview = [bool]$LocalReview;
         analysisSourceBundleComplete = $analysisSourcesComplete; externalDistributionBlocked = !$analysisSourcesComplete } |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $payload 'package.json') -Encoding utf8NoBOM
     if ($windowsPackage) {
@@ -97,6 +100,7 @@ try {
             & $InnoCompiler '/Q' "/DPayloadDir=$payload" "/DRepoRoot=$repo" "/DAppVersion=$Version" "/DFileVersion=$fileVersion" `
                 "/DOutputDir=$output" (Join-Path $PSScriptRoot 'windows.iss')
             if ($LASTEXITCODE -ne 0) { throw 'Windows installer compilation failed.' }
+            if ($SignWindows) { & (Join-Path $PSScriptRoot 'sign-windows.ps1') -Path (Join-Path $output "$name-setup.exe") }
             $built.Add((Join-Path $output "$name-setup.exe"))
         }
     } else {

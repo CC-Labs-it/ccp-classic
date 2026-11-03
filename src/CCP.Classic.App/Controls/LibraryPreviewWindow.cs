@@ -70,7 +70,7 @@ public sealed class LibraryPreviewWindow : Window
             var slider = new Slider { Minimum = 0, Maximum = 100, Value = 40, Width = 120 };
             Avalonia.Automation.AutomationProperties.SetName(slider, text["Volume"]);
             slider.PropertyChanged += (_, change) => { if (change.Property == Slider.ValueProperty) { volume = slider.Value / 100; audio.SetMasterGain(volume); } };
-            controls.Children.Add(slider);
+            controls.Children.Add(OptionHelp.Wrap(slider, "Volume", text));
         }
         controls.Children.Add(ActionButton("Close", Close));
         Grid.SetRow(controls, 2); root.Children.Add(controls); Grid.SetRow(status, 3); root.Children.Add(status); Content = root;

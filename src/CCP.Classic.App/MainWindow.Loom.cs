@@ -21,7 +21,7 @@ public sealed partial class MainWindow
         };
         editor.StatusChanged += SetStatus;
         ShowSettingsWindow("MakeYourOwn", editor);
-        SettingsWindow!.Width = 600;
+        SettingsWindow!.Width = Math.Min(780, SettingsWindow.MaxWidth);
         SettingsWindow.Closed += (_, _) => editor.Dispose();
     }
 }

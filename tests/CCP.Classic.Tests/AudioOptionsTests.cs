@@ -31,10 +31,9 @@ public sealed class AudioOptionsTests
         using var editor = new AudioOptionsEditor(options, new("en"), () => saved++, () => gain, audio,
             _ => Task.FromResult<IReadOnlyList<LocalAudioOutput>>([new("speaker", "Speakers"), new("phones", "Headphones")]));
         editor.RefreshAsync().GetAwaiter().GetResult();
-        var devices = Assert.IsType<ComboBox>(editor.Children.Single(item => item is ComboBox));
+        var devices = Assert.Single(editor.GetLogicalDescendants().OfType<ComboBox>(), control => control.Name == "AudioOutput");
         Assert.Equal(3, devices.ItemCount); devices.SelectedIndex = 2; Assert.Equal("phones", options.OutputDeviceId); Assert.Equal(1, saved);
-        var actions = Assert.IsType<WrapPanel>(editor.Children.Single(item => item is WrapPanel));
-        var test = actions.Children.OfType<Button>().Single(button => button.Name == "TestAudio");
+        var test = Assert.Single(editor.GetLogicalDescendants().OfType<Button>(), button => button.Name == "TestAudio");
         test.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Assert.Empty(audio.Paths);
         gain = .25; test.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Assert.EndsWith("relax.mp3", Assert.Single(audio.Paths)); Assert.Equal(.25, audio.Gain);
@@ -54,7 +53,7 @@ public sealed class AudioOptionsTests
         });
         completion.SetResult([new("late", "Late")]);
         await refresh.WaitAsync(TestContext.Current.CancellationToken);
-        await UiDispatcher.Run(() => Assert.Equal(0, Assert.IsType<ComboBox>(editor!.Children.Single(item => item is ComboBox)).ItemCount));
+        await UiDispatcher.Run(() => Assert.Equal(0, Assert.Single(editor!.GetLogicalDescendants().OfType<ComboBox>(), control => control.Name == "AudioOutput").ItemCount));
     }
 
     [Fact]

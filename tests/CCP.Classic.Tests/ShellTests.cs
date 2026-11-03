@@ -61,7 +61,7 @@ public sealed class ShellTests
         window.OpenEffect("flash"); var editor = Owned(window); editor.UpdateLayout();
         var collapsed = editor.ClientSize.Height;
         Assert.Equal(SizeToContent.Height, editor.SizeToContent);
-        Assert.InRange(collapsed, 180, 600);
+        Assert.InRange(collapsed, 180, 700);
         Assert.True(collapsed <= editor.MaxHeight);
         Click(editor, Named<Button>(editor, "More_flash")); editor.UpdateLayout();
         Assert.True(editor.ClientSize.Height > collapsed);
@@ -79,7 +79,7 @@ public sealed class ShellTests
     [Theory]
     [InlineData(true, 12)]
     [InlineData(false, 11)]
-    public Task DashboardTilesOpenOwnedEditorsWithAtMostThreePrimaryControls(bool windows, int count) =>
+    public Task DashboardTilesOpenOwnedEditorsWithUsefulPrimaryControls(bool windows, int count) =>
         WithWindow(window =>
         {
             var tiles = window.GetVisualDescendants().OfType<EffectTile>().ToArray();
@@ -91,7 +91,7 @@ public sealed class ShellTests
                 Click(window, Named<EffectTile>(window, "Effect_" + definition.Id));
                 var editor = Owned(window);
                 var card = Assert.Single(editor.GetVisualDescendants().OfType<EffectCard>());
-                Assert.InRange(card.PrimaryControlCount, 1, 3);
+                Assert.InRange(card.PrimaryControlCount, 1, 6);
                 if (definition.Id == "flash")
                 {
                     var more = Named<Button>(editor, "More_flash");

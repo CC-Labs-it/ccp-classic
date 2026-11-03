@@ -63,10 +63,10 @@ public sealed partial class LibraryPanel : UserControl, IDisposable
             };
             filters.Children.Add(choice);
         }
-        toolbar.Children.Add(filters); search.PlaceholderText = text["Search"]; AutomationProperties.SetName(search, text["Search"]);
+        toolbar.Children.Add(OptionHelp.Wrap(filters, "LibraryFilter", text)); search.PlaceholderText = text["Search"]; AutomationProperties.SetName(search, text["Search"]);
         search.TextChanged += (_, _) => { pageIndex = 0; RenderPage(); };
-        Grid.SetColumn(search, 1); toolbar.Children.Add(search); root.Children.Add(toolbar);
-        var split = new Grid { ColumnDefinitions = new("174,*"), ColumnSpacing = 12 };
+        var searchHelp = OptionHelp.Wrap(search, "LibrarySearch", text); Grid.SetColumn(searchHelp, 1); toolbar.Children.Add(searchHelp); root.Children.Add(toolbar);
+        var split = new Grid { ColumnDefinitions = new("218,*"), ColumnSpacing = 12 };
         var rail = new StackPanel { Spacing = 12 }; rail.Children.Add(Label(text["Folders"], 15));
         rail.Children.Add(new ScrollViewer { Content = folders, MaxHeight = 310, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         var refresh = ActionButton("Refresh", () => { RefreshRequested?.Invoke(); _ = ReloadAsync(); }); refresh.Name = "LibraryRefresh"; rail.Children.Add(refresh);
@@ -165,7 +165,8 @@ public sealed partial class LibraryPanel : UserControl, IDisposable
         AutomationProperties.SetName(check, text["Included"] + " " + Path.GetFileName(asset.Path));
         image.Opacity = check.IsChecked == true ? 1 : .35;
         check.IsCheckedChanged += (_, _) => { settings.Library.Include(asset.Path, check.IsChecked == true); image.Opacity = check.IsChecked == true ? 1 : .35; changed(); RefreshFolderChecks(); };
-        tile.Children.Add(check);
+        var included = OptionHelp.Wrap(check, "LibraryInclude", text);
+        included.HorizontalAlignment = HorizontalAlignment.Left; included.VerticalAlignment = VerticalAlignment.Top; tile.Children.Add(included);
         if (asset.Kind == "Images") _ = LoadImage(asset.Path, image, token);
         return tile;
     }

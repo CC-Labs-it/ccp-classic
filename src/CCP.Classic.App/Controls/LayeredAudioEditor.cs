@@ -30,13 +30,13 @@ public sealed class LayeredAudioEditor : OptionEditor
         Children.Add(Help("LayeredAudioHelp"));
         var enabled = new CheckBox { Name = "LayeredAudioEnabled", Content = text["LayeredAudioEnabled"], IsChecked = options.Enabled };
         enabled.IsCheckedChanged += (_, _) => { options.Enabled = enabled.IsChecked == true; Refresh(); Structural(); };
-        Children.Add(enabled);
+        Children.Add(OptionHelp.Wrap(enabled, "LayeredAudioEnabled", text));
         Children.Add(Gain("LayeredMasterVolume", "MasterVolume", options.MasterVolume, value => options.MasterVolume = value));
         Toggle("LayeredAudioOnly", options.AudioOnlySession, value => options.AudioOnlySession = value);
         Children.Add(Help("LayeredAudioOnlyHelp"));
         add = new Button { Name = "LayeredAddTrack", Content = text["LayeredAudioAdd"], HorizontalAlignment = HorizontalAlignment.Left };
         add.Classes.Add("pill"); add.Click += async (_, _) => await Pick();
-        Children.Add(add); Children.Add(tracks); Children.Add(statusLabel); Refresh(); RefreshStatus();
+        Children.Add(OptionHelp.Wrap(add, "LayeredAudioAdd", text)); Children.Add(tracks); Children.Add(statusLabel); Refresh(); RefreshStatus();
         DetachedFromVisualTree += (_, _) => pickerGeneration++;
     }
 
@@ -101,14 +101,14 @@ public sealed class LayeredAudioEditor : OptionEditor
             remove.Classes.Add("pill"); ToolTip.SetTip(remove, Text["Remove"]);
             AutomationProperties.SetName(remove, Text["Remove"] + " " + name);
             remove.Click += (_, _) => { options.Tracks.Remove(track); Refresh(); Structural(); };
-            var header = new DockPanel(); DockPanel.SetDock(remove, Dock.Right); header.Children.Add(remove); header.Children.Add(enabled);
+            var header = new DockPanel(); var removeHelp = OptionHelp.Wrap(remove, "Remove", Text); DockPanel.SetDock(removeHelp, Dock.Right); header.Children.Add(removeHelp); header.Children.Add(OptionHelp.Wrap(enabled, "LayeredTrackEnabled", Text));
             var content = new StackPanel { Spacing = 6 }; content.Children.Add(header); content.Children.Add(body);
             tracks.Children.Add(new Border { Background = Brush.Parse("#1A1A2E"), BorderBrush = Brush.Parse("#3D3D60"),
                 BorderThickness = new(1), CornerRadius = new(10), Padding = new(12, 10), Child = content });
         }
     }
 
-    private Grid Gain(string name, string label, int initial, Action<int> set)
+    private Control Gain(string name, string label, int initial, Action<int> set)
     {
         var grid = new Grid { ColumnDefinitions = new("Auto,*,Auto"), ColumnSpacing = 10 };
         var value = new TextBlock { Text = initial + "%", Width = 42, TextAlignment = TextAlignment.Right,
@@ -118,6 +118,6 @@ public sealed class LayeredAudioEditor : OptionEditor
         AutomationProperties.SetName(slider, Text[label]);
         slider.ValueChanged += (_, _) => { var next = (int)Math.Round(slider.Value); set(next); value.Text = next + "%"; UpdateGain(); };
         grid.Children.Add(new TextBlock { Text = Text[label], Foreground = Brush.Parse("#D7C9F0"), VerticalAlignment = VerticalAlignment.Center });
-        Grid.SetColumn(slider, 1); grid.Children.Add(slider); Grid.SetColumn(value, 2); grid.Children.Add(value); return grid;
+        Grid.SetColumn(slider, 1); grid.Children.Add(slider); Grid.SetColumn(value, 2); grid.Children.Add(value); return OptionHelp.Wrap(grid, label, Text);
     }
 }

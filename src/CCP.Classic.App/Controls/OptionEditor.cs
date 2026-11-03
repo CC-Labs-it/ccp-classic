@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using CCP.Classic.Core.Localization;
 
@@ -10,13 +11,43 @@ public abstract class OptionEditor(LocalizationService text, Action changed) : S
 {
     protected readonly LocalizationService Text = text;
     protected readonly Action Changed = changed;
-    protected void Heading(string key) => Children.Add(new TextBlock { Text = Text[key], FontSize = 17,
-        Foreground = Brush.Parse("#FF9BD5"), FontWeight = FontWeight.SemiBold, Margin = new(0, 10, 0, 2) });
-    protected void Toggle(string key, bool value, Action<bool> set)
+    private bool prepared;
+    private bool promoted;
+    protected void Heading(string key)
     {
-        var control = new CheckBox { Content = Text[key], IsChecked = value, Name = key };
+        var heading = new TextBlock { Text = Text[key], FontSize = 16,
+            Foreground = Brush.Parse("#FF9BD5"), FontWeight = FontWeight.SemiBold };
+        heading.Classes.Add("option-heading"); Children.Add(heading);
+    }
+    public Control? TakeVisibleOptions()
+    {
+        if (prepared || Children.Count == 0) return null;
+        var firstHeading = Children.ToList().FindIndex(control => control.Classes.Contains("option-heading"));
+        var count = firstHeading > 0 ? firstHeading : Math.Max(1, (Children.Count + 1) / 2);
+        count = Math.Min(count, 12);
+        promoted = true;
+        var visible = Children.Take(count).ToArray();
+        foreach (var child in visible) Children.Remove(child);
+        var sections = new StackPanel { Spacing = 0 };
+        foreach (var group in OptionLayout.Groups(visible, "")) sections.Children.Add(group);
+        return sections;
+    }
+    public void PrepareLayout()
+    {
+        if (prepared) return;
+        prepared = true;
+        var controls = Children.ToArray(); Children.Clear(); Spacing = 0;
+        foreach (var group in OptionLayout.Groups(controls, Text["OptionsGeneral"], promoted ? 1 : 0)) Children.Add(group);
+    }
+    protected override void OnAttachedToLogicalTree(LogicalTreeAttachmentEventArgs e)
+    {
+        PrepareLayout(); base.OnAttachedToLogicalTree(e);
+    }
+    protected CheckBox Toggle(string key, bool value, Action<bool> set, string? helpKey = null)
+    {
+        var control = new CheckBox { Content = new TextBlock { Text = Text[key], TextWrapping = TextWrapping.Wrap }, IsChecked = value, Name = key };
         control.IsCheckedChanged += (_, _) => { set(control.IsChecked == true); Changed(); };
-        Children.Add(control);
+        var helped = OptionHelp.Wrap(control, helpKey ?? key, Text); helped.Classes.Add("option-compact"); Children.Add(helped); return control;
     }
     protected NumericUpDown Number(string key, double value, double minimum, double maximum, Action<double> set)
     {
@@ -29,13 +60,15 @@ public abstract class OptionEditor(LocalizationService text, Action changed) : S
     {
         var input = new TextBox { Text = value, MinWidth = 160, MaxLength = 2000, Name = key };
         input.TextChanged += (_, _) => { set(input.Text ?? ""); Changed(); };
-        Children.Add(Row(key, input));
+        var row = Row(key, input); row.Classes.Remove("option-compact"); Children.Add(row);
     }
-    protected Grid Row(string key, Control control)
+    protected Grid Row(string key, Control control, string? helpKey = null)
     {
+        OptionHelp.SetTip(control, helpKey ?? key, Text);
         var row = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 12, Margin = new(0, 3) };
-        row.Children.Add(new TextBlock { Text = Text[key], TextWrapping = TextWrapping.Wrap,
-            VerticalAlignment = VerticalAlignment.Center, Foreground = Brush.Parse("#D7C9F0") });
+        row.Classes.Add("option-compact");
+        row.Children.Add(OptionHelp.Wrap(new TextBlock { Text = Text[key], TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center, Foreground = Brush.Parse("#D7C9F0") }, helpKey ?? key, Text));
         Grid.SetColumn(control, 1); row.Children.Add(control); return row;
     }
     protected void Color(string key, string value, Action<string> set)

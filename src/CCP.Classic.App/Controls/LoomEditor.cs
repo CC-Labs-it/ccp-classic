@@ -43,7 +43,7 @@ public sealed class LoomEditor : UserControl, IDisposable
         body.Children.Add(parameters); BuildParameters();
         name.PlaceholderText = text["LoomName"]; AutomationProperties.SetName(name, text["LoomName"]);
         var actions = new Grid { ColumnDefinitions = new("*,Auto,Auto"), ColumnSpacing = 8 };
-        actions.Children.Add(name);
+        actions.Children.Add(OptionHelp.Wrap(name, "LoomName", text));
         save = Button("Save", "LoomSave", () => _ = SaveAsync()); Grid.SetColumn(save, 1); actions.Children.Add(save);
         create = Button("LoomNew", "LoomNew", () => Load(null)); Grid.SetColumn(create, 2); actions.Children.Add(create);
         body.Children.Add(actions); body.Children.Add(new TextBlock { Text = text["LoomRack"], FontWeight = FontWeight.SemiBold });
@@ -68,8 +68,9 @@ public sealed class LoomEditor : UserControl, IDisposable
     private void BuildParameters()
     {
         parameters.Children.Clear(); parameters.Children.Add(Primary(false));
+        parameters.Children.Add(LayerOptions(false));
         var more = new StackPanel { Spacing = 10 };
-        more.Children.Add(LayerOptions(false));
+
         more.Children.Add(Choice("LoomFormat", "LoomFormat", ["LoomSquare", "LoomWide", "LoomTall"], Array.IndexOf(new[] { "square", "wide", "tall" }, definition.Format),
             index => Change(q => q with { Format = new[] { "square", "wide", "tall" }[index] })));
         more.Children.Add(Number("Speed", "LoomSpeed", definition.Speed, 1, 5, 1, value => Change(q => q with { Speed = (int)value })));
@@ -92,7 +93,8 @@ public sealed class LoomEditor : UserControl, IDisposable
         panel.Children.Add(Number("LoomArms", prefix + "Arms", layer.Arms, 1, 12, 1, value => ChangeLayer(second, l => l with { Arms = (int)value })));
         panel.Children.Add(Number("LoomTurns", prefix + "Turns", layer.Turns, .5, 6, .25, value => ChangeLayer(second, l => l with { Turns = value })));
         panel.Children.Add(Percentage("LoomBody", prefix + "Body", layer.Duty, .2, .8, .05, value => ChangeLayer(second, l => l with { Duty = value })));
-        return panel;
+        var options = panel.Children.ToArray(); panel.Children.Clear();
+        panel.Children.Add(OptionLayout.Group(options, "", 0)); return panel;
     }
     private Control LayerOptions(bool second)
     {
@@ -144,7 +146,7 @@ public sealed class LoomEditor : UserControl, IDisposable
         panel.Children.Add(Percentage("Size", "LoomCenterSize", cp.SizeFrac, .08, .4, .01, value => Change(q => q with { Centerpiece = q.Centerpiece with { SizeFrac = value } })));
         var word = new TextBox { Name = "LoomWord", Text = cp.Text, MaxLength = 12, PlaceholderText = text["LoomWord"] };
         AutomationProperties.SetName(word, text["LoomWord"]);
-        word.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Change(q => q with { Centerpiece = q.Centerpiece with { Text = word.Text ?? "" } }); }; panel.Children.Add(word);
+        word.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Change(q => q with { Centerpiece = q.Centerpiece with { Text = word.Text ?? "" } }); }; panel.Children.Add(OptionHelp.Wrap(word, "LoomWord", text));
         panel.Children.Add(Number("LoomFlash", "LoomFlash", cp.FlashCycles, 0, 4, 1, value => Change(q => q with { Centerpiece = q.Centerpiece with { FlashCycles = (int)value } })));
         return Group("LoomCenterpiece", panel);
     }
@@ -234,21 +236,26 @@ public sealed class LoomEditor : UserControl, IDisposable
     {
         var number = new NumericUpDown { Name = id, Value = (decimal)value, Minimum = (decimal)min, Maximum = (decimal)max, Increment = (decimal)step, Width = 110, FormatString = "0.##" };
         AutomationProperties.SetName(number, text[key]); number.ValueChanged += (_, _) => { if (number.Value is { } next) changed((double)next); };
-        return Row(text[key] + unit, number);
+        var result = OptionHelp.Wrap(Row(text[key] + unit, number), key, text); result.Classes.Add("option-compact"); return result;
     }
     private Control Choice(string key, string id, string[] choices, int index, Action<int> changed)
     {
         var combo = new ComboBox { Name = id, ItemsSource = choices.Select(choice => text[choice]).ToArray(), SelectedIndex = Math.Max(0, index), MinWidth = 150 };
         AutomationProperties.SetName(combo, text[key]); combo.SelectionChanged += (_, _) => { if (combo.SelectedIndex is >= 0 && combo.SelectedIndex < choices.Length) changed(combo.SelectedIndex); };
-        return Row(text[key], combo);
+        var result = OptionHelp.Wrap(Row(text[key], combo), key, text); result.Classes.Add("option-compact"); return result;
     }
-    private CheckBox Check(string key, string id, bool value, Action<bool> changed)
+    private Control Check(string key, string id, bool value, Action<bool> changed)
     {
-        var check = new CheckBox { Name = id, Content = text[key], IsChecked = value }; check.IsCheckedChanged += (_, _) => changed(check.IsChecked == true); return check;
+        var check = new CheckBox { Name = id, Content = text[key], IsChecked = value }; check.IsCheckedChanged += (_, _) => changed(check.IsChecked == true); var result = OptionHelp.Wrap(check, key, text); result.Classes.Add("option-compact"); return result;
     }
     private Expander Group(string key, Control content)
     {
-        var group = new Expander { Name = "Group_" + key, Header = text[key], Content = content, IsExpanded = expanded.GetValueOrDefault(key) };
+        if (content is StackPanel panel)
+        {
+            var options = panel.Children.ToArray(); panel.Children.Clear();
+            content = OptionLayout.Group(options, "", key is "LoomEffects" or "LoomBackground" ? 1 : 2);
+        }
+        var group = new Expander { Name = "Group_" + key, Header = text[key], Content = content, IsExpanded = expanded.GetValueOrDefault(key, key == "LoomThreads") };
         group.PropertyChanged += (_, e) => { if (e.Property == Expander.IsExpandedProperty) expanded[key] = group.IsExpanded; }; return group;
     }
     private static Control Row(string label, Control input)

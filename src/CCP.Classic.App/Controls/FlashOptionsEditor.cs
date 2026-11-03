@@ -26,6 +26,7 @@ public sealed class FlashOptionsEditor : OptionEditor
         var drift = Number("FlashDriftSpeed", options.DriftSpeed, .25, 3, value => options.DriftSpeed = value); drift.Increment = .25m;
         var gif = Number("FlashGifSpeed", options.GifSpeed, .25, 4, value => options.GifSpeed = value); gif.Increment = .25m;
         Toggle("FlashDraggable", options.Draggable, value => options.Draggable = value);
+        Heading("OptionsUtility");
         Toggle("FlashShatter", options.Shatter, value => options.Shatter = value);
         Toggle("FlashGlow", options.Glow, value => options.Glow = value);
         Toggle("FlashRounded", options.RoundedCorners, value => options.RoundedCorners = value);

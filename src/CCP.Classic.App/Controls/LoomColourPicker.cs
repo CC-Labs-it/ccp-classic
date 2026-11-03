@@ -16,7 +16,7 @@ public sealed class LoomColourPicker : Expander
         var color = Color.Parse(initial); var updating = false;
         var swatch = new Border { Width = 24, Height = 18, Background = new SolidColorBrush(color), CornerRadius = new(4) };
         var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        header.Children.Add(swatch); header.Children.Add(new TextBlock { Text = label }); Header = header;
+        header.Children.Add(swatch); header.Children.Add(new TextBlock { Text = label }); Header = OptionHelp.Wrap(header, "LoomColour", text);
         AutomationProperties.SetName(this, label);
         var body = new StackPanel { Spacing = 6 }; Content = body;
         var values = new NumericUpDown[3];
@@ -36,7 +36,7 @@ public sealed class LoomColourPicker : Expander
             row.Children.Add(new TextBlock { Text = text[keys[index]], VerticalAlignment = VerticalAlignment.Center });
             var number = new NumericUpDown { Minimum = 0, Maximum = 255, Increment = 1, Value = initialValues[index], Name = controlName + "_" + keys[index] };
             AutomationProperties.SetName(number, text[keys[index]]); values[index] = number;
-            number.ValueChanged += (_, _) => Publish(); Grid.SetColumn(number, 1); row.Children.Add(number); body.Children.Add(row);
+            number.ValueChanged += (_, _) => Publish(); Grid.SetColumn(number, 1); row.Children.Add(number); body.Children.Add(OptionHelp.Wrap(row, keys[index], text));
         }
         var palette = new WrapPanel { Orientation = Orientation.Horizontal };
         foreach (var value in Palette)
@@ -51,6 +51,6 @@ public sealed class LoomColourPicker : Expander
             };
             palette.Children.Add(button);
         }
-        body.Children.Add(palette);
+        body.Children.Add(OptionHelp.Wrap(palette, "LoomColour", text));
     }
 }

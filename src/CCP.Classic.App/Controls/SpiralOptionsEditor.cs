@@ -33,7 +33,7 @@ public sealed class SpiralOptionsEditor : OptionEditor
         monitors.DropDownOpened += (_, _) => Monitors(); Monitors();
         monitors.SelectionChanged += (_, _) =>
         { if (monitors.SelectedIndex < 0) return; settings.Spiral.TargetMonitor = monitors.SelectedIndex == 0 ? -1 : monitors.SelectedIndex == 1 ? -2 : monitors.SelectedIndex - 2; Changed(); };
-        Children.Add(Row("TargetMonitor", monitors)); Heading("SpiralLibrary"); Children.Add(library);
+        Children.Add(Row("TargetMonitor", monitors)); Heading("SpiralLibrary"); Children.Add(OptionHelp.Wrap(library, "SpiralLibrary", text));
         library.SelectionChanged += (_, _) =>
         {
             if (rebuilding || library.SelectedIndex < 0 || library.SelectedIndex >= libraryPaths.Length) return;
@@ -70,7 +70,7 @@ public sealed class SpiralOptionsEditor : OptionEditor
         Number("Size", slot.Size, 100, 800, value => slot.Size = (int)value);
         Number("Opacity", slot.Opacity, 5, 100, value => slot.Opacity = (int)value);
     }
-    private Button Action(string key, Func<Task> action)
+    private Control Action(string key, Func<Task> action)
     {
         var button = new Button { Content = Text[key], Margin = new(0, 0, 6, 5) };
         button.Click += async (_, _) =>
@@ -79,7 +79,7 @@ public sealed class SpiralOptionsEditor : OptionEditor
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException or OperationCanceledException)
             { if (!stop.IsCancellationRequested) status.Text = Text["PreviewUnavailable"]; }
         };
-        return button;
+        return OptionHelp.Wrap(button, key, Text);
     }
     private async Task<string?> PickImage()
     {

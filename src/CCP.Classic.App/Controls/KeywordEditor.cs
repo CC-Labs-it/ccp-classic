@@ -29,7 +29,7 @@ public sealed class KeywordEditor : OptionEditor
         scope.SelectionChanged += (_, _) => { if (scope.SelectedIndex >= 0) { options.AppScope = (KeywordAppScope)scope.SelectedIndex; Changed(); } };
         Children.Add(Row("KeywordAppScope", scope));
         String("KeywordApps", string.Join(", ", options.Apps), v => options.Apps = v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(64).ToList());
-        Children.Add(selection); Children.Add(detail);
+        Children.Add(OptionHelp.Wrap(selection, "KeywordTriggers", text)); Children.Add(detail);
         selection.SelectionChanged += (_, _) => ShowSelected();
         var add = new Button { Content = Text["Add"], HorizontalAlignment = HorizontalAlignment.Right };
         add.Click += (_, _) =>
@@ -37,12 +37,12 @@ public sealed class KeywordEditor : OptionEditor
             if (options.Triggers.Count >= 128) return;
             options.Triggers.Add(new()); Reload(options.Triggers.Count - 1); Changed();
         };
-        Children.Add(add); Reload(0);
+        Children.Add(OptionHelp.Wrap(add, "Add", text)); Reload(0);
         if (import is not null)
         {
             var importButton = new Button { Content = Text["KeywordImportPhrases"] };
             importButton.Click += (_, _) => { options.ImportPhrases(import()); Reload(0); Changed(); };
-            Children.Add(importButton);
+            Children.Add(OptionHelp.Wrap(importButton, "KeywordImportPhrases", text));
         }
     }
 
@@ -65,7 +65,7 @@ public sealed class KeywordEditor : OptionEditor
             var result = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             var button = new Button { Content = Text["Test"] };
             button.Click += (_, _) => result.Text = test(trigger) ? Text["Running"] : Text["KeywordStartToTest"];
-            detail.Children.Add(button); detail.Children.Add(result);
+            detail.Children.Add(OptionHelp.Wrap(button, "Test", Text)); detail.Children.Add(result);
         }
     }
 
@@ -91,9 +91,9 @@ public sealed class KeywordEditor : OptionEditor
             Refresh();
             var add = new Button { Content = Text["KeywordAddAction"] };
             add.Click += (_, _) => { if (trigger.Actions.Count < 16) { trigger.Actions.Add(new()); Refresh(); Changed(); } };
-            Children.Add(add);
+            Children.Add(OptionHelp.Wrap(add, "Add", text));
             var delete = new Button { Content = Text["Remove"], HorizontalAlignment = HorizontalAlignment.Right };
-            delete.Click += (_, _) => remove(); Children.Add(delete);
+            delete.Click += (_, _) => remove(); Children.Add(OptionHelp.Wrap(delete, "Remove", text));
         }
         private void Choice<T>(string key, T[] values, T selected, Action<T> set) where T : struct, Enum
         {
@@ -109,7 +109,7 @@ public sealed class KeywordEditor : OptionEditor
             Spacing = 6; Margin = new(10, 4);
             Toggle("Enabled", action.Enabled, v => action.Enabled = v);
             var kind = new ComboBox { ItemsSource = Enum.GetValues<KeywordActionKind>().Select(v => Text["Keyword" + v]).ToArray(), SelectedIndex = (int)action.Kind };
-            Children.Add(kind);
+            Children.Add(OptionHelp.Wrap(kind, "KeywordActions", text));
             var values = new StackPanel { Spacing = 6 }; Children.Add(values);
             void Fill()
             {
@@ -120,7 +120,7 @@ public sealed class KeywordEditor : OptionEditor
                     case KeywordActionKind.Visual:
                         var effects = new ComboBox { ItemsSource = Enum.GetValues<KeywordVisual>().Select(v => text["Keyword" + v]).ToArray(), SelectedIndex = (int)action.Visual };
                         effects.SelectionChanged += (_, _) => { if (effects.SelectedIndex >= 0) { action.Visual = (KeywordVisual)effects.SelectedIndex; Changed(); } };
-                        fields.Children.Add(effects); break;
+                        fields.Children.Add(OptionHelp.Wrap(effects, "KeywordVisual", text)); break;
                     case KeywordActionKind.Audio:
                         var path = new TextBlock { Text = action.AudioPath is null ? text["SelectAudio"] : System.IO.Path.GetFileName(action.AudioPath) };
                         var pick = new Button { Content = text["SelectAudio"] };
@@ -131,7 +131,7 @@ public sealed class KeywordEditor : OptionEditor
                             var local = SubliminalOptions.LocalAudio(files.FirstOrDefault()?.TryGetLocalPath());
                             if (local is not null) { action.AudioPath = local; path.Text = System.IO.Path.GetFileName(local); Changed(); }
                         };
-                        fields.Children.Add(path); fields.Children.Add(pick);
+                        fields.Children.Add(path); fields.Children.Add(OptionHelp.Wrap(pick, "SelectAudio", text));
                         fields.N("Volume", action.Gain * 100, 0, 100, v => action.Gain = v / 100);
                         fields.N("Repeats", action.PlayCount, 1, 5, v => action.PlayCount = (int)v);
                         fields.N("KeywordAudioDelay", action.DelayMs, 0, 5000, v => action.DelayMs = (int)v);
@@ -142,7 +142,7 @@ public sealed class KeywordEditor : OptionEditor
             }
             kind.SelectionChanged += (_, _) => { if (kind.SelectedIndex >= 0) { action.Kind = (KeywordActionKind)kind.SelectedIndex; Fill(); Changed(); } };
             Fill(); var delete = new Button { Content = Text["Remove"] };
-            delete.Click += (_, _) => remove(); Children.Add(delete);
+            delete.Click += (_, _) => remove(); Children.Add(OptionHelp.Wrap(delete, "Remove", text));
         }
     }
     private sealed class Fields(LocalizationService text, Action changed) : OptionEditor(text, changed)

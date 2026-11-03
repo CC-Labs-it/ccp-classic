@@ -11,8 +11,8 @@ public sealed class ToyInputOptionsEditor : OptionEditor
         Spacing = 7; Heading("ToyInputEnabled"); CheckBox? attention = null;
         Toggle("ToyInputEnabled", options.ToyInputEnabled, value =>
         { options.ToyInputEnabled = value; controller.InputEnabled = value; if (attention is not null) attention.IsEnabled = value; });
-        Toggle("ToyAttentionButton", options.AttentionCheckToyButton, value => options.AttentionCheckToyButton = value);
-        attention = (CheckBox)Children[^1]; attention.IsEnabled = options.ToyInputEnabled;
+        attention = Toggle("ToyAttentionButton", options.AttentionCheckToyButton, value => options.AttentionCheckToyButton = value);
+        attention.IsEnabled = options.ToyInputEnabled;
         Children.Add(new TextBlock { Text = text["ToyInputHelp"], TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         Number("FunScriptIntensity", options.FunScriptIntensity * 100, 0, 100, value => options.FunScriptIntensity = value / 100);
     }

@@ -25,7 +25,7 @@ public sealed class BouncingTextEditor : OptionEditor
         var reset = new Button { Content = text["btn_reset"], HorizontalAlignment = HorizontalAlignment.Right };
         reset.Click += (_, _) => { options.FixedColor = "#FF69B4";
             colorControl.GetLogicalDescendants().OfType<TextBox>().Single().Text = options.FixedColor; Changed(); };
-        colorRow.Children.Add(reset); Children.Add(colorRow);
+        colorRow.Children.Add(OptionHelp.Wrap(reset, "Reset", text)); Children.Add(colorRow);
         var fonts = LocalFontPicker.Families.Concat([options.FontFamily]).Distinct().ToArray();
         var font = new ComboBox { Name = "BounceFont", ItemsSource = fonts, SelectedItem = options.FontFamily,
             MaxWidth = 220, MinWidth = 150 };
@@ -52,15 +52,15 @@ public sealed class BouncingTextEditor : OptionEditor
                 enabled.IsCheckedChanged += (_, _) => { options.PhrasePool[phrase.Key] = enabled.IsChecked == true; Changed(); };
                 var remove = new Button { Content = text["Remove"], Padding = new Thickness(8, 3) };
                 remove.Click += (_, _) => { options.PhrasePool.Remove(phrase.Key); Refresh(); Changed(); };
-                var row = new DockPanel(); DockPanel.SetDock(remove, Dock.Right); row.Children.Add(remove); row.Children.Add(enabled);
+                var row = new DockPanel(); var removeHelp = OptionHelp.Wrap(remove, "Remove", text); DockPanel.SetDock(removeHelp, Dock.Right); row.Children.Add(removeHelp); row.Children.Add(OptionHelp.Wrap(enabled, "btn_edit_phrases", text));
                 pool.Children.Add(row);
             }
         }
         Refresh(); Children.Add(pool);
         var input = new TextBox { Name = "BounceNewPhrase", MaxLength = 2000, MinHeight = 40 };
-        Children.Add(input); var add = new Button { Name = "BounceAddPhrase", Content = text["Add"], HorizontalAlignment = HorizontalAlignment.Right };
+        Children.Add(OptionHelp.Wrap(input, "BounceNewPhrase", text)); var add = new Button { Name = "BounceAddPhrase", Content = text["Add"], HorizontalAlignment = HorizontalAlignment.Right };
         add.Click += (_, _) => { if (!string.IsNullOrWhiteSpace(input.Text) && options.PhrasePool.Count < 500)
             { options.PhrasePool[input.Text.Trim()] = true; input.Text = ""; Refresh(); Changed(); } };
-        Children.Add(add);
+        Children.Add(OptionHelp.Wrap(add, "Add", text));
     }
 }

@@ -40,10 +40,10 @@ public sealed class ToyRoutingEditor : OptionEditor, IDisposable
                 LocalDeviceEvent.Keyword => "KeywordTriggers", LocalDeviceEvent.Manual => "Test", _ => kind.ToString()
             };
             var selected = options.EventTargets.GetValueOrDefault(kind.ToString());
-            Children.Add(Row(eventTitle, Roles(selected, value => options.EventTargets[kind.ToString()] = value)));
+            Children.Add(Row(eventTitle, Roles(selected, value => options.EventTargets[kind.ToString()] = value), "EventRouting"));
         }
-        Children.Add(Row("FunScriptEnabled", Roles(options.FunScriptRole, value => options.FunScriptRole = value)));
-        Children.Add(Row("LuminanceSync", Roles(options.LuminanceRole, value => options.LuminanceRole = value)));
+        Children.Add(Row("FunScriptEnabled", Roles(options.FunScriptRole, value => options.FunScriptRole = value), "EventRouting"));
+        Children.Add(Row("LuminanceSync", Roles(options.LuminanceRole, value => options.LuminanceRole = value), "EventRouting"));
         controller.Changed += DevicesChanged; DetachedFromVisualTree += (_, _) => Dispose(); RefreshDevices();
     }
     private void DevicesChanged() => Dispatcher.UIThread.Post(() => { if (!disposed) RefreshDevices(); });
@@ -94,11 +94,11 @@ public sealed class ToyRoutingEditor : OptionEditor, IDisposable
             patternInput.SelectionChanged += (_, _) => { if (patternInput.SelectedItem is PatternChoice choice) { selected = choice.Pattern; Refresh(); } };
             Children.Add(Row("HapticPattern", patternInput)); Children.Add(new TextBlock { Text = text["ToyPatternPreview"] }); Children.Add(graph); Refresh();
             var test = new Button { Content = text["Test"], Name = "ToyDeviceTest_" + device.Provider + "_" + new string(device.Id.Where(char.IsLetterOrDigit).ToArray()) };
-            test.Click += (_, _) => controller.EmitForDevice(device, intensity, TimeSpan.FromMilliseconds(duration), selected); Children.Add(test);
+            test.Click += (_, _) => controller.EmitForDevice(device, intensity, TimeSpan.FromMilliseconds(duration), selected); Children.Add(OptionHelp.Wrap(test, "Test", text));
             if (requestStop is not null)
             {
                 var stop = new Button { Content = text["Stop"], Name = "ToyDeviceStop_" + device.Provider + "_" + new string(device.Id.Where(char.IsLetterOrDigit).ToArray()) };
-                stop.Click += (_, _) => requestStop(); Children.Add(stop);
+                stop.Click += (_, _) => requestStop(); Children.Add(OptionHelp.Wrap(stop, "Stop", text));
             }
         }
         private sealed record PatternChoice(LocalHapticPattern Pattern, string Label) { public override string ToString() => Label; }

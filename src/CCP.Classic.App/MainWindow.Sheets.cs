@@ -80,7 +80,7 @@ public sealed partial class MainWindow
         Grid.SetRow(scroll, 1); frame.Children.Add(scroll);
         var credit = Label(text["ByCredit"], 12); credit.Foreground = Brush("#AFA6C7"); credit.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(credit, 2); frame.Children.Add(credit);
-        var child = new Window { Title = "CCP Classic · " + text[key], Width = Math.Min(key is "Settings" or "Toys" ? 500 : 460, maximumWidth),
+        var child = new Window { Title = "CCP Classic · " + text[key], Width = Math.Min(760, maximumWidth),
             SizeToContent = SizeToContent.Height, MinWidth = Math.Min(400, maximumWidth), MinHeight = 180,
             MaxHeight = maximumHeight, MaxWidth = maximumWidth, WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = new Border { Name = "SheetHost", Child = frame } };
@@ -144,7 +144,11 @@ public sealed partial class MainWindow
             else { red.IsVisible = true; warning.IsVisible = true; }
         });
         noPanic.Name = "NoPanic"; noPanic.Foreground = Brush("#FF8A8A");
-        content.Children.Add(noPanic); content.Children.Add(red);
+        content.Children.Add(OptionHelp.Wrap(noPanic, "NoPanic", text)); content.Children.Add(red);
+        var rows = content.Children.ToArray(); content.Children.Clear(); content.Spacing = 0;
+        content.Children.Add(OptionLayout.Group(rows.Take(5), text["OptionsGeneral"]));
+        content.Children.Add(OptionLayout.Group(rows.Skip(5).Take(4), text["GentleVisuals"], 1));
+        content.Children.Add(OptionLayout.Group(rows.Skip(9), text["OptionsUtility"], 2));
     }
 
     private async void ExportSettings()
@@ -169,7 +173,8 @@ public sealed partial class MainWindow
         label.TextWrapping = TextWrapping.Wrap; words.Children.Add(label);
         if (hint is not null) words.Children.Add(Note(hint));
         grid.Children.Add(words); Grid.SetColumn(control, 1); grid.Children.Add(control);
-        return grid;
+        var helped = OptionHelp.Wrap(grid, key, text);
+        if (key is not ("Intiface" or "Lovense")) helped.Classes.Add("option-compact"); return helped;
     }
     private TextBlock Note(string key)
     {

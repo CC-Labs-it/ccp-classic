@@ -30,7 +30,7 @@ public sealed class BrainDrainEditor : StackPanel
             if (args.Property != Slider.ValueProperty) return;
             settings.BrainDrain.BlurStrength = (int)Math.Round(slider.Value); value.Text = settings.BrainDrain.BlurStrength + "%"; changed();
         };
-        Children.Add(slider); Children.Add(value);
+        Children.Add(OptionHelp.Wrap(slider, "st4_braindrain_blur_strength", text)); Children.Add(value);
         Children.Add(Toggle("st4_braindrain_melt", "BrainDrainMelt", settings.BrainDrain.MeltEnabled,
             enabled => settings.BrainDrain.MeltEnabled = enabled));
         Children.Add(Toggle("st4_braindrain_allow_capture", "BrainDrainCapture", settings.BrainDrain.AllowCapture,
@@ -42,13 +42,16 @@ public sealed class BrainDrainEditor : StackPanel
         pick.Click += async (_, _) => await PickFolders();
         var refresh = new Button { Content = text["Refresh"], Name = "BrainDrainRefresh" };
         refresh.Click += (_, _) => RefreshRequested?.Invoke();
-        actions.Children.Add(pick); actions.Children.Add(refresh); Children.Add(actions); Children.Add(status);
+        actions.Children.Add(OptionHelp.Wrap(pick, "st4_braindrain_clip_library", text)); actions.Children.Add(OptionHelp.Wrap(refresh, "Refresh", text)); Children.Add(actions); Children.Add(status);
+        var sections = Children.ToArray(); Children.Clear();
+        Children.Add(OptionLayout.Group(sections.Take(5), text["BrainDrain"], 0));
+        Children.Add(OptionLayout.Group(sections.Skip(6), text["st4_braindrain_clip_library"], 2));
     }
     private Control Toggle(string key, string name, bool initial, Action<bool> set)
     {
         var toggle = new ToggleSwitch { Content = text[key], IsChecked = initial, Name = name, FontSize = 14 };
         toggle.IsCheckedChanged += (_, _) => { set(toggle.IsChecked == true); changed(); };
-        return toggle;
+        var result = OptionHelp.Wrap(toggle, key, text); result.Classes.Add("option-compact"); return result;
     }
     private async Task PickFolders()
     {

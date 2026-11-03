@@ -30,26 +30,26 @@ public sealed class LockCardEditor : OptionEditor
                 enabled.IsCheckedChanged += (_, _) => { options.Phrases[phrase.Key] = enabled.IsChecked == true; Changed(); };
                 var remove = new Button { Content = Text["Remove"], Padding = new Thickness(8, 3) };
                 remove.Click += (_, _) => { options.Phrases.Remove(phrase.Key); Refresh(); Changed(); };
-                var row = new DockPanel(); DockPanel.SetDock(remove, Dock.Right); row.Children.Add(remove); row.Children.Add(enabled);
+                var row = new DockPanel(); var removeHelp = OptionHelp.Wrap(remove, "Remove", text); DockPanel.SetDock(removeHelp, Dock.Right); row.Children.Add(removeHelp); row.Children.Add(OptionHelp.Wrap(enabled, "LockPhrases", text));
                 pool.Children.Add(row);
             }
         }
         Refresh(); Children.Add(pool);
         var input = new TextBox { MaxLength = 2000, PlaceholderText = Text["LockNewPhrase"], AcceptsReturn = true, MinHeight = 65 };
-        Children.Add(input);
+        Children.Add(OptionHelp.Wrap(input, "LockNewPhrase", text));
         var add = new Button { Content = Text["Add"], HorizontalAlignment = HorizontalAlignment.Right };
         add.Click += (_, _) =>
         {
             if (!string.IsNullOrWhiteSpace(input.Text) && options.Phrases.Count < 500)
             { options.Phrases[input.Text.Trim()] = true; input.Text = ""; Refresh(); Changed(); }
         };
-        Children.Add(add); Heading("LockColors");
+        Children.Add(OptionHelp.Wrap(add, "Add", text)); Heading("LockColors");
         Color("LockBackground", options.Background, value => options.Background = value);
         Color("TextColour", options.TextColor, value => options.TextColor = value);
         Color("LockInputBackground", options.InputBackground, value => options.InputBackground = value);
         Color("LockInputText", options.InputText, value => options.InputText = value);
         Color("LockAccent", options.Accent, value => options.Accent = value);
         var preview = new Button { Content = Text["Test"], HorizontalAlignment = HorizontalAlignment.Right };
-        preview.Click += (_, _) => test(); Children.Add(preview);
+        preview.Click += (_, _) => test(); Children.Add(OptionHelp.Wrap(preview, "Test", text));
     }
 }

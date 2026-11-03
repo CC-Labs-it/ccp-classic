@@ -1,5 +1,53 @@
 # CCP Classic handoff
 
+## Signed Windows 1.0.0 beta, 2026-11-03
+
+Owner accepted the new menus and requested the beta package. Built
+artifacts/packages/CCP.Classic-1.0.0-beta-win-x64-setup.exe (200,992,888 bytes).
+SHA256: caed355909dcd252528b1edaecfb33688007b5d592a6a02c33e645753f8c1f25.
+Both CCP.Classic.App.exe and the installer have Valid Authenticode signatures
+with timestamps, publisher CC Labs Srls. All 759 portable files match staging,
+and all three artifact checksums pass. Matching portable and complete analysis
+source ZIPs are in artifacts/packages. No app was installed/launched or release
+published. The current source remains uncommitted; metadata records dirty=true.
+Linux requires a separate native Linux tar.gz build; no Linux 1.0.0-beta artifact
+was produced in this Windows packaging pass.
+
+Packaging now supports -SignWindows. It signs the app before archiving/Inno,
+then signs the installer and calculates final checksums. The helper reads the
+user-scoped ACTALIS_PW without logging it and rejects invalid or untimestamped
+signatures. App behavior is unchanged since the 825-pass menu validation.
+
+## Menu clarity pass, 2026-11-03
+
+Implemented in the working tree after preview.8. Every editable menu option now
+has hover help and a keyboard-accessible ? flyout, including dynamic phrase/audio
+rows, Library, Presets, Companion, Toys and Loom. Added 150 translated help families
+plus 21 Loom help keys in all ten languages. Context-specific descriptions separate
+bubble motion, wallpaper mode and toy event routing.
+
+Editors use soft gradient section bands and paired controls when width permits;
+narrow windows fall back to one column. Flash uses General, Motion and Utility,
+with Stay until popped beside linked audio and GIF remix beside Hydra timing.
+More now keeps advanced details while useful settings remain visible, including
+Audio output, Brain Drain, Companion placement and common toy sync controls.
+The old three-primary-control rule is superseded in AGENTS.md.
+
+Validation: 825 passed, zero failures, six opt-in native-media tests skipped in the
+full Windows Release run (831 total). Result: artifacts/test-results/menu-polish-release.trx.
+New checks cover responsive layout, help not changing settings, and menu help
+coverage in all ten languages. Reviewed native offscreen proofs for compact,
+expanded and narrow Flash, Settings, Video, Companion and Toys under
+artifacts/proof/menu-polish/menu-*.png. No desktop app or effects were launched.
+
+Updated installer built for owner testing: artifacts/packages/CCP.Classic-1.0.0-preview.9-win-x64-setup.exe
+(200,977,511 bytes), SHA256 bbd494c93015f031b98628d3744367b59ac21c470836331fc35e6e30be656be5.
+The matching portable ZIP and complete analysis-source ZIP are in the same folder.
+All 759 portable payload files match staging; all three checksums were independently
+verified. This is an unsigned local review build from the working tree (dirty=true,
+ownerLocalReview=true). It was not installed, launched or published. Preview.8 is retained.
+
+
 ## Preview.8 parity checkpoint, 2026-11-03
 
 Final preview.8 validation checkpoint: all 828 Windows Release tests pass with

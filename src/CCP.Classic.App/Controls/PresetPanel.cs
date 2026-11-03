@@ -56,7 +56,7 @@ public sealed class PresetPanel : UserControl
         name.PlaceholderText = text["MyPreset"];
         AutomationProperties.SetName(name, text["NewPreset"]);
         var create = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 8 };
-        create.Children.Add(name);
+        create.Children.Add(OptionHelp.Wrap(name, "PresetName", text));
         var save = Button("Save", "PresetSave", Save); Grid.SetColumn(save, 1); create.Children.Add(save);
         body.Children.Add(create); body.Children.Add(custom);
         status.Classes.Add("muted"); body.Children.Add(status);
@@ -76,7 +76,7 @@ public sealed class PresetPanel : UserControl
             {
                 settings.RunMinutes = minutes; UpdateDurations(); changed();
             };
-            durations.Add(button); panel.Children.Add(button);
+            durations.Add(button); panel.Children.Add(OptionHelp.Wrap(button, "RunFor", text));
         }
         return panel;
     }
@@ -98,7 +98,7 @@ public sealed class PresetPanel : UserControl
         var enabled = new CheckBox { IsChecked = true, Content = text["EnableEffect"], Name = "TimedEnabled" };
         var row = new WrapPanel();
         row.Children.Add(new TextBlock { Text = text["AtMinute"], VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 8, 0) });
-        row.Children.Add(minutes); row.Children.Add(selected); row.Children.Add(enabled);
+        row.Children.Add(OptionHelp.Wrap(minutes, "AtMinute", text)); row.Children.Add(OptionHelp.Wrap(selected, "TimedEffect", text)); row.Children.Add(OptionHelp.Wrap(enabled, "EnableEffect", text));
         row.Children.Add(Button("Add", "TimedAdd", () =>
         {
             if (selected.SelectedItem is not EffectDefinition effect || settings.TimedChanges.Count >= 64) return;

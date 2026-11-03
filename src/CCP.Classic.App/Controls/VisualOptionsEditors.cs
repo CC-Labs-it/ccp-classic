@@ -47,13 +47,13 @@ public sealed class SubliminalOptionsEditor : OptionEditor
                 };
                 var remove = new Button { Content = Text["Remove"] };
                 remove.Click += (_, _) => { options.Phrases = options.Phrases.Where(p => !ReferenceEquals(p, captured)).ToList(); Refresh(); Changed(); };
-                var row = new WrapPanel(); row.Children.Add(audio); row.Children.Add(clear); row.Children.Add(remove);
-                list.Children.Add(editor); list.Children.Add(row);
+                var row = new WrapPanel(); row.Children.Add(OptionHelp.Wrap(audio, "SelectAudio", text)); row.Children.Add(OptionHelp.Wrap(clear, "ClearAudio", text)); row.Children.Add(OptionHelp.Wrap(remove, "Remove", text));
+                list.Children.Add(OptionHelp.Wrap(editor, "PhrasePool", text)); list.Children.Add(row);
             }
         }
         Refresh(); var add = new Button { Content = Text["Add"] };
         add.Click += (_, _) => { if (options.Phrases.Count < 256) { options.Phrases = [..options.Phrases, new("")]; Refresh(); Changed(); } };
-        Children.Add(add);
+        Children.Add(OptionHelp.Wrap(add, "Add", text));
     }
 }
 
@@ -90,7 +90,7 @@ public sealed class MindWipeOptionsEditor : OptionEditor
         };
         var clear = new Button { Content = Text["Reset"] };
         clear.Click += (_, _) => { options.AudioPath = null; label.Text = Text["DefaultAudio"]; Changed(); };
-        Children.Add(label); Children.Add(pick); Children.Add(clear);
+        Children.Add(label); Children.Add(OptionHelp.Wrap(pick, "SelectAudio", text)); Children.Add(OptionHelp.Wrap(clear, "ClearAudio", text));
     }
 }
 

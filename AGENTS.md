@@ -50,7 +50,10 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   streak. Persist separate video-target streaks. Preserve the existing badge ID
   and unlocked history, but never award the new condition from legacy count stats.
 - Studio / Presets / Progress; Library / Companion / Toys / Settings windows.
-  At most three primary controls per editor. Video concurrency goes under More.
+  Owner menu direction 2026-11-03: show a balanced share of useful options before More,
+  compact related options into responsive two-column groups with subtle blended
+  background colors, and give every option hover help plus a clickable ? button.
+  This replaces the three-primary-control limit. Video concurrency stays under More.
   Wallpaper is absent on Linux. No achievement or companion copy without approval.
 - Keep changes around 600 lines per PR; use a buildable stack. Test Release.
   CI must build and test on Windows and Linux. Keep docs/HANDOFF.md current.
@@ -100,3 +103,8 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   folders preserve package identities in components.json without long NuGet paths.
 - Main-window closing uses OwnerWindowOnly. Avalonia's default asks owned children
   first, allowing strict video/card/companion windows to veto the app-close escape.
+
+- Windows signing: packaging/package.ps1 -SignWindows signs the app before
+  archive/installer creation, then signs the installer and writes final checksums.
+  packaging/sign-windows.ps1 reads user-scoped ACTALIS_PW without logging it;
+  require Valid Authenticode and a timestamp on both files.

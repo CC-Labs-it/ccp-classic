@@ -22,7 +22,7 @@ public sealed class AudioOptionsEditor : OptionEditor, IDisposable
         IAudioPlayback playback, Func<CancellationToken, Task<IReadOnlyList<LocalAudioOutput>>> enumerate) : base(text, changed)
     {
         this.options = options; this.playback = playback; this.enumerate = enumerate; Spacing = 8;
-        Heading("AudioOutput"); Children.Add(outputs);
+        Heading("AudioOutput"); Children.Add(OptionHelp.Wrap(outputs, "AudioOutput", text));
         outputs.SelectionChanged += (_, _) =>
         {
             if (binding || outputs.SelectedItem is not OutputChoice choice) return;
@@ -39,7 +39,7 @@ public sealed class AudioOptionsEditor : OptionEditor, IDisposable
         };
         var stop = new Button { Content = Text["StopAudioTest"], Name = "StopAudioTest" }; stop.Click += (_, _) => StopTest();
         var actions = new WrapPanel { Orientation = Orientation.Horizontal };
-        actions.Children.Add(refresh); actions.Children.Add(test); actions.Children.Add(stop); Children.Add(actions); Children.Add(status);
+        actions.Children.Add(OptionHelp.Wrap(refresh, "RefreshOutputs", text)); actions.Children.Add(OptionHelp.Wrap(test, "TestAudio", text)); actions.Children.Add(OptionHelp.Wrap(stop, "StopAudioTest", text)); Children.Add(actions); Children.Add(status);
         Toggle("AudioDucking", options.DuckingEnabled, value => options.DuckingEnabled = value);
         AttachedToVisualTree += (_, _) => _ = RefreshAsync(); DetachedFromVisualTree += (_, _) => Dispose();
     }

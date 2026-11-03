@@ -13,6 +13,6 @@ public sealed class CompanionPlacementEditor : OptionEditor
         Number("CompanionScale", options.Scale * 100, 50, 150, value => options.Scale = value / 100).Increment = 25;
         Toggle("AlwaysOnTop", options.AlwaysOnTop, value => options.AlwaysOnTop = value);
         var reset = new Button { Name = "ResetPlacement", Content = Text["ResetPlacement"] };
-        reset.Click += (_, _) => { options.Left = options.Top = null; options.Scale = 1; Changed(); }; Children.Add(reset);
+        reset.Click += (_, _) => { options.Left = options.Top = null; options.Scale = 1; Changed(); }; Children.Add(OptionHelp.Wrap(reset, "ResetPlacement", text));
     }
 }

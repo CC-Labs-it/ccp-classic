@@ -19,7 +19,7 @@ public sealed class EffectCard : Border
     private readonly LocalizationService text;
     private readonly Action changed;
 
-    public int PrimaryControlCount => definition.Primary.Count;
+    public int PrimaryControlCount { get; private set; }
     public event Action<string>? ActionRequested;
     public event Action<string>? ValueChanged;
 
@@ -34,8 +34,8 @@ public sealed class EffectCard : Border
         Classes.Add("card");
         Classes.Add("effect-editor-card");
         Padding = new Thickness(17, 15, 17, 13);
-        var body = new StackPanel { Spacing = 10 };
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("12,28,*,42"), MinHeight = 28 };
+        var body = new StackPanel { Spacing = 0 };
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("12,28,*,76"), MinHeight = 28 };
         var lamp = new Ellipse { Width = 7, Height = 7, VerticalAlignment = VerticalAlignment.Center, Fill = LampBrush() };
         header.Children.Add(lamp);
         var icon = new Path { Data = Geometry.Parse(definition.Icon), Width = 19, Height = 19,
@@ -55,17 +55,47 @@ public sealed class EffectCard : Border
             changed();
         });
         enabled.Name = "Enable_" + definition.Id;
-        Grid.SetColumn(enabled, 3);
-        header.Children.Add(enabled);
+        var enableHelp = OptionHelp.Wrap(enabled, definition.Title, text);
+        Grid.SetColumn(enableHelp, 3);
+        header.Children.Add(enableHelp);
+        header.Margin = new Thickness(0, 0, 0, 10);
         body.Children.Add(header);
-        foreach (var knob in definition.Primary) body.Children.Add(CreateKnob(knob));
-        if (definition.More.Count > 0 || customization is not null)
+        var promoted = definition.More.Where(knob => !(definition.Id == "video" && knob.Key == "maximum")
+                && !(definition.Id == "flash" && knob.Key == "fade"))
+            .Take((definition.More.Count + 1) / 2).ToArray();
+        var remaining = definition.More.Except(promoted).ToArray();
+        PrimaryControlCount = definition.Primary.Count + promoted.Length;
+        var primary = definition.Primary.Concat(promoted).Select(CreateKnob).ToArray();
+        body.Children.Add(OptionLayout.Group(primary, text["OptionsGeneral"]));
+        if (customization is OptionEditor editor)
         {
-            var advanced = new StackPanel { Spacing = 10, IsVisible = false,
+            if (editor.TakeVisibleOptions() is { } visible) body.Children.Add(visible);
+            if (definition.Id == "flash")
+            {
+                foreach (var knob in remaining) editor.Children.Add(CreateKnob(knob));
+                remaining = [];
+            }
+            editor.PrepareLayout();
+        }
+        else if (customization is StackPanel composite && composite.Children.Count > 0)
+        {
+            // Composite editors retain their own callbacks and lifetime when promoted.
+            var first = composite.Children[0];
+            composite.Children.RemoveAt(0);
+            if (first is OptionEditor nested) nested.PrepareLayout();
+            body.Children.Add(first);
+            composite.Spacing = 0;
+        }
+        var hasCustomization = customization is StackPanel options ? options.Children.Count > 0 : customization is not null;
+        if (remaining.Length > 0 || hasCustomization)
+        {
+            var advanced = new StackPanel { Spacing = 0, IsVisible = false,
                 Margin = new Thickness(0, 4, 0, 0) };
-            foreach (var knob in definition.More) advanced.Children.Add(CreateKnob(knob));
-            if (customization is not null) advanced.Children.Add(customization);
-            var more = new Button { Content = text["More"], HorizontalAlignment = HorizontalAlignment.Left };
+            if (remaining.Length > 0)
+                advanced.Children.Add(OptionLayout.Group(remaining.Select(CreateKnob), text["OptionsUtility"], 2));
+            if (hasCustomization) advanced.Children.Add(customization!);
+            var more = new Button { Content = text["More"], HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 8, 0, 8) };
             more.Classes.Add("more");
             more.Name = "More_" + definition.Id;
             more.Click += (_, _) =>
@@ -87,6 +117,13 @@ public sealed class EffectCard : Border
     }
 
     private Control CreateKnob(KnobDefinition knob)
+    {
+        var control = OptionHelp.Wrap(CreateKnobControl(knob), definition.Id == "wall" && knob.Label == "Mode" ? "WallpaperMode" : knob.Label, text);
+        if (knob.Kind is KnobKind.Toggle or KnobKind.Range) control.Classes.Add("option-compact");
+        return control;
+    }
+
+    private Control CreateKnobControl(KnobDefinition knob)
     {
         if (!settings.Values.ContainsKey(knob.Key)) settings.Values[knob.Key] = knob.Default;
         var value = settings.Values[knob.Key];

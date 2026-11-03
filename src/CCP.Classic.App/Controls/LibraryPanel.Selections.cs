@@ -23,7 +23,7 @@ public sealed partial class LibraryPanel
         selectionName = new() { Name = "LibrarySelectionName", PlaceholderText = text["NewPreset"], MaxLength = 80, Width = 150, Margin = new(0, 0, 7, 0) };
         selections.SelectionChanged += (_, _) =>
         { if (!selecting && selections.SelectedItem is SelectionChoice item) selectionName.Text = item.Id is null ? "" : item.Name; };
-        row.Children.Add(selections); row.Children.Add(selectionName);
+        row.Children.Add(OptionHelp.Wrap(selections, "LibrarySelection", text)); row.Children.Add(OptionHelp.Wrap(selectionName, "LibrarySelectionName", text));
         foreach (var (key, action) in new (string, Action)[]
         {
             ("Load", () =>
@@ -124,7 +124,7 @@ public sealed partial class LibraryPanel
         browse.ContextMenu = new() { ItemsSource = new[] { open } }; ToolTip.SetTip(browse, path);
         var launch = new Button { Content = "↗", Name = "LibraryOpenFolder", Padding = new(3, 1) }; ToolTip.SetTip(launch, text["OpenFolder"]);
         launch.Click += (_, _) => Open();
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 }; row.Children.Add(check); row.Children.Add(browse); row.Children.Add(launch); return row;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 }; row.Children.Add(OptionHelp.Wrap(check, "LibraryFolderInclude", text)); row.Children.Add(browse); row.Children.Add(launch); return row;
     }
     private void RefreshFolderChecks()
     {

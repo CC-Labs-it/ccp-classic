@@ -23,7 +23,7 @@ public sealed class WallpaperOptionsEditor : OptionEditor
                     this.GetVisualDescendants().OfType<TextBox>().First(input => input.Name == "WallpaperSource").Text = path;
             }
             catch (Exception error) when (error is IOException or InvalidOperationException or NotSupportedException or UnauthorizedAccessException) { }
-        }; Children.Add(chooseFolder);
+        }; Children.Add(OptionHelp.Wrap(chooseFolder, "ChooseFolder", text));
         String("WallpaperOwnImage", options.OwnImagePath ?? "", value => options.OwnImagePath = value);
         var own = new Button { Content = Text["ChooseImage"] };
         own.Click += async (_, _) =>
@@ -37,7 +37,7 @@ public sealed class WallpaperOptionsEditor : OptionEditor
                     this.GetVisualDescendants().OfType<TextBox>().First(input => input.Name == "WallpaperOwnImage").Text = path;
             }
             catch (Exception error) when (error is IOException or InvalidOperationException or NotSupportedException or UnauthorizedAccessException) { }
-        }; Children.Add(own);
+        }; Children.Add(OptionHelp.Wrap(own, "ChooseImage", text));
         Toggle("WallpaperCollage", options.Collage, value => options.Collage = value);
         foreach (var (flag, key) in new[] { (1, "LayoutSideHero"), (2, "LayoutFillerOnly"), (4, "LayoutCenterHero") })
             Toggle(key, (options.LayoutMask & flag) != 0, value => options.LayoutMask = value ? options.LayoutMask | flag : options.LayoutMask & ~flag);
@@ -45,6 +45,6 @@ public sealed class WallpaperOptionsEditor : OptionEditor
         Number("WallpaperInterval", options.IntervalSeconds, 10, 86400, value => options.IntervalSeconds = (int)value);
         Color("AccentColour", options.Accent, value => options.Accent = value);
         Color("BackgroundColour", options.Background, value => options.Background = value);
-        var next = new Button { Content = Text["ShuffleWallpaper"], Name = "ShuffleWallpaper" }; next.Click += (_, _) => shuffle(); Children.Add(next);
+        var next = new Button { Content = Text["ShuffleWallpaper"], Name = "ShuffleWallpaper" }; next.Click += (_, _) => shuffle(); Children.Add(OptionHelp.Wrap(next, "ShuffleWallpaper", text));
     }
 }

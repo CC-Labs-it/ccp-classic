@@ -1,6 +1,7 @@
 # Install CCP Classic
 
-Packages are unsigned previews until the owner signs and publishes a release.
+The Windows 1.0.0-beta package signs both the app and installer with Authenticode.
+Earlier preview packages are unsigned. Linux packages use SHA256 checksums.
 Use the version shown in the package filename. The application works offline and does
 not check for updates. Install later versions manually.
 
@@ -70,7 +71,8 @@ Get-FileHash -Algorithm SHA256 .\CCP.Classic-1.0.0-preview.1-win-x64-setup.exe
 ```
 
 Compare the result with the published checksum. A checksum detects changed bytes;
-the preview files do not yet carry an Authenticode signature.
+Windows beta files also carry a timestamped Authenticode signature. Check the
+Digital Signatures tab in file properties. Earlier previews remain unsigned.
 
 ## Build packages
 
