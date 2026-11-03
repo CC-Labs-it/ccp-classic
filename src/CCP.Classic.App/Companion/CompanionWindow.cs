@@ -195,8 +195,8 @@ internal sealed class CompanionWindow : Window
         if (prepared) ApplyPlacement();
         var now = double.IsFinite(seconds) ? Math.Max(lastNow, seconds) : lastNow;
         lastNow = now;
-        var approved = bark is not null && CompanionTimeline.Phrases.Any(phrase => phrase.Text == bark.Text);
-        words.Text = approved ? bark!.Text : ""; speech.Opacity = approved ? Math.Clamp(bark!.Opacity, 0, 1) : 0;
+        var approved = bark is not null && CompanionTimeline.IsApproved(bark.Text);
+        words.Text = approved ? bark!.Text : ""; words.FontSize = approved && bark!.Text.Length > 24 ? 17 : 26; speech.Opacity = approved ? Math.Clamp(bark!.Opacity, 0, 1) : 0;
         speech.IsVisible = approved;
         if (!owner.IsVisible || owner.WindowState == WindowState.Minimized) { Hide(); return; }
         var target = settings.CompanionEnabled && HasPortrait && LastError is null ? 1 : 0;

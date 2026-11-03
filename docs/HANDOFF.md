@@ -1,5 +1,20 @@
 # CCP Classic handoff
 
+## Companion bark library, 2026-11-03 (fix/tube-barks)
+
+Owner asked for every gender-neutral Circe line from CCP Default, tied to real actions.
+285 lines (108 rules, 18.3 MB of LFS mp3s in Starter/Barks) curated from CCP's 702; event map,
+selection rules and drop reasons in docs/BARKS.md. Core `BarkEngine` (priority, conditions,
+per-rule cooldown, once per session, chance, global gap min(45 s, Bark interval), no line twice
+in a row, 30 s panic quiet) + `BarkSwitchWatch` (player switches turned on). The idle timer and
+clicks draw from the library; session timing words stay the approved five. Panic routes call
+`SilenceBarks()`; a stop never speaks; only a preset's timed end gets a closing line.
+`DesktopEffectsService.LineSpoken(RuleId, LineId, Mood, Text, Seconds)` is the seam for the
+emote controller lane (fix/tube-emotes); barks never pick an animation clip.
+CompanionWindow change is one line (approval via `CompanionTimeline.IsApproved`, smaller font
+for long lines). No new loc keys. 852 Release tests pass. Not desk-run: hear the mix, the
+chatter rate and the bubble fit in the app before shipping.
+
 ## Tube emotes at CCP parity, 2026-11-03 (fix/tube-emotes)
 
 Owner: animations 20% slower, no talking on every trigger, idle animations more often, full

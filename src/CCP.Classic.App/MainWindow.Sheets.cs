@@ -19,6 +19,7 @@ public sealed partial class MainWindow
     public void OpenSheet(string key)
     {
         capturePanic = false;
+        if (sheet != key) BarkOpened(key);
         sheet = key;
         var content = new StackPanel { Spacing = 10, Margin = new(14, 12) };
         switch (key)
@@ -42,6 +43,7 @@ public sealed partial class MainWindow
     {
         capturePanic = false;
         var definition = EffectCatalog.All.Single(d => d.Id == id && (!d.WindowsOnly || windows));
+        BarkOpened("Effect." + id);
         sheet = null;
         var content = new StackPanel { Spacing = 12, Margin = new(14, 12) };
         var card = new EffectCard(definition, Settings.Effects[id], text, () =>

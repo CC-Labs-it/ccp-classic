@@ -52,11 +52,11 @@ public sealed partial class DesktopEffectsService : IDisposable
         loom = new(settings, new LoomStore(LoomStore.DefaultDirectory));
         whispers = new(audio);
         videos = new(owner, settings, session, configureInput);
-        videos.VideoFinished += seconds => VideoFinished?.Invoke(seconds);
+        videos.VideoFinished += seconds => { VideoFinished?.Invoke(seconds); Bark("VideoEnded"); };
         videos.CountAnswered += correct =>
         {
             if (correct) popSounds.Play(cueGate, settings.Effects["audio"].Enabled, settings.Bubbles.VolumePercent / 100d);
-            CountAnswered?.Invoke(correct);
+            CountAnswered?.Invoke(correct); AttentionBark(correct);
         };
         InitializeInteractive();
         videos.LaunchBlocked = () => lockFrame.LockCard is not null || interactiveFrame.CascadeActive;
@@ -154,8 +154,10 @@ public sealed partial class DesktopEffectsService : IDisposable
             remix.AfterFrame(snapshot.Flashes.Any(flash => flash.IsRemix));
             HapticFlashLuminance(snapshot.Flashes.Where(flash => flash.Opacity > .01 && flash.Image >= 0).Select(flash => flash.Image));
             loom.Update(elapsed);
+            var flashed = false;
             foreach (var flash in snapshot.Flashes.Where(flash => flash.Id > lastFlash).OrderBy(flash => flash.Id))
-            { lastFlash = flash.Id; FlashShown?.Invoke(); }
+            { lastFlash = flash.Id; FlashShown?.Invoke(); flashed = true; }
+            if (flashed) Bark("Flash");
             var anyVisual = settings.Effects["flash"].Enabled || settings.Effects["sub"].Enabled
                 || settings.Effects["spiral"].Enabled || settings.Effects["pink"].Enabled
                 || settings.Effects["bubble"].Enabled || settings.Effects["bounce"].Enabled || settings.Effects["drain"].Enabled;
@@ -283,6 +285,7 @@ public sealed partial class DesktopEffectsService : IDisposable
 
     public void Stop()
     {
+        if (running && session.EndedBySchedule && !disposed) QueueCompletionBark(clock.GetElapsedTime(started).TotalMinutes);
         timer.Stop(); running = false; StopHaptics(); timeline.Stop(); snapshot = null;
         CloseWindows(); whispers.Stop(); videos.Stop(); StopFlashVoice(); StopBrainDrain(); StopSpiralMedia(); StopInteractive(); StopCompanion();
         remix.Stop();
