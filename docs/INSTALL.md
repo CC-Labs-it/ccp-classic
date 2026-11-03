@@ -1,7 +1,8 @@
 # Install CCP Classic
 
 The Windows 1.0.0-beta package signs both the app and installer with Authenticode.
-Earlier preview packages are unsigned. Linux packages use SHA256 checksums.
+Earlier preview packages are unsigned. From 1.0.0-beta.3, every release also has a
+GPG-signed checksum list, which is how Linux packages are verified.
 Use the version shown in the package filename. The application works offline and does
 not check for updates. Install later versions manually.
 
@@ -73,6 +74,27 @@ Get-FileHash -Algorithm SHA256 .\CCP.Classic-1.0.0-preview.1-win-x64-setup.exe
 Compare the result with the published checksum. A checksum detects changed bytes;
 Windows beta files also carry a timestamped Authenticode signature. Check the
 Digital Signatures tab in file properties. Earlier previews remain unsigned.
+
+A checksum alone cannot show who made a file. From 1.0.0-beta.3, each release has
+`CCP.Classic-VERSION-SHA256SUMS` and its signature `CCP.Classic-VERSION-SHA256SUMS.asc`,
+signed with the CC labs release key:
+
+- Key: CC labs Srls Release Signing <support@cclabs.app>
+- Fingerprint: `54D3 23FB 3798 AFE1 81F4  003E 910D 8162 E51F 4553`
+- Public key: https://cclabs.app/keys/cclabs-release-signing.asc
+
+On Linux, put the list, its signature and the package in one folder, then run:
+
+```sh
+curl -fsSLO https://cclabs.app/keys/cclabs-release-signing.asc
+gpg --import cclabs-release-signing.asc
+gpg --verify CCP.Classic-VERSION-SHA256SUMS.asc CCP.Classic-VERSION-SHA256SUMS
+sha256sum --ignore-missing -c CCP.Classic-VERSION-SHA256SUMS
+```
+
+`gpg --verify` must report a good signature from the fingerprint above, and
+`sha256sum` must print OK for the package you downloaded. GnuPG may warn that the
+key is not certified with a trusted signature; the fingerprint check replaces that.
 
 ## Build packages
 

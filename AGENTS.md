@@ -113,3 +113,11 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   archive/installer creation, then signs the installer and writes final checksums.
   packaging/sign-windows.ps1 reads user-scoped ACTALIS_PW without logging it;
   require Valid Authenticode and a timestamp on both files.
+- Release GPG signing (owner 2026-11-03): after both packages are in artifacts/packages,
+  run packaging/sign-release.ps1 -Version X on Windows. It writes CCP.Classic-X-SHA256SUMS
+  for every package and a detached .asc with key 54D323FB3798AFE181F4003E910D8162E51F4553
+  (CC labs Srls Release Signing, ed25519, expires 2028-11-02) from the user GnuPG home,
+  passphrase in user-scoped CCLABS_GPG_PW, never logged. Git's MSYS gpg needs /c/ paths
+  and an LF-terminated passphrase (a PowerShell pipe adds CR). Public key is published at
+  https://cclabs.app/keys/cclabs-release-signing.asc; the revocation certificate is in
+  ~/.gnupg/openpgp-revocs.d. Never commit or export the secret key here.
