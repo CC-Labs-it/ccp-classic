@@ -1,5 +1,21 @@
 # CCP Classic handoff
 
+## 1.0.0-beta.4 draft release, 2026-11-03
+
+GitHub pre-release v1.0.0-beta.4 (tag at 3f8fc45 on feat/companion-tube) is a DRAFT,
+waiting for the owner's go; the briefly public v1.0.0-beta.3 release and tag were deleted
+(repo had 0 watchers). Assets: setup.exe, win-x64.zip, linux-x64.tar.gz, SHA256SUMS + .asc
+(GPG key 54D3 23FB 3798 AFE1 81F4 003E 910D 8162 E51F 4553), analysis-sources split in
+.001/.002 (GitHub's 2 GiB asset cap). Every asset digest matches the local file. Notes in
+artifacts/release-v1.0.0-beta.4/NOTES.md, in the owner's voice; the Discord post text the
+owner posts by hand is on their Desktop (ccp-classic-discord-post.txt).
+834 Release tests passed on Windows and Ubuntu 24.04; app exe and installer Valid
+Authenticode, timestamped. Headless WSL proof on the Linux tarball: tube docked left of the
+panel at first launch with no session, follows a moved panel, hides on minimise and returns,
+docks mirrored on the right at the screen's left edge, stays through a session and panic.
+3f8fc45 also keeps a docked tube off topmost (CCP parity); Always on top is for detached.
+SHA256: linux bd9c9261..., setup 0e670de4..., zip b85c09c8... (full list in SHA256SUMS).
+
 ## Companion tube, 2026-11-03 (branch feat/companion-tube)
 
 Owner expected CCP's look: the avatar inside CCP's glass tube, docked beside the main
