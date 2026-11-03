@@ -1,5 +1,22 @@
 # CCP Classic handoff
 
+## Linux 1.0.0 beta ready, 2026-11-03
+
+Linux x64 package: artifacts/packages/CCP.Classic-1.0.0-beta-linux-x64.tar.gz
+(83,317,166 bytes), SHA256
+01691bd19ea2ec2974cfef7121c9431c0b3e8d5c65fda664f9b154b8ba9b4b35.
+Built on Ubuntu 24.04 from clean 159d5765c61250cd610e66abe4c9572ec57909c8,
+branch codex/release-100-beta-package. This commits the same app changes already
+in the signed Windows beta; no application source changed for the Linux build.
+Workflow https://github.com/CC-Labs-it/ccp-classic/actions/runs/41696399389 passed:
+825 Release tests, zero failures (six opt-in tests skipped), plus the isolated
+native Linux desktop/media probe. Evidence: artifacts/ci-beta-linux.
+Verified archive SHA256, version/runtime/source metadata, 318 files and executable
+flags for launcher, app and native graphics libraries. Both beta packages are now
+local under artifacts/packages; neither has been published as a release.
+Linux users extract and run CCP.Classic, with dependencies from docs/INSTALL.md.
+Full desktop effects need a local composited X11 session; Wallpaper is Windows-only.
+
 ## Signed Windows 1.0.0 beta, 2026-11-03
 
 Owner accepted the new menus and requested the beta package. Built
@@ -10,8 +27,7 @@ with timestamps, publisher CC Labs Srls. All 759 portable files match staging,
 and all three artifact checksums pass. Matching portable and complete analysis
 source ZIPs are in artifacts/packages. No app was installed/launched or release
 published. The current source remains uncommitted; metadata records dirty=true.
-Linux requires a separate native Linux tar.gz build; no Linux 1.0.0-beta artifact
-was produced in this Windows packaging pass.
+Linux was built separately afterward; see the Linux beta checkpoint above.
 
 Packaging now supports -SignWindows. It signs the app before archiving/Inno,
 then signs the installer and calculates final checksums. The helper reads the
