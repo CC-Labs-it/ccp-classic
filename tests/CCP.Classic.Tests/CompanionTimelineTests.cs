@@ -152,6 +152,63 @@ public sealed class CompanionTimelineTests
     }
 
     [Fact]
+    public void IdleBarksRunOnTheIntervalWithoutASessionAndNeverRaiseEffects()
+    {
+        var settings = Settings(); settings.BarkIntervalSeconds = 6; settings.TriggerPhrasesEnabled = true;
+        var timeline = new CompanionTimeline(settings) { TriggerPhrasesEnabled = true };
+        // The idle clock is the app's clock, far from zero: the first word still waits a full interval.
+        timeline.StartIdle(5000); Assert.True(timeline.IsRunning); Assert.True(timeline.IsIdle);
+        Assert.Null(timeline.Step(5005.9).Bark);
+        var words = new List<string>();
+        for (var step = 0; step < 5; step++)
+        {
+            var frame = timeline.Step(5006 + step * 6); words.Add(frame.Bark!.Text); Assert.Empty(frame.Triggers);
+            Assert.Empty(timeline.Step(5006 + step * 6 + 5).Triggers);
+        }
+        Assert.Equal(CompanionTimeline.Phrases.Select(phrase => phrase.Text), words);
+        Assert.False(timeline.TriggerPhrase("Relax")); timeline.FeedText("relax focus deeper ");
+        Assert.Empty(timeline.Step(5040).Triggers);
+        // Barks off ends the word and the timer; turning them back on waits a new interval.
+        settings.BarksEnabled = false; timeline.Step(5041); Assert.Null(timeline.Step(5043).Bark); Assert.Null(timeline.Step(5060).Bark);
+        settings.BarksEnabled = true; Assert.Null(timeline.Step(5061).Bark); Assert.Null(timeline.Step(5066.9).Bark);
+        Assert.NotNull(timeline.Step(5067).Bark);
+        settings.CompanionEnabled = false; timeline.Step(5068); Assert.Null(timeline.Step(5072).Bark);
+    }
+
+    [Fact]
+    public void AClickSaysTheNextWordAtOnceWithACooldownAndNoEffect()
+    {
+        var settings = Settings(); settings.BarkIntervalSeconds = 6;
+        var timeline = new CompanionTimeline(settings) { TriggerPhrasesEnabled = true }; timeline.StartIdle(100);
+        Assert.True(timeline.Poke(100.2));
+        var first = timeline.Step(100.2); Assert.Equal("Breathe", first.Bark!.Text); Assert.Empty(first.Triggers);
+        Assert.False(timeline.Poke(101)); Assert.Equal(first.Bark.Id, timeline.Step(101).Bark!.Id);
+        Assert.True(timeline.Poke(101.7));
+        var second = timeline.Step(101.7); Assert.Equal("Relax", second.Bark!.Text); Assert.Empty(second.Triggers);
+        // The click resets the timer, so a timed word does not follow straight after it.
+        Assert.Null(timeline.Step(107.6).Bark); Assert.Equal("Focus", timeline.Step(107.7).Bark!.Text);
+        settings.BarksEnabled = false; Assert.False(timeline.Poke(200));
+        settings.BarksEnabled = true; timeline.Stop(); Assert.False(timeline.Poke(300));
+        // A session click works the same and never queues the phrase's effect.
+        timeline.Start(); Assert.True(timeline.Poke(1)); var session = timeline.Step(1);
+        Assert.NotNull(session.Bark); Assert.Empty(session.Triggers);
+    }
+
+    [Fact]
+    public void AStopSilencesAnIdleWordAndTheNextOneWaitsAFullInterval()
+    {
+        var settings = Settings(); settings.BarkIntervalSeconds = 6;
+        var timeline = new CompanionTimeline(settings); timeline.StartIdle(0);
+        Assert.NotNull(timeline.Step(6).Bark);
+        timeline.Stop(); Assert.Same(CompanionFrame.Empty, timeline.Step(7));
+        Assert.False(timeline.Poke(7));
+        timeline.StartIdle(30); Assert.Null(timeline.Step(30).Bark); Assert.Null(timeline.Step(35.9).Bark);
+        Assert.NotNull(timeline.Step(36).Bark);
+        // A session restarts its own zero-based clock and leaves idle mode.
+        timeline.Start(); Assert.False(timeline.IsIdle); Assert.Null(timeline.Step(5).Bark);
+    }
+
+    [Fact]
     public void FastCadencesDoNotReplaceABarkBeforeItsExit()
     {
         var settings = Settings(); settings.BarkIntervalSeconds = 1;

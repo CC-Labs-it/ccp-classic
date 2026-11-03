@@ -143,13 +143,21 @@ public sealed partial class DesktopEffectsService
         lockFrame = LockEffectsFrame.Empty; CloseLock();
     }
 
-    private void TickWipe()
+    private double AudioMix(out bool audioEnabled)
     {
-        var audioEnabled = settings.Effects["audio"].Enabled && settings.Effects["audio"].Values["master"] > 0;
+        audioEnabled = settings.Effects["audio"].Enabled && settings.Effects["audio"].Values["master"] > 0;
         var gain = audioEnabled ? settings.Effects["audio"].Values["master"] / 100 : 0;
         if (settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking)) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
-        cueGate.Update(audioEnabled, gain);
+        return gain;
+    }
+    private void UpdateBarkGate(bool audioEnabled, double gain) =>
         barkGate.Update(audioEnabled && settings.CompanionEnabled && settings.BarksEnabled, gain);
+
+    private void TickWipe()
+    {
+        var gain = AudioMix(out var audioEnabled);
+        cueGate.Update(audioEnabled, gain);
+        UpdateBarkGate(audioEnabled, gain);
         var cue = lockFrame.MindWipe;
         wipeAudio.SetMasterGain(gain * (cue?.Volume ?? 0));
         if (!MindWipeRunRule.CanPlay(session.IsRunning, cue is not null, audioEnabled) || cue is null || cue.Volume <= 0)

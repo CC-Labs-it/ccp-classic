@@ -64,6 +64,18 @@ public sealed class AudioPlaybackGateTests
     }
 
     [Fact]
+    public void ReplaceKeepsOneVoiceAndStillObeysTheLaneSwitch()
+    {
+        var audio = new Playback(); var gate = new AudioPlaybackGate(audio);
+        Assert.False(gate.Replace("bark.wav", 1)); Assert.Empty(audio.Tickets);
+        gate.Update(true, 1); Assert.True(gate.Replace("one.wav", 1));
+        var first = Assert.Single(audio.Tickets); Assert.True(gate.Replace("two.wav", 1));
+        Assert.True(first.IsFinished); Assert.False(audio.Tickets[1].IsFinished);
+        Assert.False(gate.Replace("bark.wav", double.NaN)); Assert.False(gate.Replace("bark.wav", 0));
+        gate.Stop(); Assert.False(gate.Replace("bark.wav", 1)); Assert.Equal(2, audio.Tickets.Count);
+    }
+
+    [Fact]
     public async Task AConcurrentDisableCannotLeaveASubmittedCueBehindTheStop()
     {
         using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
