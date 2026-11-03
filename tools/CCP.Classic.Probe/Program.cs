@@ -140,6 +140,8 @@ internal static class Program
     {
         stage = "native_muted_video";
         var video = new LocalVideoPlayback(path, 10); var frames = 0; var colored = false; float? rate = null;
+        var elapsed = Stopwatch.StartNew(); var samples = new List<object>();
+        double? lastSource = null; bool? lastPlaying = null;
         try
         {
             video.SetGain(0); video.Start();
@@ -152,10 +154,19 @@ internal static class Program
                         colored |= frame.Pixels[index] + frame.Pixels[index + 1] + frame.Pixels[index + 2] > 0;
                     frames++; rate = Rate(video) ?? rate;
                 }
+                var sample = video.GetAudioSample();
+                if (samples.Count == 0 || sample?.SourceSeconds != lastSource || sample?.IsPlaying != lastPlaying)
+                {
+                    var observation = new { elapsedMs = elapsed.ElapsedMilliseconds, sourceSeconds = sample?.SourceSeconds,
+                        playing = sample?.IsPlaying, playedSeconds = video.PlayedSeconds, frames };
+                    if (samples.Count < 32) samples.Add(observation);
+                    else samples[^1] = observation;
+                    lastSource = sample?.SourceSeconds; lastPlaying = sample?.IsPlaying;
+                }
                 return video.IsFinished;
             }, 15);
             Pass("video_completion_evidence", new { frames, colored, rate, playedSeconds = video.PlayedSeconds,
-                hasError = video.LastError is not null });
+                hasError = video.LastError is not null, samples });
             Check(frames > 0 && colored && rate == 1f && video.LastError is null && video.PlayedSeconds >= 1, "video_completion");
             Pass(stage, new { frames, width = 320, height = 180, rate, playedSeconds = video.PlayedSeconds });
         }

@@ -7,6 +7,12 @@ on:
         default: 1.0.0-preview.1
         required: true
         type: string
+      runtime:
+        description: Platforms to validate
+        default: all
+        required: true
+        type: choice
+        options: [all, linux-x64, win-x64]
   pull_request:
     paths:
       - 'src/**'
@@ -30,11 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            runtime: win-x64
-          - os: ubuntu-24.04
-            runtime: linux-x64
+        include: ${{ fromJSON(inputs.runtime == 'linux-x64' && '[{"os":"ubuntu-24.04","runtime":"linux-x64"}]' || inputs.runtime == 'win-x64' && '[{"os":"windows-latest","runtime":"win-x64"}]' || '[{"os":"windows-latest","runtime":"win-x64"},{"os":"ubuntu-24.04","runtime":"linux-x64"}]') }}
     runs-on: ${{ matrix.os }}
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
