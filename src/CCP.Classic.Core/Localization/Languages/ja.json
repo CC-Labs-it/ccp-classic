@@ -157,5 +157,7 @@
   "AudioUnavailable": "このPCでは音声を利用できません。",
   "StarterPackReady": "スターターパックを利用できます。すべてこのPCから再生されます。",
   "EffectsUnavailable": "このディスプレイではデスクトップ効果を利用できません。",
+  "LibraryNextSession": "選択したファイルは次のセッションから適用されます。",
+  "LibraryLimited": "一部のファイルは省略されました。小さなフォルダーを選択してください。",
   "ByCredit": "By CodeBambi"
 }

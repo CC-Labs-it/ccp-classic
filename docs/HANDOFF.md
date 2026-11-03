@@ -110,7 +110,8 @@ before parent merges. Source branches were preserved. M1 follows as small draft 
   and cross-reviewed the fixes. Both new PRs passed Windows and Linux Release CI.
   The complete suite passed 148 tests, with zero failures or skips, including 26 new cases.
 - M0 PRs #1-#11 are merged. M1 PRs #12-#18 remain drafts in a linear stack.
-  The user has not requested merging M1 or starting M2. All PR titles and descriptions
+  The owner authorized continued production work and agent delegation on 2026-11-03.
+  M2 and the remaining milestones are now in scope. All PR titles and descriptions
   reflect the seven-part stack. Each slice remains below 600 changed text lines.
 - Latest request before this checkpoint: open the app. A native CCP Classic window
   was created successfully; the launch process subsequently exited with code 0.
@@ -143,5 +144,48 @@ Videos: fullscreen/floating, Strict Lock, attention checks, length caps and curt
 ## Owner questions
 
 1. D12: repository name `ccp-classic` is provisional until 2026-11-10.
-2. Before M5, review the original 27 achievement conditions and approve neutral names.
-3. Before M4, approve the companion's neutral bark and trigger phrase list.
+
+## Approved production scope, 2026-11-03
+
+The owner authorized continued development through production readiness with agents.
+M2 videos; M3 remaining effects; M4 companion and triggers; M5 Library, presets and
+progress; M6 local haptics; M7 native Loom and Windows wallpaper; M8 Linux parity,
+installers and a test build. Work remains in this repository in small buildable slices.
+
+Approved companion barks: Breathe, Relax, Focus, Listen, Deeper, using only the five
+verified starter recordings. Trigger mappings: Relax to flash, Focus to whisper,
+Deeper to spiral pulse. No additional companion wording is approved.
+
+Approved achievement names, in the original v5.0.0 catalog order:
+1. First Steps
+2. Finding Focus
+3. Steady Practice
+4. Long Practice
+5. Lasting Practice
+6. Milestone
+7. Rose Tint
+8. Long Session
+9. Daily Practice
+10. Image Collector
+11. Morning Session
+12. Undivided Attention
+13. Quiet Session
+14. Staying With It
+15. Spiral Focus
+16. Counting Practice
+17. Bubble Collector
+18. Careful Typing
+19. Quick Response
+20. Try Again
+21. Clear Minute
+22. Corner Hit
+23. Hello Again
+24. Committed Session
+25. Fresh Start
+26. Full Focus
+27. All Together
+
+Approved replacements for four removed named-preset conditions: finish Gentle
+between 06:00 and 09:00 local time; finish Daily without switching apps; finish
+Gentle for at least 30 minutes; finish Deep with Strict Lock. All other original
+conditions remain, including five consecutive correct bubble-count answers.

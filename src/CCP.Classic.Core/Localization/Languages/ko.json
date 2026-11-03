@@ -157,5 +157,7 @@
   "AudioUnavailable": "이 PC에서는 오디오를 사용할 수 없습니다.",
   "StarterPackReady": "스타터 팩이 준비되었습니다. 모든 콘텐츠는 이 PC에서 재생됩니다.",
   "EffectsUnavailable": "이 화면에서는 데스크톱 효과를 사용할 수 없습니다.",
+  "LibraryNextSession": "선택한 파일은 다음 세션부터 적용됩니다.",
+  "LibraryLimited": "일부 파일이 제외되었습니다. 더 작은 폴더를 선택하세요.",
   "ByCredit": "By CodeBambi"
 }

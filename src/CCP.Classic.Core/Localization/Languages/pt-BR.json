@@ -157,5 +157,7 @@
   "AudioUnavailable": "O áudio está indisponível neste PC.",
   "StarterPackReady": "Pacote inicial disponível. Tudo é reproduzido deste PC.",
   "EffectsUnavailable": "Os efeitos de área de trabalho estão indisponíveis nesta tela.",
+  "LibraryNextSession": "Os arquivos selecionados serão usados na próxima sessão.",
+  "LibraryLimited": "Alguns arquivos foram omitidos. Escolha pastas menores.",
   "ByCredit": "By CodeBambi"
 }

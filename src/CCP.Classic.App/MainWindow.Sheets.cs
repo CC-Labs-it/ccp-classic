@@ -25,9 +25,7 @@ public sealed partial class MainWindow
         {
             case "Settings": FillSettings(content); break;
             case "Library":
-                foreach (var kind in new[] { "Images", "Videos", "Audio" })
-                    content.Children.Add(Row(kind, PendingButton("Change"), "NoFolder"));
-                content.Children.Add(Note("StarterPackReady"));
+                FillLibrary(content);
                 break;
             case "Companion":
                 foreach (var setting in new[] { "Avatar", "Barks", "TriggerPhrases", "KeywordTriggers" })

@@ -75,7 +75,7 @@ public sealed partial class MainWindow : Window
             if (SettingsRecovered) SetStatus("SettingsRecovered");
             timer.Start();
         };
-        Closed += (_, _) => { timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); };
+        Closed += (_, _) => { libraryScan?.Cancel(); libraryScan?.Dispose(); timer.Stop(); effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); };
     }
 
     private void BuildShell()

@@ -157,5 +157,7 @@
   "AudioUnavailable": "此电脑无法使用音频。",
   "StarterPackReady": "入门素材包已就绪。所有内容均从此电脑播放。",
   "EffectsUnavailable": "此显示器无法使用桌面效果。",
+  "LibraryNextSession": "所选文件将在下一次会话中使用。",
+  "LibraryLimited": "部分文件已省略。请选择较小的文件夹。",
   "ByCredit": "By CodeBambi"
 }

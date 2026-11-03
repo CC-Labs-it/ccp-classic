@@ -24,6 +24,7 @@ public sealed class ClassicSettings
     public int RunMinutes { get; set; }
     public string PanicKey { get; set; } = "Escape";
     public string Preset { get; set; } = "Daily";
+    public LibrarySettings Library { get; set; } = new();
     public Dictionary<string, EffectSettings> Effects { get; set; } = [];
 
     public ClassicSettings() => Normalize();
@@ -33,6 +34,8 @@ public sealed class ClassicSettings
         Language = string.IsNullOrWhiteSpace(Language) ? "en" : Language;
         if (!new[] { 0, 15, 30, 60 }.Contains(RunMinutes)) RunMinutes = 0;
         if (string.IsNullOrWhiteSpace(PanicKey)) PanicKey = "Escape";
+        Library ??= new();
+        Library.Normalize();
         Effects ??= [];
         foreach (var definition in EffectCatalog.All)
         {
