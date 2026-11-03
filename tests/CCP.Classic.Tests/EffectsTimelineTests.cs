@@ -6,6 +6,24 @@ namespace CCP.Classic.Tests;
 public sealed class EffectsTimelineTests
 {
     [Fact]
+    public void UpdatingTheImageCatalogPreservesTextAndRemovesInvalidFlashReferences()
+    {
+        var settings = new ClassicSettings { GentleVisuals = true };
+        var timeline = new EffectsTimeline(settings, 1, 5);
+        timeline.Start(); timeline.Step(0); timeline.Step(1);
+        var before = timeline.Step(1.8);
+        timeline.SetImageCount(3);
+        var after = timeline.Step(1.9);
+        Assert.Equal(before.Phrase, after.Phrase);
+        Assert.False(after.Whisper);
+        Assert.True(after.TextOpacity > 0);
+        Assert.NotEmpty(timeline.Step(2).Flashes);
+        timeline.SetImageCount(0);
+        Assert.Empty(timeline.Step(2.1).Flashes);
+        Assert.Equal(after.Phrase, timeline.Step(2.2).Phrase);
+    }
+
+    [Fact]
     public void StarterEffectsAppearWithinThirtySecondsAndStopLeavesNothing()
     {
         var timeline = new EffectsTimeline(new(), 1, 5);

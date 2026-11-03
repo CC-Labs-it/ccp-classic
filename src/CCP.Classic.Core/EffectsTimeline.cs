@@ -28,6 +28,12 @@ public sealed class EffectsTimeline(ClassicSettings settings, int imageCount, in
 
     public void Stop() { IsRunning = false; flashes.Clear(); textCue = null; pink = spiral = textAlpha = 0; }
 
+    public void SetImageCount(int count)
+    {
+        imageCount = Math.Max(0, count);
+        flashes.RemoveAll(flash => flash.Image >= imageCount);
+    }
+
     public EffectsSnapshot Step(double seconds)
     {
         if (!IsRunning) return new([], -1, 0, 0, 0, phase, 0, false);
