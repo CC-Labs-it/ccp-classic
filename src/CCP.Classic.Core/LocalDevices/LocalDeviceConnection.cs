@@ -127,7 +127,7 @@ public sealed partial class LocalDeviceConnection(Func<ILocalDeviceTransport>? t
     public async Task StopAsync(CancellationToken token = default)
     {
         ILocalDeviceTransport? current; LocalDeviceProvider selected;
-        lock (gate) { outputEpoch++; current = transport; selected = provider; inputPauses++; inputCancellation?.Cancel(); }
+        lock (gate) { outputEpoch++; current = transport; selected = provider; inputPauses++; inputDirty = true; inputCancellation?.Cancel(); }
         try
         {
             if (current is null) return;

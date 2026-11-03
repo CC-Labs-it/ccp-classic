@@ -109,6 +109,28 @@ public sealed class IntifaceButtonTests
         var old = new Wire { Version = 3 }; await using var legacy = new LocalDeviceController(() => new(() => old));
         Assert.False(await legacy.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken)); Assert.Empty(old.Commands);
     }
+
+    [Fact]
+    public async Task AnOutputStopResumesASubscriptionItCanceledWithoutAnotherDeviceList()
+    {
+        var wire = new Wire { HoldDeviceZeroCommand = "Subscribe", CancelHeldCommand = true, BlockStop = true };
+        await using var connection = new LocalDeviceConnection(() => wire);
+        var presses = new ConcurrentQueue<LocalButtonPress>(); connection.ButtonPressed += presses.Enqueue;
+        try
+        {
+            Assert.True(await connection.ConnectAsync(LocalDeviceProvider.Intiface, 12345, TestContext.Current.CancellationToken));
+            await wire.SubscribeEntered.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+            var stopping = connection.StopAsync(TestContext.Current.CancellationToken);
+            await wire.StopEntered.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+            await wire.SubscribeCanceled.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+            Assert.False(stopping.IsCompleted);
+            Assert.Equal(1, wire.Commands.Count(command => command.Device == 0 && command.Command == "Subscribe"));
+            wire.ReleaseStop.TrySetResult(); await stopping;
+            await Until(() => wire.Commands.Count(command => command.Device == 0 && command.Command == "Subscribe") == 2);
+            wire.Button(0, 4, 1); Assert.True(connection.IsCurrentInput(Assert.Single(presses)));
+        }
+        finally { wire.ReleaseSubscribe.TrySetResult(); wire.ReleaseStop.TrySetResult(); }
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -149,9 +171,11 @@ public sealed class IntifaceButtonTests
         public readonly TaskCompletionSource SubscribeEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public readonly TaskCompletionSource SubscribeCanceled = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public readonly TaskCompletionSource ReleaseSubscribe = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public readonly TaskCompletionSource StopEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public readonly TaskCompletionSource ReleaseStop = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Present = true, BlockSubscribe;
         public string? HoldDeviceZeroCommand;
-        public bool RejectHeldCommand;
+        public bool RejectHeldCommand, CancelHeldCommand, BlockStop;
         private int heldDeviceZeroCommand;
         public int Version = 4;
         public event Action<string>? MessageReceived;
@@ -181,7 +205,11 @@ public sealed class IntifaceButtonTests
             var id = body.GetProperty("Id").GetInt32();
             if (command.Name == "RequestServerInfo") return JsonSerializer.Serialize(new[] { new { ServerInfo = new { Id = id, ProtocolVersionMajor = Version } } });
             if (command.Name == "RequestDeviceList") return Devices(id);
-            if (command.Name == "StopCmd") Stops.Enqueue(body.Clone());
+            if (command.Name == "StopCmd")
+            {
+                Stops.Enqueue(body.Clone());
+                if (BlockStop) { StopEntered.TrySetResult(); await ReleaseStop.Task.WaitAsync(token); }
+            }
             if (command.Name == "InputCmd")
             {
                 Assert.Equal("Button", body.GetProperty("Type").GetString()); var action = body.GetProperty("Command").GetString()!;
@@ -189,8 +217,10 @@ public sealed class IntifaceButtonTests
                 if (action == HoldDeviceZeroCommand && body.GetProperty("DeviceIndex").GetInt32() == 0
                     && Interlocked.Exchange(ref heldDeviceZeroCommand, 1) == 0)
                 {
-                    // Keep the old reply pending even if its timeout fires, to exercise late completion deterministically.
-                    SubscribeEntered.TrySetResult(); await ReleaseSubscribe.Task;
+                    SubscribeEntered.TrySetResult();
+                    // Some cases retain the old reply through cancellation to exercise stale completion deterministically.
+                    try { if (CancelHeldCommand) await ReleaseSubscribe.Task.WaitAsync(token); else await ReleaseSubscribe.Task; }
+                    catch (OperationCanceledException) { SubscribeCanceled.TrySetResult(); throw; }
                     if (RejectHeldCommand) return JsonSerializer.Serialize(new[] { new { Error = new { Id = id } } });
                 }
                 if (BlockSubscribe && action == "Subscribe")
