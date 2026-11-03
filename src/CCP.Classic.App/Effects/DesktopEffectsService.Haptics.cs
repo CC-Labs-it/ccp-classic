@@ -57,7 +57,7 @@ public sealed partial class DesktopEffectsService
             && settings.Effects["audio"].Values["master"] > 0;
         if (!audioEnabled) { hapticDsp.Clear(); audioSyncUnavailable = false; AudioLevelChanged?.Invoke(0); AudioBandsChanged?.Invoke(default); return; }
         var sources = audio.GetAudioSamples().Concat(wipeAudio.GetAudioSamples()).Concat(barkAudio.GetAudioSamples())
-            .Concat(keywordAudio.GetAudioSamples()).Concat(flashAudio.GetAudioSamples()).Concat(drainAudio.GetAudioSamples()).Concat(cueAudio.GetAudioSamples()).Concat(videoSamples)
+            .Concat(flashAudio.GetAudioSamples()).Concat(drainAudio.GetAudioSamples()).Concat(cueAudio.GetAudioSamples()).Concat(videoSamples)
             .Concat(layeredAudio.GetAudioSamples());
         var level = hapticDsp.Sample(sources, hapticEnvelopes.Get, clock, settings.Devices.AudioSyncDsp, out audioSyncUnavailable);
         AudioLevelChanged?.Invoke(level);

@@ -24,7 +24,6 @@ public sealed class MenuHelpCoverageTests
         var keys = new HashSet<string>(StringComparer.Ordinal);
         var missing = new List<string>();
         var settings = new ClassicSettings { ReducedMotion = true, GentleVisuals = true };
-        settings.Keywords.Triggers.Add(new() { Keyword = "focus", Actions = [new()] });
         var window = new MainWindow(settings, windows: true, desktopEffects: false,
             presetStore: new PresetStore(Path.Combine(folder, "presets")));
         try

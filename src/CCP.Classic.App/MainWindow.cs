@@ -68,7 +68,6 @@ public sealed partial class MainWindow : Window
         BuildShell();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel, handledEventsToo: true);
         Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         Session.Changed += UpdateSession;
         Session.StopRequested += () => { statusKey = "Stopped"; UpdateSession(); };
@@ -88,14 +87,6 @@ public sealed partial class MainWindow : Window
                 effects.StatusChanged += SetStatus;
                 effects.LayeredAudio.StateChanged += LayeredAudioStateChanged;
                 effects.DeviceEvent += EmitToys;
-                effects.KeywordXp += amount => Progress.AddXp(amount);
-                effects.KeywordHaptic += level =>
-                {
-                    if (!Session.IsRunning || toysDisposed) return;
-                    haptics.GlobalIntensity = Settings.Devices.GlobalIntensity;
-                    haptics.Emit(CCP.Classic.Core.LocalDevices.LocalDeviceEvent.Keyword, level,
-                        TimeSpan.FromMilliseconds(400), Settings.Devices.Pattern(CCP.Classic.Core.LocalDevices.LocalDeviceEvent.Keyword));
-                };
                 effects.AudioBandsChanged += ToysAudioBands;
                 effects.ScriptLevelChanged += ToysScriptLevel;
                 effects.LuminanceLevelChanged += ToysLuminanceLevel;
@@ -333,18 +324,12 @@ public sealed partial class MainWindow : Window
         VisualPolish.ApplyWindow(window, Settings);
         window.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
-        window.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
     }
 
     private void HandleGlobalKey(string key, bool down)
     {
         if (input.GlobalChanged(key, down)) { Panicked(); SetStatus("PanicStopped"); CloseSheet(); }
-    }
-
-    private void OnTextInput(object? sender, TextInputEventArgs args)
-    {
-        if (effects?.GlobalTextAvailable != true && args.Text is { } characters) effects?.FeedText(characters);
     }
 
     private void UpdateSession()

@@ -6,7 +6,7 @@ namespace CCP.Classic.Tests;
 public sealed class CompanionTimelineTests
 {
     private static ClassicSettings Settings() => new()
-    { CompanionEnabled = true, BarksEnabled = true, KeywordTriggersEnabled = true, BarkIntervalSeconds = 60 };
+    { CompanionEnabled = true, BarksEnabled = true, BarkIntervalSeconds = 60 };
 
     [Fact]
     public void TimedBarksUseExactlyTheApprovedWordsAndTheirExistingRecordingIndices()
@@ -51,60 +51,23 @@ public sealed class CompanionTimelineTests
     }
 
     [Fact]
-    public void KeywordMatchingSpansChunksButWaitsForAFullWordBoundary()
-    {
-        var settings = Settings(); settings.CompanionEnabled = false;
-        var timeline = new CompanionTimeline(settings); timeline.Start();
-        timeline.FeedText("re"); timeline.FeedText("LaX"); Assert.Empty(timeline.Step(0).Triggers);
-        timeline.FeedText(",FOCUS\tDeEpEr.");
-        var actions = timeline.Step(0).Triggers;
-        Assert.Equal(new[] { CompanionEffect.Flash, CompanionEffect.Whisper, CompanionEffect.SpiralPulse }, actions.Select(cue => cue.Effect));
-        Assert.All(actions, cue => Assert.Equal(CompanionTriggerSource.Keyword, cue.Source));
-        Assert.Empty(timeline.Step(0).Triggers);
-    }
-
-    [Theory]
-    [InlineData("unrelax ")]
-    [InlineData("focus123 ")]
-    [InlineData("deeper_relax ")]
-    [InlineData("relaxé ")]
-    [InlineData("Focus\u0301 ")]
-    public void EmbeddedWordsAreNeverTriggers(string text)
-    {
-        var timeline = new CompanionTimeline(Settings()); timeline.Start(); timeline.FeedText(text);
-        Assert.Empty(timeline.Step(0).Triggers);
-    }
-
-    [Fact]
-    public void LongInputAndRepeatedKeywordsKeepTheOutputBounded()
-    {
-        var timeline = new CompanionTimeline(Settings()); timeline.Start();
-        timeline.FeedText(new string('x', 100000)); timeline.FeedText("relax ");
-        Assert.Empty(timeline.Step(0).Triggers);
-        timeline.FeedText(string.Concat(Enumerable.Repeat(" relax ", 1000)));
-        Assert.Equal(16, timeline.Step(0).Triggers.Count);
-        Assert.Empty(timeline.Step(0).Triggers);
-        timeline.FeedText("focus "); Assert.Equal(CompanionEffect.Whisper, Assert.Single(timeline.Step(0).Triggers).Effect);
-    }
-
-    [Fact]
-    public void KeywordDisableClearsBothPartialWordsAndPendingActions()
-    {
-        var settings = Settings(); var timeline = new CompanionTimeline(settings); timeline.Start();
-        timeline.FeedText("focus relax"); settings.KeywordTriggersEnabled = false;
-        Assert.Empty(timeline.Step(0).Triggers);
-        settings.KeywordTriggersEnabled = true; timeline.FeedText(" "); Assert.Empty(timeline.Step(0).Triggers);
-        timeline.FeedText("focus\b "); Assert.Empty(timeline.Step(0).Triggers);
-        timeline.FeedText("relax "); Assert.Single(timeline.Step(0).Triggers);
-    }
-
-    [Fact]
-    public void DisablingPhraseTriggersCancelsOnlyTheirPendingActions()
+    public void RepeatedPhraseTriggersKeepTheOutputBounded()
     {
         var timeline = new CompanionTimeline(Settings()) { TriggerPhrasesEnabled = true }; timeline.Start();
-        timeline.TriggerPhrase("Relax"); timeline.FeedText("focus "); timeline.TriggerPhrasesEnabled = false;
-        Assert.False(timeline.TriggerPhrase("Deeper"));
+        for (var count = 0; count < 1000; count++) timeline.TriggerPhrase("relax");
+        Assert.Equal(16, timeline.Step(0).Triggers.Count);
+        Assert.Empty(timeline.Step(0).Triggers);
+        Assert.True(timeline.TriggerPhrase("focus"));
         Assert.Equal(CompanionEffect.Whisper, Assert.Single(timeline.Step(0).Triggers).Effect);
+    }
+
+    [Fact]
+    public void DisablingPhraseTriggersCancelsTheirPendingActions()
+    {
+        var timeline = new CompanionTimeline(Settings()) { TriggerPhrasesEnabled = true }; timeline.Start();
+        timeline.TriggerPhrase("Relax"); timeline.TriggerPhrasesEnabled = false;
+        Assert.False(timeline.TriggerPhrase("Deeper"));
+        Assert.Empty(timeline.Step(0).Triggers);
     }
 
     [Fact]
@@ -121,14 +84,14 @@ public sealed class CompanionTimelineTests
     }
 
     [Fact]
-    public void StopClearsTheBarkSuffixAndActionsAndCannotProduceAnythingUntilRestarted()
+    public void StopClearsTheBarkAndActionsAndCannotProduceAnythingUntilRestarted()
     {
         var timeline = new CompanionTimeline(Settings()) { TriggerPhrasesEnabled = true }; timeline.Start();
-        var old = timeline.Step(60).Bark!; timeline.FeedText("focus relax"); timeline.TriggerPhrase("Deeper");
+        var old = timeline.Step(60).Bark!; timeline.TriggerPhrase("Deeper");
         timeline.Stop(); Assert.False(timeline.IsRunning);
         Assert.Same(CompanionFrame.Empty, timeline.Step(10000));
-        timeline.FeedText("focus "); Assert.False(timeline.TriggerPhrase("Relax"));
-        timeline.Start(); timeline.FeedText(" "); Assert.Empty(timeline.Step(0).Triggers);
+        Assert.False(timeline.TriggerPhrase("Relax"));
+        timeline.Start(); Assert.Empty(timeline.Step(0).Triggers);
         Assert.NotEqual(old.Id, timeline.Step(60).Bark!.Id);
     }
 
@@ -166,7 +129,7 @@ public sealed class CompanionTimelineTests
             Assert.Empty(timeline.Step(5006 + step * 6 + 5).Triggers);
         }
         Assert.Equal(CompanionTimeline.Phrases.Select(phrase => phrase.Text), words);
-        Assert.False(timeline.TriggerPhrase("Relax")); timeline.FeedText("relax focus deeper ");
+        Assert.False(timeline.TriggerPhrase("Relax"));
         Assert.Empty(timeline.Step(5040).Triggers);
         // Barks off ends the word and the timer; turning them back on waits a new interval.
         settings.BarksEnabled = false; timeline.Step(5041); Assert.Null(timeline.Step(5043).Bark); Assert.Null(timeline.Step(5060).Bark);

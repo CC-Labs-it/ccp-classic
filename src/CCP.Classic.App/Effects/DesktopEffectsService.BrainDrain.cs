@@ -129,7 +129,7 @@ public sealed partial class DesktopEffectsService
         if (interval != drainInterval) { drainInterval = interval; drainNextRoll = elapsed + interval; }
         var enabled = settings.Effects["drain"].Enabled && settings.Effects["audio"].Enabled && settings.Effects["audio"].Values["master"] > 0;
         var gain = enabled ? settings.Effects["audio"].Values["master"] / 100 : 0;
-        if (settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking)) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
+        if (settings.Audio.DuckingEnabled && (videos.IsPlaying || FlashDucking)) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
         drainGate.Update(enabled, gain);
         if (!enabled) { drainTicket = null; drainAudioNotified = false; return; }
         if (drainTicket is { } ticket)

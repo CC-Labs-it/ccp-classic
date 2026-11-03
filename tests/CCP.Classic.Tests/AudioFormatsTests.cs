@@ -23,7 +23,6 @@ public sealed class AudioFormatsTests
         {
             var path = fixture.Write("clip" + extension.ToUpperInvariant(), container.Header);
             Assert.True(LocalAudioFormats.SupportsPath(path)); Assert.Equal(path, SubliminalOptions.LocalAudio(path));
-            var action = new KeywordAction { AudioPath = path }; action.Normalize(); Assert.Equal(path, action.AudioPath);
             var wipe = new MindWipeOptions { AudioPath = path }; wipe.Normalize(); Assert.Equal(path, wipe.AudioPath);
             using var input = new LocalAudioInput(path); Assert.Equal(container.Demux, input.Demux); Assert.Equal(0, input.Stream.Position);
         }

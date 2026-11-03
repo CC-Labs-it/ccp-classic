@@ -21,7 +21,7 @@ public static class TutorialCatalog
         new("audio", "Audio", "HelpAudioBody", "Audio"),
         new("wall", "Wallpaper", "HelpWallBody", null),
         new("Library", "Library", "HelpLibraryBody", "FlashImages"),
-        new("Companion", "Companion", "HelpCompanionBody", "KeywordTriggers"),
+        new("Companion", "Companion", "HelpCompanionBody", null),
         new("Toys", "Toys", "HelpToysBody", null),
         new("Presets", "Presets", "HelpPresetsBody", "Presets"),
         new("Progress", "Progress", "HelpProgressBody", "BubblePop"),

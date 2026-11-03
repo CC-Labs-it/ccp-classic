@@ -21,7 +21,6 @@ public sealed partial class MainWindow
         var more = new StackPanel { Spacing = 10 };
         content.Children.Add(new Controls.CompanionPlacementEditor(Settings.CompanionPlacement, text, () => effects?.RefreshSettings()));
         content.Children.Add(Row("TriggerPhrases", Toggle(Settings.TriggerPhrasesEnabled, text["TriggerPhrases"], value => Settings.TriggerPhrasesEnabled = value)));
-        content.Children.Add(Row("KeywordTriggers", Toggle(Settings.KeywordTriggersEnabled, text["KeywordTriggers"], value => Settings.KeywordTriggersEnabled = value)));
         var phrases = new WrapPanel();
         foreach (var phrase in CompanionTimeline.Phrases.Where(phrase => phrase.Effect is not null))
         {
@@ -30,10 +29,6 @@ public sealed partial class MainWindow
             phrases.Children.Add(Controls.OptionHelp.Wrap(button, "TriggerPhrases", text));
         }
         more.Children.Add(phrases);
-        more.Children.Add(new Controls.KeywordEditor(Settings.Keywords, text, () => effects?.RefreshSettings(),
-            () => Settings.Subliminal.Phrases.Select(phrase => new SubliminalPhrase(phrase.Text,
-                Media.RecordedPhraseResolver.Resolve(phrase, new Media.StarterPack().Phrases, []).AudioPath)),
-            trigger => effects?.TestKeyword(trigger) == true));
         var rows = content.Children.ToArray(); content.Children.Clear(); content.Spacing = 0;
         content.Children.Add(Controls.OptionLayout.Group(rows.Take(3), text["OptionsGeneral"]));
         content.Children.Add(rows[3]);

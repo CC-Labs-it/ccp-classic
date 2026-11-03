@@ -1,9 +1,7 @@
-using System.Globalization;
-
 namespace CCP.Classic.Core;
 
 public enum CompanionEffect { Flash, Whisper, SpiralPulse }
-public enum CompanionTriggerSource { TimedPhrase, ExplicitPhrase, Keyword }
+public enum CompanionTriggerSource { TimedPhrase, ExplicitPhrase }
 // Seconds: the starter recording's length.
 public sealed record CompanionPhrase(string Text, int AudioIndex, CompanionEffect? Effect, double Seconds = 2.5);
 // Pick is set for a library line (docs/BARKS.md); AudioIndex then is -1. Seconds is the clip length.
@@ -14,7 +12,7 @@ public sealed record CompanionFrame(CompanionBarkCue? Bark, IReadOnlyList<Compan
     public static CompanionFrame Empty { get; } = new(null, []);
 }
 
-// Only the approved words and recordings are represented here. No typed history is retained.
+// Only the approved words and recordings are represented here.
 public sealed class CompanionTimeline(ClassicSettings settings)
 {
     public static IReadOnlyList<CompanionPhrase> Phrases { get; } = Array.AsReadOnly(new CompanionPhrase[]
@@ -27,12 +25,11 @@ public sealed class CompanionTimeline(ClassicSettings settings)
     public static bool IsApproved(string text) =>
         Phrases.Any(phrase => phrase.Text == text) || BarkLibrary.Default.IsApproved(text);
     private readonly List<CompanionTriggerCue> pending = [];
-    private readonly char[] suffix = new char[6];
     private Bark? bark;
     private double lastTime, nextPhrase, interval;
-    private int phrase, suffixLength;
+    private int phrase;
     private long nextId;
-    private bool oversizedWord, timerActive, phrasesEnabled, poked;
+    private bool timerActive, phrasesEnabled, poked;
     private double lastPoke = double.NegativeInfinity;
     // Spam clicks never stack words or recordings.
     public const double PokeCooldownSeconds = 1.5;
@@ -42,7 +39,7 @@ public sealed class CompanionTimeline(ClassicSettings settings)
     // A word or line is showing and has not started its exit.
     public bool IsSpeaking => bark is { Ending: false };
     public bool IsRunning { get; private set; }
-    // Idle barks speak words only: no effect triggers and no keyword input outside a session.
+    // Idle barks speak words only: no effect triggers outside a session.
     public bool IsIdle { get; private set; }
     public bool TriggerPhrasesEnabled
     {
@@ -50,7 +47,7 @@ public sealed class CompanionTimeline(ClassicSettings settings)
         set
         {
             phrasesEnabled = value;
-            if (!value) pending.RemoveAll(cue => cue.Source != CompanionTriggerSource.Keyword);
+            if (!value) pending.Clear();
         }
     }
 
@@ -69,7 +66,7 @@ public sealed class CompanionTimeline(ClassicSettings settings)
     public void Stop()
     {
         IsRunning = IsIdle = poked = false; bark = null; lastPoke = double.NegativeInfinity;
-        pending.Clear(); ClearKeywordInput();
+        pending.Clear();
     }
 
     // A click on the avatar: the next approved word at once, never an effect trigger.
@@ -87,43 +84,16 @@ public sealed class CompanionTimeline(ClassicSettings settings)
         var at = Math.Max(lastTime, now);
         bark = Line(pick, at); nextPhrase = at + interval; return true;
     }
-    public void ClearKeywordInput()
-    {
-        Array.Clear(suffix); suffixLength = 0; oversizedWord = false;
-        pending.RemoveAll(cue => cue.Source == CompanionTriggerSource.Keyword);
-    }
-
     public bool TriggerPhrase(string text)
     {
         if (!IsRunning || IsIdle || !phrasesEnabled) return false;
         return QueuePhrase(text, CompanionTriggerSource.ExplicitPhrase);
     }
 
-    public void FeedText(string text)
-    {
-        if (!IsRunning || IsIdle || !settings.KeywordTriggersEnabled) { ClearKeywordInput(); return; }
-        foreach (var character in text)
-        {
-            if (character is '\b' or '\u001b') { Array.Clear(suffix); suffixLength = 0; oversizedWord = false; continue; }
-            if (IsWord(character))
-            {
-                if (suffixLength < suffix.Length) suffix[suffixLength++] = character;
-                else oversizedWord = true;
-            }
-            else
-            {
-                if (!oversizedWord && suffixLength > 0)
-                    QueuePhrase(new string(suffix, 0, suffixLength), CompanionTriggerSource.Keyword);
-                Array.Clear(suffix); suffixLength = 0; oversizedWord = false;
-            }
-        }
-    }
-
     public CompanionFrame Step(double seconds)
     {
         if (!IsRunning) return CompanionFrame.Empty;
         var now = double.IsFinite(seconds) ? Math.Max(lastTime, seconds) : lastTime; lastTime = now;
-        if (!settings.KeywordTriggersEnabled) ClearKeywordInput();
         if (bark is { } expired && now >= expired.EndsAt) bark = null;
         if (poked)
         {
@@ -177,9 +147,6 @@ public sealed class CompanionTimeline(ClassicSettings settings)
     private bool BarksVisible => settings.CompanionEnabled && settings.BarksEnabled;
     private bool TimerEnabled => BarksVisible || phrasesEnabled && !IsIdle;
     private double BarkInterval => settings.BarkIntervalSeconds > 0 ? Math.Clamp(settings.BarkIntervalSeconds, 1, 3600) : 60;
-    private static bool IsWord(char character) => char.IsLetterOrDigit(character) || character == '_'
-        || char.GetUnicodeCategory(character) is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark
-            or UnicodeCategory.ConnectorPunctuation;
     private sealed class Bark(long id, string text, int audioIndex, BarkPick? pick, double seconds, double expires, double initialFade)
     {
         public readonly long Id = id;

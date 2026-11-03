@@ -17,7 +17,6 @@ public sealed class ClassicSettings
     public bool StartWithSystem { get; set; }
     public bool StartHidden { get; set; }
     public bool AutoRun { get; set; }
-    public bool KeywordTriggersEnabled { get; set; }
     public bool CompanionEnabled { get; set; } = true;
     public bool BarksEnabled { get; set; } = true;
     public bool TriggerPhrasesEnabled { get; set; }
@@ -33,7 +32,6 @@ public sealed class ClassicSettings
     public SubliminalOptions Subliminal { get; set; } = new();
     public PinkFilterOptions PinkFilter { get; set; } = new();
     public MindWipeOptions MindWipe { get; set; } = new();
-    public KeywordOptions Keywords { get; set; } = new();
     public BubbleOptions Bubbles { get; set; } = new();
     public Flash.FlashOptions Flash { get; set; } = new();
     public VideoOptions Video { get; set; } = new();
@@ -57,7 +55,7 @@ public sealed class ClassicSettings
         GentleVisuals = defaults.GentleVisuals; ReducedMotion = defaults.ReducedMotion;
         FillAllMonitors = defaults.FillAllMonitors; PerformanceMode = defaults.PerformanceMode;
         StartWithSystem = defaults.StartWithSystem; StartHidden = defaults.StartHidden; AutoRun = defaults.AutoRun;
-        KeywordTriggersEnabled = defaults.KeywordTriggersEnabled; CompanionEnabled = defaults.CompanionEnabled;
+        CompanionEnabled = defaults.CompanionEnabled;
         BarksEnabled = defaults.BarksEnabled; TriggerPhrasesEnabled = defaults.TriggerPhrasesEnabled;
         BarkIntervalSeconds = defaults.BarkIntervalSeconds; RunMinutes = defaults.RunMinutes;
         PanicKey = defaults.PanicKey; Preset = defaults.Preset; Effects = defaults.Effects;
@@ -65,7 +63,7 @@ public sealed class ClassicSettings
         Library = defaults.Library; TimedChanges = defaults.TimedChanges; Devices = defaults.Devices;
         LockCard = defaults.LockCard; BrainDrain = defaults.BrainDrain;
         BouncingText = defaults.BouncingText; Subliminal = defaults.Subliminal;
-        PinkFilter = defaults.PinkFilter; MindWipe = defaults.MindWipe; Keywords = defaults.Keywords;
+        PinkFilter = defaults.PinkFilter; MindWipe = defaults.MindWipe;
         Bubbles = defaults.Bubbles;
         Video = defaults.Video; Spiral = defaults.Spiral; Audio = defaults.Audio; LayeredAudio = defaults.LayeredAudio;
         CompanionPlacement = defaults.CompanionPlacement;
@@ -88,7 +86,6 @@ public sealed class ClassicSettings
         Subliminal ??= new(); Subliminal.Normalize();
         PinkFilter ??= new(); PinkFilter.Normalize();
         MindWipe ??= new(); MindWipe.Normalize();
-        Keywords ??= new(); Keywords.Normalize();
         Bubbles ??= new(); Bubbles.Normalize();
         Video ??= new(); Video.Normalize();
         Spiral ??= new(); Spiral.Normalize();

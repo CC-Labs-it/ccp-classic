@@ -17,7 +17,7 @@ internal sealed partial class LoopFrame
             "STRICT: NO SKIP" or "STRICT" => "Strict", "WATCHING" => "AttentionCheck",
             "SPIRAL OPACITY" or "PINK OPACITY" or "OPACITY" => "Opacity",
             "FLASH SIZE" => "Size", "WIPE VOLUME" => "Volume", "BLUR" => "Intensity",
-            "AUDIO" => "Audio", "CCP" => "MandatoryVideos", "DUCK 70%" => "Duck", "LISTENING" => "KeywordTriggers",
+            "AUDIO" => "Audio", "CCP" => "MandatoryVideos", "DUCK 70%" => "Duck",
             "CALM" => "Gentle", "EVENING" => "Daily", "MINE" => "MyPreset",
             "SAVED" => "Saved", "PRESETS" => "Presets", "HYDRA X2" => "Hydra",
             _ => value.StartsWith("TRIGGER: ", StringComparison.Ordinal) ? "TriggerPhrases" : null

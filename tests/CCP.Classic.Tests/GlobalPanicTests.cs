@@ -104,4 +104,40 @@ public sealed class GlobalPanicTests
         Assert.False(PanicKeyTransitions.IsDown(map, 256));
         Assert.False(PanicKeyTransitions.IsDown([], 9));
     }
+
+    // Keyword triggers are gone: the listener reads only the panic binding and has no text path left.
+    [Fact]
+    public void TheListenerOnlyWatchesThePanicKeyAndKeepsNoTypedText()
+    {
+        var type = typeof(GlobalPanicMonitor);
+        Assert.Empty(type.GetEvents());
+        Assert.DoesNotContain(type.GetProperties(), property => property.Name.Contains("Text", StringComparison.Ordinal));
+        var constructor = Assert.Single(type.GetConstructors());
+        Assert.Equal(new[] { typeof(Func<string>), typeof(Action<string, bool>) },
+            constructor.GetParameters().Select(parameter => parameter.ParameterType));
+        Assert.DoesNotContain(type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic),
+            field => field.FieldType == typeof(string[]) || field.FieldType == typeof(char[]) || field.FieldType == typeof(System.Text.StringBuilder));
+    }
+
+    // The hook passes every key through the transitions; ordinary typing around the panic key must never
+    // swallow, delay or repeat its press.
+    [Fact]
+    public void TypingAroundThePanicKeyStillFiresItOncePerPress()
+    {
+        var events = new List<(string, bool)>();
+        var state = new PanicKeyTransitions((name, down) => events.Add((name, down)));
+        foreach (var letter in "focus relax") state.Up(char.ToUpperInvariant(letter), null);
+        state.Down(27, "Escape"); state.Down(27, "Escape");
+        foreach (var letter in "deeper") state.Up(char.ToUpperInvariant(letter), null);
+        state.Up(27, "Escape"); state.Down(27, "Escape"); state.Up(27, "Escape");
+        Assert.Equal(new[] { ("Escape", true), ("Escape", false), ("Escape", true), ("Escape", false) }, events);
+        var map = new byte[32];
+        void Press(int code) => map[code >> 3] |= (byte)(1 << (code & 7));
+        var x11 = new List<(string, bool)>();
+        var poll = new PanicKeyTransitions((name, down) => x11.Add((name, down)));
+        Press(41); Press(32); poll.ReadMap(map, 9, "Escape");
+        Press(9); poll.ReadMap(map, 9, "Escape"); poll.ReadMap(map, 9, "Escape");
+        Array.Clear(map); Press(41); poll.ReadMap(map, 9, "Escape");
+        Assert.Equal(new[] { ("Escape", true), ("Escape", false) }, x11);
+    }
 }

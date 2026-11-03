@@ -39,7 +39,7 @@ public sealed class PresetTests
         {
             Language = "it", PanicKey = "F8", StartWithSystem = true, StartHidden = true,
             AutoRun = true, FillAllMonitors = false, PerformanceMode = true,
-            KeywordTriggersEnabled = true, CompanionEnabled = true
+            CompanionEnabled = true
         };
         target.Effects["audio"].Values["output"] = 123;
         PresetStore.Apply(preset, target);
@@ -50,7 +50,7 @@ public sealed class PresetTests
         Assert.Equal("it", target.Language); Assert.Equal("F8", target.PanicKey);
         Assert.True(target.StartWithSystem); Assert.True(target.StartHidden); Assert.True(target.AutoRun);
         Assert.False(target.FillAllMonitors); Assert.True(target.PerformanceMode);
-        Assert.True(target.KeywordTriggersEnabled); Assert.True(target.CompanionEnabled);
+        Assert.True(target.CompanionEnabled);
         target.Effects["flash"].Values["rate"] = 40;
         Assert.Equal(18, preset.Effects["flash"].Values["rate"]);
         Assert.False(preset.Effects["audio"].Values.ContainsKey("output"));
@@ -87,6 +87,24 @@ public sealed class PresetTests
         fixture.Write("unexpected", "{}");
         Assert.Equal("Valid", Assert.Single(fixture.Store.LoadAll(out var recovered)).Name);
         Assert.True(recovered);
+    }
+
+    // Presets saved while keyword triggers existed carry their rules in Customization; they still load.
+    [Fact]
+    public void PresetsWithRemovedKeywordTriggerDataStillLoadAndApply()
+    {
+        using var fixture = new PresetFixture();
+        var preset = PresetStore.Capture("Old", new ClassicSettings { RunMinutes = 30 });
+        var json = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(preset))!;
+        json["Customization"]!["Keywords"] = System.Text.Json.Nodes.JsonNode.Parse("""
+            {"BufferTimeoutMs":3000,"Triggers":[{"Keyword":"relax","Actions":[{"Kind":0,"Visual":0},{"Kind":3,"Xp":10}]}]}
+            """);
+        fixture.Write(preset.Id, json.ToJsonString());
+        var loaded = Assert.Single(fixture.Store.LoadAll(out var recovered)); Assert.False(recovered);
+        Assert.Equal("Old", loaded.Name);
+        var target = new ClassicSettings(); PresetStore.Apply(loaded, target);
+        Assert.Equal(30, target.RunMinutes); Assert.Equal("Old", target.Preset);
+        Assert.DoesNotContain("Keyword", JsonSerializer.Serialize(fixture.Store.Save(loaded)), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

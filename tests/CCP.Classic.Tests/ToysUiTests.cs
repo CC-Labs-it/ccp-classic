@@ -23,7 +23,8 @@ public sealed class ToysUiTests
             run.Window.OpenSheet("Toys");
             Assert.Equal(2, run.Window.SettingsWindow!.GetVisualDescendants().OfType<Button>().Count(button => button.Name?.StartsWith("ToyConnect_", StringComparison.Ordinal) == true));
             Assert.False(run.Find<Expander>("ToyMore").IsExpanded);
-            Assert.Equal(13, run.Window.SettingsWindow!.GetLogicalDescendants().OfType<ComboBox>().Count(choice => choice.Name?.StartsWith("ToyPattern_", StringComparison.Ordinal) == true));
+            // One pattern per toy event except Audio sync and Video (keyword triggers no longer have one).
+            Assert.Equal(12, run.Window.SettingsWindow!.GetLogicalDescendants().OfType<ComboBox>().Count(choice => choice.Name?.StartsWith("ToyPattern_", StringComparison.Ordinal) == true));
             run.ExpandMore();
             run.Find<Slider>("ToyIntensity").Value = 42;
             run.Find<NumericUpDown>("ToyPort_LovenseConnect").Value = 20202;

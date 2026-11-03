@@ -248,7 +248,7 @@ public sealed partial class MainWindow
         LocalDeviceEvent.Flash => "FlashImages", LocalDeviceEvent.Subliminal => "Subliminals", LocalDeviceEvent.BubblePop => "BubblePop",
         LocalDeviceEvent.BouncingText => "BouncingText", LocalDeviceEvent.Video => "MandatoryVideos", LocalDeviceEvent.Attention => "AttentionCheck",
         LocalDeviceEvent.LockCard => "LockCard", LocalDeviceEvent.Achievement => "Achievements", LocalDeviceEvent.LevelUp => "Level",
-        LocalDeviceEvent.Keyword => "KeywordTriggers", LocalDeviceEvent.MindWipe => "MindWipe", LocalDeviceEvent.BrainDrain => "BrainDrain",
+        LocalDeviceEvent.MindWipe => "MindWipe", LocalDeviceEvent.BrainDrain => "BrainDrain",
         LocalDeviceEvent.Manual => "Test", _ => kind.ToString()
     };
     private sealed record ToyPattern(LocalHapticPattern Pattern, string Label)

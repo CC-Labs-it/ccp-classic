@@ -150,7 +150,7 @@ public sealed partial class DesktopEffectsService
     {
         audioEnabled = settings.Effects["audio"].Enabled && settings.Effects["audio"].Values["master"] > 0;
         var gain = audioEnabled ? settings.Effects["audio"].Values["master"] / 100 : 0;
-        if (settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking)) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
+        if (settings.Audio.DuckingEnabled && (videos.IsPlaying || FlashDucking)) gain *= 1 - settings.Effects["audio"].Values["duck"] / 100;
         return gain;
     }
     private void UpdateBarkGate(bool audioEnabled, double gain) =>
@@ -199,6 +199,6 @@ public sealed partial class DesktopEffectsService
 
     private void DisposeInteractiveAudio()
     {
-        wipeAudio.Dispose(); cueAudio.Dispose(); barkAudio.Dispose(); keywordAudio.Dispose();
+        wipeAudio.Dispose(); cueAudio.Dispose(); barkAudio.Dispose();
     }
 }

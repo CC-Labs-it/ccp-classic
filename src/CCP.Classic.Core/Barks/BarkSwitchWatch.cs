@@ -30,7 +30,7 @@ public sealed class BarkSwitchWatch(ClassicSettings settings, Func<bool> panicEn
         {
             ["strict"] = settings.Effects.TryGetValue("video", out var video) && video.Enabled
                 && video.Values.GetValueOrDefault("strict") != 0,
-            ["keywords"] = settings.KeywordTriggersEnabled, ["allmonitors"] = settings.FillAllMonitors,
+            ["allmonitors"] = settings.FillAllMonitors,
             ["startup"] = settings.StartWithSystem, ["autorun"] = settings.AutoRun, ["barks"] = settings.BarksEnabled,
             ["detached"] = settings.CompanionPlacement.Detached, ["panicoff"] = !panic
         };

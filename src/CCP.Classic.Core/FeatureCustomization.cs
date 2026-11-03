@@ -12,7 +12,6 @@ public sealed class FeatureCustomization
     public SubliminalOptions Subliminal { get; set; } = new();
     public PinkFilterOptions PinkFilter { get; set; } = new();
     public MindWipeOptions MindWipe { get; set; } = new();
-    public KeywordOptions Keywords { get; set; } = new();
     public BubbleOptions Bubbles { get; set; } = new();
     public SpiralOptions Spiral { get; set; } = new();
     public VideoOptions Video { get; set; } = new();
@@ -22,7 +21,7 @@ public sealed class FeatureCustomization
     {
         AudioDuckingEnabled = settings.Audio.DuckingEnabled,
         LockCard = settings.LockCard, BouncingText = settings.BouncingText, BrainDrain = settings.BrainDrain,
-        Subliminal = settings.Subliminal, PinkFilter = settings.PinkFilter, MindWipe = settings.MindWipe, Keywords = settings.Keywords,
+        Subliminal = settings.Subliminal, PinkFilter = settings.PinkFilter, MindWipe = settings.MindWipe,
         Bubbles = settings.Bubbles, Flash = settings.Flash, Spiral = settings.Spiral, Video = settings.Video, Wallpaper = settings.Wallpaper
     });
     public static FeatureCustomization Copy(FeatureCustomization source)
@@ -31,7 +30,7 @@ public sealed class FeatureCustomization
         copy.LockCard ??= new(); copy.LockCard.Normalize(); copy.BouncingText ??= new(); copy.BouncingText.Normalize();
         copy.BrainDrain ??= new(); copy.BrainDrain.Normalize(); copy.Subliminal ??= new(); copy.Subliminal.Normalize();
         copy.PinkFilter ??= new(); copy.PinkFilter.Normalize(); copy.MindWipe ??= new(); copy.MindWipe.Normalize();
-        copy.Keywords ??= new(); copy.Keywords.Normalize(); copy.Bubbles ??= new(); copy.Bubbles.Normalize();
+        copy.Bubbles ??= new(); copy.Bubbles.Normalize();
         copy.Spiral ??= new(); copy.Spiral.Normalize();
         copy.Video ??= new(); copy.Video.Normalize();
         copy.Wallpaper ??= new(); copy.Wallpaper.Normalize();
@@ -42,7 +41,7 @@ public sealed class FeatureCustomization
         target.Audio.DuckingEnabled = AudioDuckingEnabled;
         var copy = Copy(this); target.LockCard = copy.LockCard; target.BouncingText = copy.BouncingText;
         target.BrainDrain = copy.BrainDrain; target.Subliminal = copy.Subliminal; target.PinkFilter = copy.PinkFilter;
-        target.MindWipe = copy.MindWipe; target.Keywords = copy.Keywords;
+        target.MindWipe = copy.MindWipe;
         target.Bubbles = copy.Bubbles;
         target.Flash = copy.Flash;
         target.Spiral = copy.Spiral;

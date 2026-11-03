@@ -37,7 +37,7 @@ public sealed class ToyRoutingEditor : OptionEditor, IDisposable
             {
                 LocalDeviceEvent.Flash => "FlashImages", LocalDeviceEvent.Subliminal => "Subliminals", LocalDeviceEvent.Video => "MandatoryVideos",
                 LocalDeviceEvent.Attention => "AttentionCheck", LocalDeviceEvent.Achievement => "Achievements", LocalDeviceEvent.LevelUp => "Level",
-                LocalDeviceEvent.Keyword => "KeywordTriggers", LocalDeviceEvent.Manual => "Test", _ => kind.ToString()
+                LocalDeviceEvent.Manual => "Test", _ => kind.ToString()
             };
             var selected = options.EventTargets.GetValueOrDefault(kind.ToString());
             Children.Add(Row(eventTitle, Roles(selected, value => options.EventTargets[kind.ToString()] = value), "EventRouting"));

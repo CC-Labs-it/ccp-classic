@@ -77,4 +77,39 @@ public sealed class SettingsTests
         }
         finally { Directory.Delete(directory, recursive: true); }
     }
+
+    // Keyword triggers were removed. Files written before then still load, keep every other choice and
+    // lose the keyword fields on the next save.
+    [Fact]
+    public void FilesWithRemovedKeywordTriggerDataLoadAndDropIt()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "settings.json");
+        try
+        {
+            File.WriteAllText(path, """
+                {"SchemaVersion":2,"Language":"it","PanicKey":"F8","KeywordTriggersEnabled":true,"TriggerPhrasesEnabled":true,
+                 "Keywords":{"BufferTimeoutMs":3000,"GlobalCooldownSeconds":10,"SameWordCooldownSeconds":15,
+                   "SessionXpMultiplier":1.5,"IgnoreOwnFocus":true,"AppScope":1,"Apps":["notepad"],"LoopProtection":true,
+                   "LoopProtectionMs":5000,"Triggers":[{"Id":"0123456789abcdef0123456789abcdef","Keyword":"focus","Enabled":true,
+                     "Match":1,"CooldownSeconds":30,"AppScope":0,"Apps":[],"Actions":[{"Kind":0,"Enabled":true,"Visual":9},
+                     {"Kind":1,"AudioPath":"C:/missing.mp3","Gain":0.8,"PlayCount":2,"DelayMs":200,"DuckAudio":true},
+                     {"Kind":2,"Gain":0.5},{"Kind":3,"Xp":10}]}]},
+                 "Devices":{"EventLevels":{"Keyword":0.9,"Flash":0.4},"EventPatterns":{"Keyword":2},
+                   "Routing":{"EventTargets":{"Keyword":1}}},
+                 "Effects":{"flash":{"Enabled":true,"Values":{"rate":18}}}}
+                """);
+            var store = new SettingsStore(path); var loaded = store.Load(out var recovered);
+            Assert.False(recovered); Assert.Equal("it", loaded.Language); Assert.Equal("F8", loaded.PanicKey);
+            Assert.True(loaded.TriggerPhrasesEnabled); Assert.Equal(18, loaded.Effects["flash"].Values["rate"]);
+            Assert.Equal(.4, loaded.Devices.EventLevels["Flash"]);
+            Assert.DoesNotContain("Keyword", loaded.Devices.EventLevels.Keys);
+            Assert.DoesNotContain("Keyword", loaded.Devices.EventPatterns.Keys);
+            Assert.DoesNotContain("Keyword", loaded.Devices.Routing.EventTargets.Keys);
+            store.Save(loaded);
+            Assert.DoesNotContain("Keyword", File.ReadAllText(path), StringComparison.OrdinalIgnoreCase);
+            Assert.True(store.Load(out recovered).TriggerPhrasesEnabled); Assert.False(recovered);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
 }

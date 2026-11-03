@@ -77,7 +77,7 @@ public sealed partial class DesktopEffectsService : IDisposable
             var image = selectedImages is { } library ? library[index] : images[index];
             return image.Size.Width / Math.Max(1, image.Size.Height);
         };
-        panic = new(() => settings.PanicKey, keyChanged, () => settings.KeywordTriggersEnabled && session.IsRunning);
+        panic = new(() => settings.PanicKey, keyChanged);
         InitializeCompanion();
         InitializeWallpaper();
         timer = new(TimeSpan.FromSeconds(1d / 30), DispatcherPriority.Background, (_, _) => Tick());
@@ -199,7 +199,7 @@ public sealed partial class DesktopEffectsService : IDisposable
                 window.View.UpdateFrame(windowFrame);
             }
             whispers.Update(settings, snapshot.Whisper, spoken?.AudioPath,
-                settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking) ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1, snapshot.ManualSubliminal);
+                settings.Audio.DuckingEnabled && (videos.IsPlaying || FlashDucking) ? 1 - settings.Effects["audio"].Values["duck"] / 100 : 1, snapshot.ManualSubliminal);
             TickHaptics(elapsed);
             Report(videos.Status ?? BrainDrainStatus ?? SpiralStatus ?? wallpaper?.StatusKey ?? HapticStatus ?? LayeredAudioStatus ?? (useFallback ? "EffectsInWindow" : null)
                 ?? (companionHost.Window?.LastError is not null ? "CompanionUnavailable" : null) ?? (!panic.IsAvailable ? "GlobalPanicUnavailable"

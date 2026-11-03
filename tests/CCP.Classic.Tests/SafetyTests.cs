@@ -16,16 +16,15 @@ public sealed class SafetyTests
     }
 
     [Fact]
-    public void PanicStopsImmediatelyDisablesKeywordsAndDoesNotRepeat()
+    public void PanicStopsImmediatelyAndDoesNotRepeat()
     {
-        var settings = new ClassicSettings { KeywordTriggersEnabled = true };
+        var settings = new ClassicSettings();
         using var session = new SessionController(settings);
         var stops = 0;
         session.StopRequested += () => stops++;
         session.Start();
         Assert.True(session.KeyDown("Escape"));
         Assert.False(session.IsRunning);
-        Assert.False(settings.KeywordTriggersEnabled);
         session.Start();
         Assert.False(session.KeyDown("Escape"));
         Assert.True(session.IsRunning);

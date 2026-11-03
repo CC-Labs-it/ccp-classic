@@ -62,7 +62,6 @@ public sealed class SessionController(ClassicSettings settings, TimeProvider? cl
     {
         if (IsRunning) { EndedBySchedule = timed; CompletedNormally = timed || finished; }
         IsRunning = false;
-        settings.KeywordTriggersEnabled = false;
         StopRequested?.Invoke();
         Changed?.Invoke();
     }

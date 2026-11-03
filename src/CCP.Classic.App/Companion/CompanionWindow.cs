@@ -224,7 +224,7 @@ internal sealed class CompanionWindow : Window
         director.Line(Math.Max(lastNow, now), lineId, mood, text, seconds);
     // A giggle or other short non-verbal sound: one expressive clip, no mouth movement.
     public void NonVerbal(double now) => director.NonVerbal(Math.Max(lastNow, now));
-    // A keyword or other repetitive trigger: one expressive clip from idle, never talk.
+    // A single trigger word or other repetitive trigger: one expressive clip from idle, never talk.
     public bool TriggerWord(double now) => director.TriggerWord(Math.Max(lastNow, now));
     // A stop or panic: talk and reactions end and the idle rotation returns.
     public void StopReactions(double now) => director.Stop(Math.Max(lastNow, now));

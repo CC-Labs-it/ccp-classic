@@ -15,7 +15,7 @@ public sealed partial class DesktopEffectsService
     }
     private void TickLayeredAudio()
     {
-        var ducked = settings.Audio.DuckingEnabled && (videos.IsPlaying || KeywordDucking || FlashDucking
+        var ducked = settings.Audio.DuckingEnabled && (videos.IsPlaying || FlashDucking
             || audio.GetAudioSamples().Any(sample => sample.IsPlaying && sample.Gain > 0)
             || barkAudio.GetAudioSamples().Any(sample => sample.IsPlaying && sample.Gain > 0)
             || wipeAudio.GetAudioSamples().Any(sample => sample.IsPlaying && sample.Gain > 0)

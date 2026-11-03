@@ -40,7 +40,8 @@ public sealed class TutorialTests
     public Task EveryPublicSceneRendersItsOriginalStagesUsingNativeDrawing() => UiDispatcher.Run(() =>
     {
         var ids = TutorialCatalog.All.Select(topic => topic.SceneId).OfType<string>().Distinct().ToArray();
-        Assert.Equal(13, ids.Length);
+        // Twelve since the keyword triggers scene left with that feature.
+        Assert.Equal(12, ids.Length);
         foreach (var id in ids)
         {
             var scene = Assert.IsAssignableFrom<HelpLoopScene>(HelpLoopScene.Create(id));

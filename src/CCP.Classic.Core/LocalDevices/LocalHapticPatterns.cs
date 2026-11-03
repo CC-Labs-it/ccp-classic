@@ -1,6 +1,6 @@
 namespace CCP.Classic.Core.LocalDevices;
 
-public enum LocalDeviceEvent { Flash, Subliminal, BubblePop, BouncingText, Video, Attention, LockCard, Achievement, LevelUp, Companion, Keyword, MindWipe, BrainDrain, AudioSync, Manual }
+public enum LocalDeviceEvent { Flash, Subliminal, BubblePop, BouncingText, Video, Attention, LockCard, Achievement, LevelUp, Companion, MindWipe, BrainDrain, AudioSync, Manual }
 public enum LocalHapticPattern { Constant, Pulse, Wave, Heartbeat, Escalate, Earthquake }
 public readonly record struct LocalHapticStep(int OffsetMilliseconds, double Intensity, int AttackMilliseconds, int HoldMilliseconds, int DecayMilliseconds);
 

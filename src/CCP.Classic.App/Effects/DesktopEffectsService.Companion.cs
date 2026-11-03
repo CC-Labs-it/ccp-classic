@@ -10,14 +10,12 @@ public sealed partial class DesktopEffectsService
     private CompanionHost companionHost = null!;
     private long lastBark;
     private readonly TimedEffectTimeline timedChanges = new();
-    public bool GlobalTextAvailable => panic.IsTextAvailable;
     public event Action? AvatarClicked;
     public event Action? CompanionPlacementChanged;
 
     private void InitializeCompanion()
     {
         companion = new(settings);
-        InitializeKeywords();
         companionHost = new(owner, settings, window => new(window, settings, configureInput), clock, companion);
         companionHost.StopRequested += () => session.Stop();
         companionHost.PlacementChanged += () => CompanionPlacementChanged?.Invoke();
@@ -35,11 +33,10 @@ public sealed partial class DesktopEffectsService
     {
         companionHost.BeginSession();
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
-        companion.Start(); keywords.Start(); lastBark = 0;
+        companion.Start(); lastBark = 0;
         timedChanges.Start(settings.TimedChanges);
         BeginSessionBarks();
     }
-    public void FeedText(string characters) => FeedKeywords(characters);
     public bool TriggerPhrase(string phrase)
     {
         companion.TriggerPhrasesEnabled = settings.TriggerPhrasesEnabled;
@@ -47,7 +44,6 @@ public sealed partial class DesktopEffectsService
     }
     private void TickCompanion(double elapsed)
     {
-        TickKeywords(elapsed);
         var timed = false;
         foreach (var change in timedChanges.Step(elapsed)) { settings.Effects[change.EffectId].Enabled = change.Enabled; timed = true; }
         // A timed change is the preset's doing, not the player's: it never reads as a switch turned on.
@@ -58,16 +54,13 @@ public sealed partial class DesktopEffectsService
         companionHost.SessionFrame(frame.Bark);
         if (frame.Bark is { } bark && bark.Id != lastBark) { DeviceEvent?.Invoke(LocalDeviceEvent.Companion); SpeakBark(bark); }
         foreach (var trigger in frame.Triggers)
-        {
-            var triggered = trigger.Effect switch
+            _ = trigger.Effect switch
             {
                 CompanionEffect.Flash => timeline.TriggerFlash(),
                 CompanionEffect.Whisper => timeline.TriggerWhisper(),
                 CompanionEffect.SpiralPulse => timeline.TriggerSpiralPulse(),
                 _ => false
             };
-            if (triggered && trigger.Source == CompanionTriggerSource.Keyword) DeviceEvent?.Invoke(LocalDeviceEvent.Keyword);
-        }
     }
     // One voice for idle and session words and library lines: the approved recording only, never
     // synthetic speech; a word with no recording stays text. A new line replaces one still speaking.
@@ -90,7 +83,7 @@ public sealed partial class DesktopEffectsService
     // A stop ends barks and talk at once; the tube stays and returns to idle.
     private void StopCompanion()
     {
-        StopKeywords(); timedChanges.Stop(); companion.Stop();
+        timedChanges.Stop(); companion.Stop();
         if (disposed) companionHost.Dispose(); else companionHost.EndSession();
     }
 }

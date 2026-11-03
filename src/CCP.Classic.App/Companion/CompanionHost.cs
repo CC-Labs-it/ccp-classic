@@ -76,7 +76,7 @@ internal sealed class CompanionHost : IDisposable
     public void SpeakLine(string? lineId, string? mood, string? text, double seconds) => Window?.SpeakLine(lineId, mood, text, seconds, Now);
     // A giggle or other short non-verbal sound: one expressive clip with no mouth movement.
     public void NonVerbal() => Window?.NonVerbal(Now);
-    // A keyword or other repetitive trigger: one expressive clip from idle, never talk.
+    // A single trigger word or other repetitive trigger: one expressive clip from idle, never talk.
     public bool TriggerWord() => Window?.TriggerWord(Now) ?? false;
 
     internal void IdleTick()
