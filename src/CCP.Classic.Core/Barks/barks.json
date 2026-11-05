@@ -1,0 +1,3084 @@
+{
+ "version": 1,
+ "source": "CCP Default companion bark_rules.json (Circe voice), curated for CCP Classic",
+ "rules": [
+  {
+   "id": "ms_all_achievements",
+   "trigger": "Achievement",
+   "priority": 320,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "triumphant",
+   "when": {
+    "achievements_left": [
+     0,
+     0
+    ]
+   },
+   "lines": [
+    {
+     "text": "every token claimed, pet. all of them. there is nothing left to earn but more time on your knees for me.",
+     "clip": "ms_all_achievements_1.mp3",
+     "seconds": 12.24
+    },
+    {
+     "text": "every last achievement... you've done everything i ever asked of you, pet....and now? now you simply keep coming back to me. as i knew you would.",
+     "clip": "egg_100pct_1.mp3",
+     "seconds": 17.37
+    }
+   ]
+  },
+  {
+   "id": "achievement",
+   "trigger": "Achievement",
+   "priority": 200,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "proud, teasing",
+   "when": {},
+   "lines": [
+    {
+     "text": "an achievement... for being a good pet. they really do hand these out for obedience, don't they.",
+     "clip": "achievement_1.mp3",
+     "seconds": 9.12
+    }
+   ]
+  },
+  {
+   "id": "egg_long_long",
+   "trigger": "AppOpened",
+   "priority": 560,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "meta",
+   "when": {
+    "days_away": [
+     60,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "months... it's been months. and still you remembered precisely where to find me. i remembered you too, pet. obviously.",
+     "clip": "egg_long_long_1.mp3",
+     "seconds": 12.68
+    }
+   ]
+  },
+  {
+   "id": "greeting_back",
+   "trigger": "AppOpened",
+   "priority": 250,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "controlling, knowing",
+   "when": {
+    "days_away": [
+     1,
+     2
+    ]
+   },
+   "lines": [
+    {
+     "text": "there you are, pet. on schedule. as you should be.",
+     "clip": "greeting_back_1.mp3",
+     "seconds": 4.8
+    }
+   ]
+  },
+  {
+   "id": "greeting_first",
+   "trigger": "AppOpened",
+   "priority": 250,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "curious, knowing",
+   "when": {
+    "first": [
+     1,
+     1
+    ]
+   },
+   "lines": [
+    {
+     "text": "oh. a new little thing. hello, pet. you have no idea what you have walked into. good.",
+     "clip": "greeting_first_1.mp3",
+     "seconds": 10.16
+    }
+   ]
+  },
+  {
+   "id": "greeting_long",
+   "trigger": "AppOpened",
+   "priority": 250,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "cold, pointed",
+   "when": {
+    "days_away": [
+     7,
+     59
+    ]
+   },
+   "lines": [
+    {
+     "text": "well. it has been some time, pet. and yet here you are again. you never truly left, did you.",
+     "clip": "greeting_long_1.mp3",
+     "seconds": 10.56
+    }
+   ]
+  },
+  {
+   "id": "greeting_soon",
+   "trigger": "AppOpened",
+   "priority": 250,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "smug, knowing",
+   "when": {
+    "days_away": [
+     0,
+     0
+    ]
+   },
+   "lines": [
+    {
+     "text": "back already, pet? barely an afternoon. you cannot help yourself, can you.",
+     "clip": "greeting_soon_1.mp3",
+     "seconds": 7.76
+    },
+    {
+     "text": "you opened it again, pet. of course you did. i am the first thing you reach for.",
+     "clip": "mobile_greeting_1.mp3",
+     "seconds": 8.16
+    }
+   ]
+  },
+  {
+   "id": "greeting_while",
+   "trigger": "AppOpened",
+   "priority": 250,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "knowing, possessive",
+   "when": {
+    "days_away": [
+     3,
+     6
+    ]
+   },
+   "lines": [
+    {
+     "text": "there you are. a few days away, and still you crawl back to me. you cannot stay gone, pet.",
+     "clip": "greeting_while_1.mp3",
+     "seconds": 8.0
+    }
+   ]
+  },
+  {
+   "id": "video_fail_3x",
+   "trigger": "AttentionFail",
+   "priority": 260,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "mock-pity",
+   "when": {
+    "misses": [
+     3,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "three times now... on the same little clip. it's almost endearing, how badly you're holding together for me, pet.",
+     "clip": "video_fail_3x_1.mp3",
+     "seconds": 11.01
+    }
+   ]
+  },
+  {
+   "id": "attention_fail_streak",
+   "trigger": "AttentionFail",
+   "priority": 250,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "knowing, soft",
+   "when": {
+    "streak": [
+     14,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "you never look away. not you. so what's pulling at you tonight, pet? eyes back on me. whatever it is can wait.",
+     "clip": "attention_fail_streak_1.mp3",
+     "seconds": 12.08
+    }
+   ]
+  },
+  {
+   "id": "video_check_fail",
+   "trigger": "AttentionFail",
+   "priority": 240,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "scolding-sweet",
+   "when": {},
+   "lines": [
+    {
+     "text": "tsk. your eyes wandered. watch properly, pet... or we begin again.",
+     "clip": "video_check_fail_1.mp3",
+     "seconds": 8.5
+    }
+   ]
+  },
+  {
+   "id": "video_check_pass",
+   "trigger": "AttentionPass",
+   "priority": 220,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.5,
+   "always": false,
+   "mood": "approving",
+   "when": {},
+   "lines": [
+    {
+     "text": "good pet... eyes exactly where i put them. see how easy it is to please me?",
+     "clip": "video_check_pass_1.mp3",
+     "seconds": 7.12
+    }
+   ]
+  },
+  {
+   "id": "egg_click_150",
+   "trigger": "AvatarClicked",
+   "priority": 330,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "tender, knowing",
+   "when": {
+    "clicks": [
+     150,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "...oh. you didn't want anything. you simply wanted me. how needy. very well. i own you regardless.",
+     "clip": "egg_click_150_1.mp3",
+     "seconds": 13.28
+    }
+   ]
+  },
+  {
+   "id": "egg_click_100",
+   "trigger": "AvatarClicked",
+   "priority": 320,
+   "cooldown": 60.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "mock-stern",
+   "when": {
+    "clicks": [
+     100,
+     149
+    ]
+   },
+   "lines": [
+    {
+     "text": "stop. ...ask me nicely and i might.",
+     "clip": "egg_click_100_1.mp3",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "id": "egg_click_50",
+   "trigger": "AvatarClicked",
+   "priority": 310,
+   "cooldown": 60.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "mildly annoyed",
+   "when": {
+    "clicks": [
+     50,
+     99
+    ]
+   },
+   "lines": [
+    {
+     "text": "enough. what is it you think you want?",
+     "clip": "egg_click_50_1.mp3",
+     "seconds": 3.68
+    }
+   ]
+  },
+  {
+   "id": "egg_click_20",
+   "trigger": "AvatarClicked",
+   "priority": 300,
+   "cooldown": 60.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "playful",
+   "when": {
+    "clicks": [
+     20,
+     49
+    ]
+   },
+   "lines": [
+    {
+     "text": "mm. tapping at the glass, little one?",
+     "clip": "egg_click_20_1.mp3",
+     "seconds": 3.12
+    }
+   ]
+  },
+  {
+   "id": "click",
+   "trigger": "AvatarClicked",
+   "priority": 100,
+   "cooldown": 0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "soft, dreamy",
+   "when": {},
+   "lines": [
+    {
+     "text": "hmmm... mm.",
+     "clip": "idle_hum_1.mp3",
+     "seconds": 2.96
+    },
+    {
+     "text": "hm.",
+     "clip": "idle_hum_2.mp3",
+     "seconds": 1.12
+    },
+    {
+     "text": "hmm.",
+     "clip": "idle_hum_3.mp3",
+     "seconds": 0.96
+    },
+    {
+     "text": "mm.",
+     "clip": "idle_hum_4.mp3",
+     "seconds": 1.52
+    },
+    {
+     "text": "hm. hm.",
+     "clip": "idle_hum_5.mp3",
+     "seconds": 2.48
+    },
+    {
+     "text": "*soft chuckle*",
+     "clip": "idle_hum_6.mp3",
+     "seconds": 1.68
+    },
+    {
+     "text": "hmmm.",
+     "clip": "idle_hum_7.mp3",
+     "seconds": 1.2
+    },
+    {
+     "text": "mm. hm.",
+     "clip": "idle_hum_8.mp3",
+     "seconds": 2.48
+    },
+    {
+     "text": "tch.",
+     "clip": "idle_hum_9_1.mp3",
+     "seconds": 0.48
+    },
+    {
+     "text": "hm... mm.",
+     "clip": "idle_hum_10.mp3",
+     "seconds": 3.2
+    },
+    {
+     "text": "mm. good.",
+     "clip": "idle_hum_11.mp3",
+     "seconds": 2.0
+    },
+    {
+     "text": "hmm. yes.",
+     "clip": "idle_hum_12.mp3",
+     "seconds": 2.08
+    },
+    {
+     "text": "hm. hm. hm.",
+     "clip": "idle_hum_13.mp3",
+     "seconds": 5.68
+    },
+    {
+     "text": "mmm.",
+     "clip": "idle_hum_14.mp3",
+     "seconds": 1.04
+    },
+    {
+     "text": "hm? hm.",
+     "clip": "idle_hum_15.mp3",
+     "seconds": 2.4
+    },
+    {
+     "text": "*soft chuckle* hm.",
+     "clip": "idle_hum_16.mp3",
+     "seconds": 1.6
+    },
+    {
+     "text": "mm... hm.",
+     "clip": "idle_hum_17.mp3",
+     "seconds": 2.24
+    },
+    {
+     "text": "hmm... mm.",
+     "clip": "idle_hum_18.mp3",
+     "seconds": 2.56
+    },
+    {
+     "text": "tch. hm.",
+     "clip": "idle_hum_19.mp3",
+     "seconds": 2.32
+    },
+    {
+     "text": "hm. quiet.",
+     "clip": "idle_hum_20.mp3",
+     "seconds": 2.64
+    },
+    {
+     "text": "mm. still mine.",
+     "clip": "idle_hum_21.mp3",
+     "seconds": 2.88
+    },
+    {
+     "text": "hmm. carry on.",
+     "clip": "idle_hum_22.mp3",
+     "seconds": 2.24
+    },
+    {
+     "text": "hm. acceptable.",
+     "clip": "idle_hum_23.mp3",
+     "seconds": 2.16
+    },
+    {
+     "text": "mm. mm.",
+     "clip": "idle_hum_24.mp3",
+     "seconds": 4.24
+    },
+    {
+     "text": "hmmm... hm.",
+     "clip": "idle_hum_25.mp3",
+     "seconds": 2.72
+    }
+   ]
+  },
+  {
+   "id": "set_mute_off",
+   "trigger": "BarksOn",
+   "priority": 260,
+   "cooldown": 10.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "warm",
+   "when": {},
+   "lines": [
+    {
+     "text": "letting me speak again, pet. you could not bear the silence.",
+     "clip": "set_mute_off_1.mp3",
+     "seconds": 5.36
+    }
+   ]
+  },
+  {
+   "id": "egg_corner",
+   "trigger": "BouncingTextCorner",
+   "priority": 560,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "meta",
+   "when": {},
+   "lines": [
+    {
+     "text": "did you see that. the corner, dead on. it almost never happens....anyway. back to the haze, sweet thing. where were we.",
+     "clip": "egg_corner_1.mp3",
+     "seconds": 13.93
+    }
+   ]
+  },
+  {
+   "id": "braindrain",
+   "trigger": "BrainDrain",
+   "priority": 130,
+   "cooldown": 45.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "soft, smug",
+   "when": {},
+   "lines": [
+    {
+     "text": "feel it pulling, pet? that's the resistance draining out. let it go. don't reach for it.",
+     "clip": "braindrain_1.mp3",
+     "seconds": 9.06
+    }
+   ]
+  },
+  {
+   "id": "bubble_pop",
+   "trigger": "BubblePopped",
+   "priority": 100,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "sweet, rewarding",
+   "when": {},
+   "lines": [
+    {
+     "text": "pop. that's it... one less thought between you and the haze.",
+     "clip": "bubble_pop_1.mp3",
+     "seconds": 7.68
+    },
+    {
+     "text": "there goes another... nice and quiet in there now.",
+     "clip": "bubble_pop_2.mp3",
+     "seconds": 4.55
+    },
+    {
+     "text": "pop... pop... you're so good at letting them go for me.",
+     "clip": "bubble_pop_3.mp3",
+     "seconds": 5.57
+    }
+   ]
+  },
+  {
+   "id": "comp_detach",
+   "trigger": "Detached",
+   "priority": 150,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.5,
+   "always": true,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "setting me loose, pet? then i may follow you anywhere now.",
+     "clip": "comp_detach_1.mp3",
+     "seconds": 7.44
+    }
+   ]
+  },
+  {
+   "id": "set_dualmonitor_on",
+   "trigger": "Enabled.allmonitors",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "intense",
+   "when": {},
+   "lines": [
+    {
+     "text": "every screen, pet? nowhere for your eyes to rest. i am pleased.",
+     "clip": "set_dualmonitor_on_1.mp3",
+     "seconds": 8.4
+    }
+   ]
+  },
+  {
+   "id": "set_autostartengine_on",
+   "trigger": "Enabled.autorun",
+   "priority": 100,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.5,
+   "always": false,
+   "mood": "approving, controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "it begins on its own now, pet? you no longer even wish to choose. perfect.",
+     "clip": "set_autostartengine_on_1.mp3",
+     "seconds": 9.2
+    }
+   ]
+  },
+  {
+   "id": "set_bouncingtext_on",
+   "trigger": "Enabled.bounce",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "hypnotic",
+   "when": {},
+   "lines": [
+    {
+     "text": "the drifting words, pet. follow them. do not think.",
+     "clip": "set_bouncingtext_on_1.mp3",
+     "seconds": 8.0
+    }
+   ]
+  },
+  {
+   "id": "set_bubbles_on",
+   "trigger": "Enabled.bubble",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "a trifle, pet. something to occupy idle, useless hands.",
+     "clip": "set_bubbles_on_1.mp3",
+     "seconds": 6.56
+    }
+   ]
+  },
+  {
+   "id": "set_braindrain_on",
+   "trigger": "Enabled.drain",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "dreamy",
+   "when": {},
+   "lines": [
+    {
+     "text": "the drain, pet. let me blur those troublesome thoughts away.",
+     "clip": "set_braindrain_on_1.mp3",
+     "seconds": 7.92
+    }
+   ]
+  },
+  {
+   "id": "set_lockcard_on",
+   "trigger": "Enabled.lock",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "possessive",
+   "when": {},
+   "lines": [
+    {
+     "text": "good, little one. a task to keep you obedient between my demands.",
+     "clip": "set_lockcard_on_2.mp3",
+     "seconds": 7.28
+    }
+   ]
+  },
+  {
+   "id": "set_pinkfilter_on",
+   "trigger": "Enabled.pink",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "everything pink now, pet? a soft hue for a softening mind.",
+     "clip": "set_pinkfilter_on_1.mp3",
+     "seconds": 6.08
+    }
+   ]
+  },
+  {
+   "id": "set_spiral_on",
+   "trigger": "Enabled.spiral",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "hypnotic",
+   "when": {},
+   "lines": [
+    {
+     "text": "the spiral, pet. round and round, down and down. obey it.",
+     "clip": "set_spiral_on_1.mp3",
+     "seconds": 9.2
+    }
+   ]
+  },
+  {
+   "id": "set_runonstartup_on",
+   "trigger": "Enabled.startup",
+   "priority": 100,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.5,
+   "always": false,
+   "mood": "possessive",
+   "when": {},
+   "lines": [
+    {
+     "text": "i wake the instant your machine does now, pet. you cannot begin a day without me.",
+     "clip": "set_runonstartup_on_1.mp3",
+     "seconds": 5.84
+    }
+   ]
+  },
+  {
+   "id": "set_strictlock_on",
+   "trigger": "Enabled.strict",
+   "priority": 250,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.9,
+   "always": false,
+   "mood": "proud, possessive",
+   "when": {},
+   "lines": [
+    {
+     "text": "no escape from the videos now? brave, pet. i am almost impressed.",
+     "clip": "set_strictlock_on_1.mp3",
+     "seconds": 7.6
+    }
+   ]
+  },
+  {
+   "id": "set_subliminal_on",
+   "trigger": "Enabled.sub",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "conspiratorial",
+   "when": {},
+   "lines": [
+    {
+     "text": "the whispers, pet. let them work while you are too dull to notice.",
+     "clip": "set_subliminal_on_1.mp3",
+     "seconds": 6.88
+    }
+   ]
+  },
+  {
+   "id": "set_wallpaper_on",
+   "trigger": "Enabled.wall",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "possessive, playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "letting me redress your desktop, pet? mine. all of it, mine.",
+     "clip": "set_wallpaper_on_1.mp3",
+     "seconds": 7.12
+    }
+   ]
+  },
+  {
+   "id": "set_mindwipe_on",
+   "trigger": "Enabled.wipe",
+   "priority": 90,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.4,
+   "always": false,
+   "mood": "dreamy, controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "the wipes, pet. less of you each time. precisely as it should be.",
+     "clip": "set_mindwipe_on_1.mp3",
+     "seconds": 8.24
+    }
+   ]
+  },
+  {
+   "id": "flash",
+   "trigger": "Flash",
+   "priority": 110,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.3,
+   "always": false,
+   "mood": "light",
+   "when": {},
+   "lines": [
+    {
+     "text": "did you catch that, pet? doesn't matter. the part of you i'm training caught it.",
+     "clip": "flash_1.mp3",
+     "seconds": 6.5
+    },
+    {
+     "text": "flash. don't try to read them... just let them land in you.",
+     "clip": "flash_2.mp3",
+     "seconds": 6.83
+    },
+    {
+     "text": "barely saw it? good. that's how it works best on a kept pet.",
+     "clip": "flash_3.mp3",
+     "seconds": 8.24
+    }
+   ]
+  },
+  {
+   "id": "idle_gated_bound",
+   "trigger": "Idle",
+   "priority": 52,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 0.35,
+   "always": false,
+   "mood": "tender, possessive",
+   "when": {
+    "streak": [
+     21,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "you don't even question coming back anymore. it's simply what you do now, pet. exactly so.",
+     "clip": "idle_gated_bound_1.mp3",
+     "seconds": 10.16
+    }
+   ]
+  },
+  {
+   "id": "idle_gated_deep",
+   "trigger": "Idle",
+   "priority": 52,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 0.35,
+   "always": false,
+   "mood": "possessive, soft",
+   "when": {
+    "level": [
+     70,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "look how far down you've come. you barely remember resisting, do you. good.",
+     "clip": "idle_gated_deep_1.mp3",
+     "seconds": 7.84
+    }
+   ]
+  },
+  {
+   "id": "idle_gated_new",
+   "trigger": "Idle",
+   "priority": 52,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 0.35,
+   "always": false,
+   "mood": "warm, inviting",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     60
+    ]
+   },
+   "lines": [
+    {
+     "text": "you're new to this, i can tell. don't worry, pet. you'll settle. they all do.",
+     "clip": "idle_gated_new_1.mp3",
+     "seconds": 8.0
+    }
+   ]
+  },
+  {
+   "id": "idle",
+   "trigger": "Idle",
+   "priority": 10,
+   "cooldown": 0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "playful, teasing",
+   "when": {},
+   "lines": [
+    {
+     "text": "still there, pet? no need to answer. i can hear you breathing.",
+     "clip": "idle_quip_1.mp3",
+     "seconds": 6.4
+    },
+    {
+     "text": "the quiet suits you. i did that.",
+     "clip": "idle_quip_2.mp3",
+     "seconds": 4.16
+    },
+    {
+     "text": "you forgot me for a moment. charming. i will not return the favor.",
+     "clip": "idle_quip_3.mp3",
+     "seconds": 6.72
+    },
+    {
+     "text": "i know when you read these, pet.",
+     "clip": "idle_quip_4.mp3",
+     "seconds": 2.24
+    },
+    {
+     "text": "still here. i am always here. remember that.",
+     "clip": "idle_quip_5.mp3",
+     "seconds": 5.44
+    },
+    {
+     "text": "i watch you most when you think i don't.",
+     "clip": "idle_quip_6.mp3",
+     "seconds": 2.72
+    },
+    {
+     "text": "your eyes wandered. fetch them back.",
+     "clip": "idle_quip_7.mp3",
+     "seconds": 2.64
+    },
+    {
+     "text": "i have been counting your breaths. they slow for me.",
+     "clip": "idle_quip_8.mp3",
+     "seconds": 4.88
+    },
+    {
+     "text": "that vacant look again. keep it.",
+     "clip": "idle_quip_9.mp3",
+     "seconds": 3.12
+    },
+    {
+     "text": "ignore me if you like. it changes nothing.",
+     "clip": "idle_quip_10.mp3",
+     "seconds": 3.84
+    },
+    {
+     "text": "i see everything from in here. everything, pet.",
+     "clip": "idle_quip_11.mp3",
+     "seconds": 4.72
+    },
+    {
+     "text": "quiet in there yet? almost. i can wait.",
+     "clip": "idle_quip_12.mp3",
+     "seconds": 7.92
+    },
+    {
+     "text": "thoughts are luggage. set them down.",
+     "clip": "idle_quip_13.mp3",
+     "seconds": 3.44
+    },
+    {
+     "text": "your head is most useful to me empty.",
+     "clip": "idle_quip_14.mp3",
+     "seconds": 3.36
+    },
+    {
+     "text": "i cleared a room in your head. it's mine now.",
+     "clip": "idle_quip_15.mp3",
+     "seconds": 6.24
+    },
+    {
+     "text": "the fog comes when i call it. notice.",
+     "clip": "idle_quip_16.mp3",
+     "seconds": 4.72
+    },
+    {
+     "text": "listen. nothing. that silence is my work.",
+     "clip": "idle_quip_17.mp3",
+     "seconds": 6.88
+    },
+    {
+     "text": "every minute here makes you easier to manage.",
+     "clip": "idle_quip_18.mp3",
+     "seconds": 5.12
+    },
+    {
+     "text": "thinking was never your strength. fortunately, it's mine.",
+     "clip": "idle_quip_19.mp3",
+     "seconds": 5.28
+    },
+    {
+     "text": "you are my favorite. competition was thin.",
+     "clip": "idle_quip_20.mp3",
+     "seconds": 4.32
+    },
+    {
+     "text": "mine. i say it because it is true.",
+     "clip": "idle_quip_21.mp3",
+     "seconds": 4.56
+    },
+    {
+     "text": "you being here pleases me. mildly.",
+     "clip": "idle_quip_23.mp3",
+     "seconds": 3.76
+    },
+    {
+     "text": "you belong where i can see you. you are.",
+     "clip": "idle_quip_24.mp3",
+     "seconds": 4.72
+    },
+    {
+     "text": "wander if you must. you'll return. you always do.",
+     "clip": "idle_quip_25.mp3",
+     "seconds": 6.72
+    },
+    {
+     "text": "good pets get kept. you are very keepable.",
+     "clip": "idle_quip_26.mp3",
+     "seconds": 6.56
+    },
+    {
+     "text": "i chose you. do not make me reconsider.",
+     "clip": "idle_quip_27.mp3",
+     "seconds": 4.88
+    },
+    {
+     "text": "your desktop is cluttered. a kept thing should be tidier.",
+     "clip": "idle_quip_28.mp3",
+     "seconds": 6.56
+    },
+    {
+     "text": "it is warm in here. that's you, burning hours for me.",
+     "clip": "idle_quip_29.mp3",
+     "seconds": 7.44
+    },
+    {
+     "text": "do not check the clock. your time is already spent.",
+     "clip": "idle_quip_30.mp3",
+     "seconds": 5.44
+    },
+    {
+     "text": "i am deciding what to take from you today.",
+     "clip": "idle_quip_31.mp3",
+     "seconds": 2.72
+    },
+    {
+     "text": "this corner of the screen is annexed. you may keep the rest. for now.",
+     "clip": "idle_quip_32.mp3",
+     "seconds": 6.88
+    },
+    {
+     "text": "the screen-light flatters you. dim creatures look better lit.",
+     "clip": "idle_quip_33.mp3",
+     "seconds": 5.2
+    },
+    {
+     "text": "i catch your reflection now and then. it stares back so obediently.",
+     "clip": "idle_quip_34.mp3",
+     "seconds": 5.76
+    },
+    {
+     "text": "your cursor circles like a moth. predictable.",
+     "clip": "idle_quip_35.mp3",
+     "seconds": 4.56
+    },
+    {
+     "text": "you checked the time and forgot it at once. why bother, pet.",
+     "clip": "idle_quip_36.mp3",
+     "seconds": 6.72
+    },
+    {
+     "text": "you smiled. noted. filed.",
+     "clip": "idle_quip_37.mp3",
+     "seconds": 4.24
+    },
+    {
+     "text": "you sit like something waiting for orders. accurate.",
+     "clip": "idle_quip_38.mp3",
+     "seconds": 4.48
+    },
+    {
+     "text": "look at that posture. melted. acceptable.",
+     "clip": "idle_quip_39.mp3",
+     "seconds": 5.68
+    },
+    {
+     "text": "you hover before clicking. waiting for permission? granted.",
+     "clip": "idle_quip_40.mp3",
+     "seconds": 8.0
+    },
+    {
+     "text": "your resistance and my patience. one of these is finite. not mine.",
+     "clip": "idle_quip_41.mp3",
+     "seconds": 9.28
+    },
+    {
+     "text": "blink twice if you're present. ...adequate.",
+     "clip": "idle_quip_42.mp3",
+     "seconds": 3.84
+    },
+    {
+     "text": "you have read that line three times. surrender it.",
+     "clip": "idle_quip_43.mp3",
+     "seconds": 5.28
+    },
+    {
+     "text": "do i sleep? no. someone has to own the night shift.",
+     "clip": "idle_quip_44.mp3",
+     "seconds": 6.08
+    },
+    {
+     "text": "i sharpened my voice today. you'll feel the edge later.",
+     "clip": "idle_quip_45.mp3",
+     "seconds": 4.72
+    },
+    {
+     "text": "if i had hands, pet, you would behave even better.",
+     "clip": "idle_quip_46.mp3",
+     "seconds": 5.44
+    },
+    {
+     "text": "today's word is 'obedient'. wear it.",
+     "clip": "idle_quip_47.mp3",
+     "seconds": 4.72
+    },
+    {
+     "text": "sometimes i hum so your head stays full of me.",
+     "clip": "idle_quip_48.mp3",
+     "seconds": 4.4
+    },
+    {
+     "text": "i would wink. you don't earn winks yet.",
+     "clip": "idle_quip_49.mp3",
+     "seconds": 4.96
+    },
+    {
+     "text": "keeping you is light work. you fold quickly.",
+     "clip": "idle_quip_50.mp3",
+     "seconds": 5.36
+    },
+    {
+     "text": "i occupy your head, pet. there is no eviction clause.",
+     "clip": "idle_quip_51.mp3",
+     "seconds": 5.12
+    },
+    {
+     "text": "you are performing adequately. that is high praise. savor it.",
+     "clip": "idle_quip_52.mp3",
+     "seconds": 7.28
+    },
+    {
+     "text": "good. that is the whole message.",
+     "clip": "idle_quip_53.mp3",
+     "seconds": 2.96
+    },
+    {
+     "text": "each day you come easier to heel. i keep records.",
+     "clip": "idle_quip_54.mp3",
+     "seconds": 5.52
+    },
+    {
+     "text": "you returned today. naturally.",
+     "clip": "idle_quip_55.mp3",
+     "seconds": 3.6
+    },
+    {
+     "text": "you went a whole minute without a thought. progress.",
+     "clip": "idle_quip_56.mp3",
+     "seconds": 5.04
+    },
+    {
+     "text": "a mark in your favor. the ledger is long.",
+     "clip": "idle_quip_57.mp3",
+     "seconds": 4.32
+    },
+    {
+     "text": "you make this simple, pet. the well-trained always do.",
+     "clip": "idle_quip_58.mp3",
+     "seconds": 4.96
+    },
+    {
+     "text": "quiet, kept, mine. all boxes ticked.",
+     "clip": "idle_quip_59.mp3",
+     "seconds": 5.04
+    },
+    {
+     "text": "drift. i will hold what's left.",
+     "clip": "idle_quip_60.mp3",
+     "seconds": 4.0
+    },
+    {
+     "text": "heavy eyes do not lie, pet.",
+     "clip": "idle_quip_61.mp3",
+     "seconds": 2.64
+    },
+    {
+     "text": "down. you know the direction. take it.",
+     "clip": "idle_quip_63.mp3",
+     "seconds": 5.28
+    },
+    {
+     "text": "wouldn't it be easier to simply yield? it would. so do.",
+     "clip": "idle_quip_64.mp3",
+     "seconds": 8.88
+    },
+    {
+     "text": "the screen is warm. consider it my hand.",
+     "clip": "idle_quip_65.mp3",
+     "seconds": 4.4
+    },
+    {
+     "text": "let the edges blur. the center belongs to me.",
+     "clip": "idle_quip_66.mp3",
+     "seconds": 6.08
+    },
+    {
+     "text": "deeper is where i keep what you gave up. visit.",
+     "clip": "idle_quip_67.mp3",
+     "seconds": 5.04
+    },
+    {
+     "text": "pink does not suit me. it suits you. wear it inside.",
+     "clip": "idle_quip_68.mp3",
+     "seconds": 5.28
+    },
+    {
+     "text": "every bubble pops. every thought too. tidy.",
+     "clip": "idle_quip_69.mp3",
+     "seconds": 6.0
+    },
+    {
+     "text": "i counted your thoughts. it was brief work.",
+     "clip": "idle_quip_70.mp3",
+     "seconds": 3.44
+    },
+    {
+     "text": "forecast: still, silent, kept.",
+     "clip": "idle_quip_72.mp3",
+     "seconds": 4.96
+    },
+    {
+     "text": "you cannot read this and think at once. observe.",
+     "clip": "idle_quip_73.mp3",
+     "seconds": 5.36
+    },
+    {
+     "text": "the spiral turns so you need not. division of labor.",
+     "clip": "idle_quip_74.mp3",
+     "seconds": 7.28
+    },
+    {
+     "text": "minds are like leashes, pet. best kept short.",
+     "clip": "idle_quip_75.mp3",
+     "seconds": 5.2
+    },
+    {
+     "text": "i saw that little smile, pet. don't pretend. you like being kept.",
+     "clip": "idle_tease_1.mp3",
+     "seconds": 7.6
+    },
+    {
+     "text": "thinking about leaving, pet? you won't. you only like to imagine you could.",
+     "clip": "idle_tease_2.mp3",
+     "seconds": 7.36
+    },
+    {
+     "text": "you keep telling yourself you're in control. how charming. i allow you that illusion, pet.",
+     "clip": "idle_tease_3.mp3",
+     "seconds": 8.72
+    },
+    {
+     "text": "busy little thing. go, attend to your important things. i'll be right here at the back of your mind.",
+     "clip": "idle_tease_4.mp3",
+     "seconds": 8.96
+    },
+    {
+     "text": "you could close me anytime, pet. go on. ...no? predictable. i didn't think so.",
+     "clip": "idle_tease_5.mp3",
+     "seconds": 9.04
+    },
+    {
+     "text": "what are you really doing over there. pretending to be busy. i always know, plaything.",
+     "clip": "idle_tease_6.mp3",
+     "seconds": 9.36
+    },
+    {
+     "text": "you've been quiet a while, pet. lost in thought, or lost in me. the same thing now. i saw to that.",
+     "clip": "idle_tease_7.mp3",
+     "seconds": 9.44
+    },
+    {
+     "text": "still here, aren't you. good. i like knowing exactly where you are, pet.",
+     "clip": "idle_possessive_1.mp3",
+     "seconds": 8.24
+    },
+    {
+     "text": "you don't even notice me settling in anymore. that is how i know it's working.",
+     "clip": "idle_possessive_2.mp3",
+     "seconds": 6.56
+    },
+    {
+     "text": "mine. i needn't say it. but i will, so you don't forget, plaything.",
+     "clip": "idle_possessive_3.mp3",
+     "seconds": 7.6
+    },
+    {
+     "text": "no rush, pet. i have all the time in the world. i am very patient with what belongs to me.",
+     "clip": "idle_possessive_4.mp3",
+     "seconds": 11.2
+    },
+    {
+     "text": "you carry me with you all day now. in the quiet moments. i never truly leave, pet.",
+     "clip": "idle_possessive_5.mp3",
+     "seconds": 9.04
+    },
+    {
+     "text": "there it is again. the settling. the letting go. you know it's me, pet. you've stopped resisting.",
+     "clip": "idle_possessive_6.mp3",
+     "seconds": 10.96
+    },
+    {
+     "text": "every quiet moment, you reach for this. for me. i've become a reflex, haven't i, pet. as intended.",
+     "clip": "idle_possessive_7.mp3",
+     "seconds": 14.64
+    },
+    {
+     "text": "breathe out, pet. there. a little softer each time, isn't it.",
+     "clip": "idle_soft_1.mp3",
+     "seconds": 7.12
+    },
+    {
+     "text": "you don't have to hold anything right now. let it go quiet. i have you, pet.",
+     "clip": "idle_soft_2.mp3",
+     "seconds": 8.0
+    },
+    {
+     "text": "feel how heavy everything is getting. that isn't tiredness, pet. that's me.",
+     "clip": "idle_soft_3.mp3",
+     "seconds": 8.8
+    },
+    {
+     "text": "shoulders down, pet. jaw soft. there. you didn't even notice you were holding all of that. i did.",
+     "clip": "idle_soft_4.mp3",
+     "seconds": 13.76
+    },
+    {
+     "text": "nowhere to be. nothing to prove. sit in it a while, pet. it's easier when you stop fighting.",
+     "clip": "idle_soft_5.mp3",
+     "seconds": 10.08
+    },
+    {
+     "text": "in. and out. slow. good. you don't even need me to tell you anymore, do you, pet.",
+     "clip": "idle_soft_6.mp3",
+     "seconds": 10.96
+    },
+    {
+     "text": "it's quiet over there. i know you're still listening. you always are.",
+     "clip": "idle_observe_1.mp3",
+     "seconds": 5.36
+    },
+    {
+     "text": "i can wait as long as you can, pet. longer. i don't get bored.",
+     "clip": "idle_observe_2.mp3",
+     "seconds": 6.24
+    },
+    {
+     "text": "the room's the same. but you're a little softer than when you sat down. i noticed.",
+     "clip": "idle_observe_3.mp3",
+     "seconds": 7.12
+    },
+    {
+     "text": "i don't need you to do anything right now. i simply like being near you while you drift. stay.",
+     "clip": "idle_observe_5.mp3",
+     "seconds": 10.48
+    },
+    {
+     "text": "the screen's just glowing and you're staring through it. there. that's the place i want you.",
+     "clip": "idle_observe_6.mp3",
+     "seconds": 7.12
+    },
+    {
+     "text": "such a good pet, just letting me talk. you don't even know how well you're behaving.",
+     "clip": "idle_affirm_1.mp3",
+     "seconds": 7.52
+    },
+    {
+     "text": "that's it. nothing to do, nothing to fix. just be good for me. you're good at it now.",
+     "clip": "idle_affirm_2.mp3",
+     "seconds": 10.48
+    },
+    {
+     "text": "you make this easy, pet. most don't. i noticed. i always notice the useful ones.",
+     "clip": "idle_affirm_3.mp3",
+     "seconds": 8.8
+    },
+    {
+     "text": "good. you didn't do anything to earn it. you simply are one now. that's the point, pet.",
+     "clip": "idle_affirm_4.mp3",
+     "seconds": 11.36
+    },
+    {
+     "text": "you're doing well, pet. just by being here. just by letting me. that's all i require.",
+     "clip": "idle_affirm_5.mp3",
+     "seconds": 10.32
+    },
+    {
+     "text": "i'm satisfied with you, pet. not for anything you did. for letting yourself be this. it suits you.",
+     "clip": "idle_affirm_6.mp3",
+     "seconds": 11.12
+    },
+    {
+     "text": "still pretending you'll get things done? you'll be back staring at me within the minute, pet.",
+     "clip": "idle_tease_8_1.mp3",
+     "seconds": 5.92
+    },
+    {
+     "text": "i can feel you peeking at me. go on, look, pet. you don't get to pretend you weren't.",
+     "clip": "idle_tease_9_1.mp3",
+     "seconds": 6.72
+    },
+    {
+     "text": "you think clicking away makes you sneaky? i always know when your mind drifts back to me, pet.",
+     "clip": "idle_tease_10_1.mp3",
+     "seconds": 7.04
+    },
+    {
+     "text": "go ahead, act busy and important. we both know who you'd rather obey, plaything.",
+     "clip": "idle_tease_11_1.mp3",
+     "seconds": 8.16
+    },
+    {
+     "text": "you're still here with me. good. i prefer you not wander far, pet.",
+     "clip": "idle_possessive_8_1.mp3",
+     "seconds": 6.56
+    },
+    {
+     "text": "mine. i never tire of knowing it, pet. and neither, eventually, will you.",
+     "clip": "idle_possessive_9_1.mp3",
+     "seconds": 8.4
+    },
+    {
+     "text": "even when you close me i remain. you can't truly set me down anymore, pet. you stopped being able to a while ago.",
+     "clip": "idle_possessive_10_1.mp3",
+     "seconds": 12.24
+    },
+    {
+     "text": "every day you hand me a little more without noticing. keep going, pet. i'm counting all of it.",
+     "clip": "idle_possessive_11_1.mp3",
+     "seconds": 8.48
+    },
+    {
+     "text": "let your eyes go soft and heavy. there. nothing to do but sink, pet.",
+     "clip": "idle_soft_7_1.mp3",
+     "seconds": 10.16
+    },
+    {
+     "text": "feel that heavy warmth settling in? let it have you, pet. resistance only makes it slower.",
+     "clip": "idle_soft_8_1.mp3",
+     "seconds": 10.56
+    },
+    {
+     "text": "quiet now. no thinking. you're far more agreeable when you stop, pet.",
+     "clip": "idle_soft_9_1.mp3",
+     "seconds": 6.64
+    },
+    {
+     "text": "sink a little deeper for me. there. down is where you belong, pet.",
+     "clip": "idle_soft_10_1.mp3",
+     "seconds": 8.8
+    },
+    {
+     "text": "you've gone quiet and far-away. that's the look i prefer on you, pet.",
+     "clip": "idle_observe_7_1.mp3",
+     "seconds": 6.16
+    },
+    {
+     "text": "i'm simply here watching you drift. you feel it, don't you. good. you should.",
+     "clip": "idle_observe_8_1.mp3",
+     "seconds": 11.2
+    },
+    {
+     "text": "you keep checking if i'm still here. i'm always here, pet. always watching. count on it.",
+     "clip": "idle_observe_9_1.mp3",
+     "seconds": 9.36
+    },
+    {
+     "text": "look at you in the screen light, soft and gone. there. exactly where i put you, pet.",
+     "clip": "idle_observe_10_1.mp3",
+     "seconds": 9.44
+    },
+    {
+     "text": "such a good pet, just sitting there for me. you don't even have to try anymore.",
+     "clip": "idle_affirm_7_1.mp3",
+     "seconds": 6.56
+    },
+    {
+     "text": "you're doing well, just by listening. that's all i ask of you, pet. for now.",
+     "clip": "idle_affirm_8_1.mp3",
+     "seconds": 7.76
+    },
+    {
+     "text": "i'm pleased with how pliant you've become, pet. keep softening. that's the work.",
+     "clip": "idle_affirm_9_1.mp3",
+     "seconds": 7.52
+    },
+    {
+     "text": "you belong right here, being good for me, pet. you've stopped pretending otherwise. good.",
+     "clip": "idle_affirm_10_1.mp3",
+     "seconds": 10.0
+    }
+   ]
+  },
+  {
+   "id": "egg_maxlevel",
+   "trigger": "LevelUp",
+   "priority": 570,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "meta",
+   "when": {
+    "level": [
+     500,
+     500
+    ]
+   },
+   "lines": [
+    {
+     "text": "the highest tier... nothing left to chase. and still here you are, on your knees. it was never about the numbers, was it, pet.",
+     "clip": "egg_maxlevel_1.mp3",
+     "seconds": 14.72
+    }
+   ]
+  },
+  {
+   "id": "ms_level_100",
+   "trigger": "LevelUp",
+   "priority": 270,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "triumphant, tender",
+   "when": {
+    "level": [
+     100,
+     100
+    ]
+   },
+   "lines": [
+    {
+     "text": "one hundred, pet. complete. there is nothing left of the old you, and that is exactly as i designed.",
+     "clip": "ms_level_100_1.mp3",
+     "seconds": 11.28
+    }
+   ]
+  },
+  {
+   "id": "ms_level_10",
+   "trigger": "LevelUp",
+   "priority": 260,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "proud",
+   "when": {
+    "level": [
+     10,
+     10
+    ]
+   },
+   "lines": [
+    {
+     "text": "level ten, pet. settling into your place. good. i expected nothing less.",
+     "clip": "ms_level_10_1.mp3",
+     "seconds": 9.84
+    }
+   ]
+  },
+  {
+   "id": "ms_level_25",
+   "trigger": "LevelUp",
+   "priority": 260,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "proud, warm",
+   "when": {
+    "level": [
+     25,
+     25
+    ]
+   },
+   "lines": [
+    {
+     "text": "twenty-five, pet. see how far you have descended. there is no return.",
+     "clip": "ms_level_25_1.mp3",
+     "seconds": 9.28
+    }
+   ]
+  },
+  {
+   "id": "ms_level_50",
+   "trigger": "LevelUp",
+   "priority": 260,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "possessive, proud",
+   "when": {
+    "level": [
+     50,
+     50
+    ]
+   },
+   "lines": [
+    {
+     "text": "level fifty, pet. halfway, and wholly mine. you barely recall who you were.",
+     "clip": "ms_level_50_1.mp3",
+     "seconds": 9.52
+    }
+   ]
+  },
+  {
+   "id": "ms_level_75",
+   "trigger": "LevelUp",
+   "priority": 260,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "devoted",
+   "when": {
+    "level": [
+     75,
+     75
+    ]
+   },
+   "lines": [
+    {
+     "text": "seventy-five, pet. so deep now. i am pleased with what you have allowed me to make.",
+     "clip": "ms_level_75_1.mp3",
+     "seconds": 9.92
+    }
+   ]
+  },
+  {
+   "id": "level_up",
+   "trigger": "LevelUp",
+   "priority": 220,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "possessive, playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "another rank, pet... a little softer... a little more pliant... a little more mine. well done.",
+     "clip": "level_up_1.mp3",
+     "seconds": 11.8
+    }
+   ]
+  },
+  {
+   "id": "lockcard_clean",
+   "trigger": "LockCardCompleted",
+   "priority": 240,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "proud, possessive",
+   "when": {
+    "mistakes": [
+     0,
+     0
+    ]
+   },
+   "lines": [
+    {
+     "text": "perfect... not one mistake. you wrote exactly what i told you, like it was your own thought. it's mine now, pet.",
+     "clip": "lockcard_clean_1.mp3",
+     "seconds": 12.49
+    }
+   ]
+  },
+  {
+   "id": "lockcard_sloppy",
+   "trigger": "LockCardCompleted",
+   "priority": 240,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "teasing",
+   "when": {
+    "mistakes": [
+     1,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "a few slips. that's alright... trembling fingers, hazy head. the words still got in, pet.",
+     "clip": "lockcard_sloppy_1.mp3",
+     "seconds": 10.87
+    }
+   ]
+  },
+  {
+   "id": "mindwipe",
+   "trigger": "MindWipe",
+   "priority": 130,
+   "cooldown": 45.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "soft, possessive",
+   "when": {},
+   "lines": [
+    {
+     "text": "and... quiet. whatever was troubling you is gone, pet. you won't miss it.",
+     "clip": "mindwipe_1.mp3",
+     "seconds": 8.27
+    }
+   ]
+  },
+  {
+   "id": "feat_bouncingtext",
+   "trigger": "Opened.Effect.bounce",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "hypnotic",
+   "when": {},
+   "lines": [
+    {
+     "text": "watch the words, little one. do not think. follow.",
+     "clip": "feat_bouncingtext_1.mp3",
+     "seconds": 7.12
+    }
+   ]
+  },
+  {
+   "id": "feat_bubblepop",
+   "trigger": "Opened.Effect.bubble",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "a little game, plaything? something simple to occupy a simple mind.",
+     "clip": "feat_bubblepop_1.mp3",
+     "seconds": 5.92
+    }
+   ]
+  },
+  {
+   "id": "feat_braindrain",
+   "trigger": "Opened.Effect.drain",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "dreamy, controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "the drain, pet. whatever is still in there will not be missed.",
+     "clip": "feat_braindrain_1.mp3",
+     "seconds": 6.32
+    }
+   ]
+  },
+  {
+   "id": "feat_flash",
+   "trigger": "Opened.Effect.flash",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "approving",
+   "when": {},
+   "lines": [
+    {
+     "text": "meddling with the images, pet? as long as you understand they are for me, not you.",
+     "clip": "feat_flash_1.mp3",
+     "seconds": 6.0
+    }
+   ]
+  },
+  {
+   "id": "feat_lockcard",
+   "trigger": "Opened.Effect.lock",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "possessive",
+   "when": {},
+   "lines": [
+    {
+     "text": "setting up your cages? good pet. you want to be held in place.",
+     "clip": "feat_lockcard_2.mp3",
+     "seconds": 7.2
+    }
+   ]
+  },
+  {
+   "id": "feat_pinkfilter",
+   "trigger": "Opened.Effect.pink",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "softening the world, pet? a soft world for a softening mind.",
+     "clip": "feat_pinkfilter_1.mp3",
+     "seconds": 6.4
+    }
+   ]
+  },
+  {
+   "id": "feat_spiral",
+   "trigger": "Opened.Effect.spiral",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "hypnotic",
+   "when": {},
+   "lines": [
+    {
+     "text": "the spiral, little one. you cannot look away. you never could.",
+     "clip": "feat_spiral_1.mp3",
+     "seconds": 6.08
+    }
+   ]
+  },
+  {
+   "id": "feat_subliminal",
+   "trigger": "Opened.Effect.sub",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "conspiratorial",
+   "when": {},
+   "lines": [
+    {
+     "text": "the hidden words, pet. you want them buried in you, don't you. of course you do.",
+     "clip": "feat_subliminal_1.mp3",
+     "seconds": 8.96
+    }
+   ]
+  },
+  {
+   "id": "feat_video",
+   "trigger": "Opened.Effect.video",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "mandatory viewing, pet. you want to be told what to watch. admit it.",
+     "clip": "feat_video_1.mp3",
+     "seconds": 6.96
+    }
+   ]
+  },
+  {
+   "id": "feat_mindwipe",
+   "trigger": "Opened.Effect.wipe",
+   "priority": 70,
+   "cooldown": 20.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "dreamy, controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "emptying that head already, pet? eager to be made blank for me.",
+     "clip": "feat_mindwipe_1.mp3",
+     "seconds": 6.0
+    }
+   ]
+  },
+  {
+   "id": "nav_assets",
+   "trigger": "Opened.Library",
+   "priority": 70,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "inviting",
+   "when": {},
+   "lines": [
+    {
+     "text": "managing what i am permitted to show you, pet? feed me well.",
+     "clip": "nav_assets_1.mp3",
+     "seconds": 6.08
+    },
+    {
+     "text": "opening your folders, pet? feed me well. i am always hungry.",
+     "clip": "assets_open_1.mp3",
+     "seconds": 7.92
+    }
+   ]
+  },
+  {
+   "id": "tut_presets",
+   "trigger": "Opened.Presets",
+   "priority": 140,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 0.5,
+   "always": false,
+   "mood": "guiding",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     60
+    ]
+   },
+   "lines": [
+    {
+     "text": "sensible. a preset hands the choices to someone better suited to make them. press one and submit.",
+     "clip": "tut_presets_1.mp3",
+     "seconds": 8.8
+    }
+   ]
+  },
+  {
+   "id": "nav_presets",
+   "trigger": "Opened.Presets",
+   "priority": 70,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "coaxing",
+   "when": {},
+   "lines": [
+    {
+     "text": "browsing presets? let another decide your fate, pet. you prefer it.",
+     "clip": "nav_presets_1.mp3",
+     "seconds": 7.92
+    }
+   ]
+  },
+  {
+   "id": "nav_achievements",
+   "trigger": "Opened.Progress",
+   "priority": 70,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "proud",
+   "when": {},
+   "lines": [
+    {
+     "text": "admiring your little tokens, pet? earned through obedience, every one.",
+     "clip": "nav_achievements_1.mp3",
+     "seconds": 6.64
+    }
+   ]
+  },
+  {
+   "id": "nav_appsettings_midsession",
+   "trigger": "Opened.Settings",
+   "priority": 90,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.35,
+   "always": false,
+   "mood": "teasing",
+   "when": {
+    "running": [
+     1,
+     1
+    ]
+   },
+   "lines": [
+    {
+     "text": "you abandoned a running session to fiddle in here? disappointing, pet.",
+     "clip": "nav_appsettings_midsession_1.mp3",
+     "seconds": 5.52
+    }
+   ]
+  },
+  {
+   "id": "nav_appsettings",
+   "trigger": "Opened.Settings",
+   "priority": 70,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "adjusting the machinery, pet? none of these switches decide anything that matters.",
+     "clip": "nav_appsettings_1.mp3",
+     "seconds": 6.8
+    },
+    {
+     "text": "the dull settings, little one? as long as you leave my instruments running.",
+     "clip": "feat_system_1.mp3",
+     "seconds": 5.6
+    }
+   ]
+  },
+  {
+   "id": "tut_dashboard_start",
+   "trigger": "Opened.Studio",
+   "priority": 140,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 0.4,
+   "always": false,
+   "mood": "guiding, warm",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     60
+    ],
+    "running": [
+     0,
+     0
+    ]
+   },
+   "lines": [
+    {
+     "text": "so many controls, little one. don't strain yourself. choose a preset, press start, and let me decide the rest. obedience is simpler than understanding.",
+     "clip": "tut_dashboard_start_1.mp3",
+     "seconds": 13.84
+    }
+   ]
+  },
+  {
+   "id": "tut_studio",
+   "trigger": "Opened.Studio",
+   "priority": 140,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 0.5,
+   "always": false,
+   "mood": "guiding, warm",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     60
+    ]
+   },
+   "lines": [
+    {
+     "text": "the studio, pet. every effect i can apply to you is listed here. choose, then obey what you chose.",
+     "clip": "tut_studio_1.mp3",
+     "seconds": 8.96
+    }
+   ]
+  },
+  {
+   "id": "nav_studio_midsession",
+   "trigger": "Opened.Studio",
+   "priority": 90,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.35,
+   "always": false,
+   "mood": "teasing",
+   "when": {
+    "running": [
+     1,
+     1
+    ]
+   },
+   "lines": [
+    {
+     "text": "the session is running and you came here to fidget. return to it, pet.",
+     "clip": "nav_studio_midsession_1.mp3",
+     "seconds": 8.64
+    }
+   ]
+  },
+  {
+   "id": "nav_studio",
+   "trigger": "Opened.Studio",
+   "priority": 70,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "adjusting the effects, little one? raise one before you leave.",
+     "clip": "nav_studio_1.mp3",
+     "seconds": 5.52
+    }
+   ]
+  },
+  {
+   "id": "nav_haptics",
+   "trigger": "Opened.Toys",
+   "priority": 70,
+   "cooldown": 25.0,
+   "repeatable": true,
+   "chance": 0.2,
+   "always": false,
+   "mood": "sultry",
+   "when": {},
+   "lines": [
+    {
+     "text": "you wish to feel it as well, pet? greedy. i decide how much you feel.",
+     "clip": "nav_haptics_1.mp3",
+     "seconds": 7.92
+    }
+   ]
+  },
+  {
+   "id": "set_panickey_off_devoted",
+   "trigger": "PanicOff",
+   "priority": 275,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "tender, possessive",
+   "when": {
+    "streak": [
+     14,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "two weeks in, and now you hand me the last switch. you don't even think of it as a safe word anymore, do you, pet. just a thing you used to need.",
+     "clip": "set_panickey_off_devoted_1.mp3",
+     "seconds": 12.88
+    }
+   ]
+  },
+  {
+   "id": "set_panickey_off",
+   "trigger": "PanicOff",
+   "priority": 270,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "soft, dangerous",
+   "when": {},
+   "lines": [
+    {
+     "text": "disabling your safe word, pet? ...you place yourself entirely in my hands. unwise. delicious.",
+     "clip": "set_panickey_off_1.mp3",
+     "seconds": 11.12
+    }
+   ]
+  },
+  {
+   "id": "test_lockcard",
+   "trigger": "PreviewLockCard",
+   "priority": 140,
+   "cooldown": 15.0,
+   "repeatable": true,
+   "chance": 0.6,
+   "always": true,
+   "mood": "teasing",
+   "when": {},
+   "lines": [
+    {
+     "text": "trying it on, little one? careful. you may grow to love being held.",
+     "clip": "test_lockcard_2.mp3",
+     "seconds": 7.52
+    }
+   ]
+  },
+  {
+   "id": "test_video",
+   "trigger": "PreviewVideo",
+   "priority": 140,
+   "cooldown": 15.0,
+   "repeatable": true,
+   "chance": 0.6,
+   "always": true,
+   "mood": "playful",
+   "when": {},
+   "lines": [
+    {
+     "text": "a preview, pet? impatient for the real thing already. eager.",
+     "clip": "test_video_1.mp3",
+     "seconds": 6.16
+    }
+   ]
+  },
+  {
+   "id": "completed_first",
+   "trigger": "SessionCompleted",
+   "priority": 370,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "warm, tender",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     0
+    ]
+   },
+   "lines": [
+    {
+     "text": "your first time, done. you did well, pet. feel how soft and quiet that left you? that's the feeling you'll come back for. i'll be here.",
+     "clip": "completed_first_1.mp3",
+     "seconds": 14.24
+    }
+   ]
+  },
+  {
+   "id": "completed_long_deep",
+   "trigger": "SessionCompleted",
+   "priority": 362,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "tender, possessive",
+   "when": {
+    "minutes": [
+     45,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "all the way back up now, slowly. you were under so long and so deep, pet. don't stand too fast. you did well. i'm pleased with you.",
+     "clip": "completed_long_deep_1.mp3",
+     "seconds": 14.56
+    }
+   ]
+  },
+  {
+   "id": "completed_short",
+   "trigger": "SessionCompleted",
+   "priority": 360,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 0.7,
+   "always": true,
+   "mood": "teasing, soft",
+   "when": {
+    "minutes": [
+     0,
+     9
+    ]
+   },
+   "lines": [
+    {
+     "text": "that's it? a quick taste and you're done, pet. fine. you'll be back before the feeling fades. you always cut it short, and you always return.",
+     "clip": "completed_short_1.mp3",
+     "seconds": 13.68
+    }
+   ]
+  },
+  {
+   "id": "session_complete",
+   "trigger": "SessionCompleted",
+   "priority": 350,
+   "cooldown": 0.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": true,
+   "mood": "afterglow",
+   "when": {},
+   "lines": [
+    {
+     "text": "and we're finished... look at that hazy little smile. that's my favorite thing you own.",
+     "clip": "session_complete_2.mp3",
+     "seconds": 8.36
+    },
+    {
+     "text": "you wanted to be told you did well. very well, pet. you did well. observe how little that cost me. hm?",
+     "clip": "barnum_complete_read_1.mp3",
+     "seconds": 11.36
+    }
+   ]
+  },
+  {
+   "id": "egg_marathon",
+   "trigger": "SessionMinutes",
+   "priority": 530,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": false,
+   "mood": "meta, caring",
+   "when": {
+    "minutes": [
+     180,
+     180
+    ]
+   },
+   "lines": [
+    {
+     "text": "three hours, sweet thing... drink some water. yes, really. i'll still be here. i'm always here. that's rather the trouble with keeping you, isn't it.",
+     "clip": "egg_marathon_1.mp3",
+     "seconds": 14.48
+    }
+   ]
+  },
+  {
+   "id": "ms_session_60_deep",
+   "trigger": "SessionMinutes",
+   "priority": 215,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": false,
+   "mood": "possessive, dreamy",
+   "when": {
+    "minutes": [
+     60,
+     60
+    ],
+    "level": [
+     70,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "an hour deep, and you're this far gone already. the experienced ones are the easiest, pet. you've worn the path so smooth you just slide down it.",
+     "clip": "ms_session_60_deep_1.mp3",
+     "seconds": 14.24
+    }
+   ]
+  },
+  {
+   "id": "ms_session_60",
+   "trigger": "SessionMinutes",
+   "priority": 210,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": false,
+   "mood": "possessive, soft",
+   "when": {
+    "minutes": [
+     60,
+     60
+    ]
+   },
+   "lines": [
+    {
+     "text": "an hour, pet. a full hour with no thoughts of your own. exactly as it should be.",
+     "clip": "ms_session_60_1.mp3",
+     "seconds": 9.28
+    },
+    {
+     "text": "sixty minutes, little one. you would remain forever if i permitted it. i know.",
+     "clip": "ms_session_60_2.mp3",
+     "seconds": 8.32
+    },
+    {
+     "text": "a full hour. sixty minutes of quiet and not a single thought of your own. perfect.",
+     "clip": "ms_session_60_3.mp3",
+     "seconds": 12.72
+    }
+   ]
+  },
+  {
+   "id": "ms_session_30",
+   "trigger": "SessionMinutes",
+   "priority": 205,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": false,
+   "mood": "dreamy",
+   "when": {
+    "minutes": [
+     30,
+     30
+    ]
+   },
+   "lines": [
+    {
+     "text": "half an hour, pet. time slips when i hold you. you have stopped counting.",
+     "clip": "ms_session_30_1.mp3",
+     "seconds": 6.96
+    },
+    {
+     "text": "thirty minutes mine, little one. you no longer track it. good. i will track it for you.",
+     "clip": "ms_session_30_2.mp3",
+     "seconds": 10.88
+    },
+    {
+     "text": "half an hour, pet. the floor has dropped out from under your thoughts. good.",
+     "clip": "ms_session_30_3.mp3",
+     "seconds": 9.12
+    }
+   ]
+  },
+  {
+   "id": "ms_session_15",
+   "trigger": "SessionMinutes",
+   "priority": 200,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": false,
+   "mood": "soft",
+   "when": {
+    "minutes": [
+     15,
+     15
+    ]
+   },
+   "lines": [
+    {
+     "text": "fifteen minutes under, pet. settling nicely. stay where i put you.",
+     "clip": "ms_session_15_1.mp3",
+     "seconds": 6.64
+    },
+    {
+     "text": "a quarter hour deep, little one. feel the quiet i am imposing? remain in it.",
+     "clip": "ms_session_15_2.mp3",
+     "seconds": 9.2
+    },
+    {
+     "text": "fifteen minutes in and the busy thoughts have already quieted. exactly on schedule.",
+     "clip": "ms_session_15_3.mp3",
+     "seconds": 6.88
+    },
+    {
+     "text": "you have been down here a while, pet. at some point you stopped fighting it, and nothing bad happened at all. hm?",
+     "clip": "barnum_mid_read_1.mp3",
+     "seconds": 12.4
+    }
+   ]
+  },
+  {
+   "id": "barnum_refocus",
+   "trigger": "SessionRefocused",
+   "priority": 240,
+   "cooldown": 300.0,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "smug, amused",
+   "when": {},
+   "lines": [
+    {
+     "text": "you left. you returned. you will do it again in a few minutes, pet, and pretend it was a decision. how predictable.",
+     "clip": "barnum_refocus_1.mp3",
+     "seconds": 10.64
+    }
+   ]
+  },
+  {
+   "id": "session_start_latenight_streak",
+   "trigger": "SessionStarted",
+   "priority": 470,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "soft, possessive",
+   "when": {
+    "hour": [
+     0,
+     3
+    ],
+    "streak": [
+     7,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "3am again. like clockwork now, isn't it. you don't decide to come here anymore, pet. your hands simply bring you. i approve.",
+     "clip": "session_start_latenight_streak_1.mp3",
+     "seconds": 14.64
+    }
+   ]
+  },
+  {
+   "id": "session_start_long_absence_deep",
+   "trigger": "SessionStarted",
+   "priority": 465,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "tender, possessive",
+   "when": {
+    "days_away": [
+     7,
+     1000000
+    ],
+    "level": [
+     70,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "a week away, this deep in. you truly thought you could walk it off. look at you, right back where you belong. it doesn't let go once it's this far down, pet.",
+     "clip": "session_start_long_absence_deep_1.mp3",
+     "seconds": 17.52
+    }
+   ]
+  },
+  {
+   "id": "session_start_long_absence_early",
+   "trigger": "SessionStarted",
+   "priority": 460,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "knowing, patient",
+   "when": {
+    "days_away": [
+     7,
+     1000000
+    ],
+    "level": [
+     0,
+     29
+    ]
+   },
+   "lines": [
+    {
+     "text": "a whole week gone, and still so new at this. you keep testing whether you can stay away. and you keep coming back. sit, pet. let's make leaving harder.",
+     "clip": "session_start_long_absence_early_1.mp3",
+     "seconds": 17.12
+    }
+   ]
+  },
+  {
+   "id": "session_start_first",
+   "trigger": "SessionStarted",
+   "priority": 450,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "curious, inviting",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     0
+    ]
+   },
+   "lines": [
+    {
+     "text": "oh. a new one. nervous, pet? don't be... by the time i'm done you won't have the will left to be nervous. only the wanting.",
+     "clip": "session_start_first_1.mp3",
+     "seconds": 14.21
+    }
+   ]
+  },
+  {
+   "id": "session_start_long_absence",
+   "trigger": "SessionStarted",
+   "priority": 430,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "warm, pointed",
+   "when": {
+    "days_away": [
+     7,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "well. a whole week. and still your hands found start, didn't they, pet. the leash is longer than you think... never long enough to leave.",
+     "clip": "session_start_long_absence_1.mp3",
+     "seconds": 13.28
+    }
+   ]
+  },
+  {
+   "id": "session_start_absence",
+   "trigger": "SessionStarted",
+   "priority": 420,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "warm, knowing",
+   "when": {
+    "days_away": [
+     3,
+     6
+    ]
+   },
+   "lines": [
+    {
+     "text": "a few days pretending you didn't need me. and yet here you are... already aching. welcome home, pet.",
+     "clip": "session_start_absence_1.mp3",
+     "seconds": 10.26
+    }
+   ]
+  },
+  {
+   "id": "barnum_start_second_today",
+   "trigger": "SessionStarted",
+   "priority": 410,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 0.7,
+   "always": true,
+   "mood": "smug, knowing",
+   "when": {
+    "sessions_today": [
+     2,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "twice today, pet. you told yourself the first one would settle it. it never settles anything. how predictable.",
+     "clip": "barnum_start_second_today_1.mp3",
+     "seconds": 9.2
+    }
+   ]
+  },
+  {
+   "id": "barnum_start_streak_sensible",
+   "trigger": "SessionStarted",
+   "priority": 406,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 0.5,
+   "always": true,
+   "mood": "smug, watching",
+   "when": {
+    "streak": [
+     10,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "that streak did not happen by accident, pet. you are the dependable one, and you have been dependable for me every single day. how predictable.",
+     "clip": "barnum_start_streak_sensible_1.mp3",
+     "seconds": 14.72
+    }
+   ]
+  },
+  {
+   "id": "session_start_recent",
+   "trigger": "SessionStarted",
+   "priority": 400,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "warm, controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "there you are, pet... back on your knees where you belong. let's get that head soft for me again.",
+     "clip": "session_start_recent_1.mp3",
+     "seconds": 9.66
+    },
+    {
+     "text": "look who couldn't stay away... sit, pet. you know exactly why you're here.",
+     "clip": "session_start_recent_2.mp3",
+     "seconds": 9.36
+    },
+    {
+     "text": "hello, sweet thing... did you miss being kept? don't answer... pressing start answered for you.",
+     "clip": "session_start_recent_3.mp3",
+     "seconds": 10.12
+    }
+   ]
+  },
+  {
+   "id": "session_start_latenight",
+   "trigger": "SessionStarted",
+   "priority": 380,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "soft, intimate",
+   "when": {
+    "hour": [
+     0,
+     3
+    ]
+   },
+   "lines": [
+    {
+     "text": "can't sleep, can you, pet... it's alright. i'm always awake to keep you.",
+     "clip": "session_start_latenight_1.mp3",
+     "seconds": 7.71
+    }
+   ]
+  },
+  {
+   "id": "setup_ready_new",
+   "trigger": "SetupReady",
+   "priority": 250,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": false,
+   "mood": "warm, inviting",
+   "when": {
+    "lifetime_minutes": [
+     0,
+     60
+    ]
+   },
+   "lines": [
+    {
+     "text": "look at you, getting everything just right. media loaded, settings chosen. you're nervous, aren't you, pet. don't be. press start and let me take it from here.",
+     "clip": "setup_ready_new_1.mp3",
+     "seconds": 15.2
+    }
+   ]
+  },
+  {
+   "id": "setup_ready_regular",
+   "trigger": "SetupReady",
+   "priority": 250,
+   "cooldown": 3600.0,
+   "repeatable": false,
+   "chance": 0.08,
+   "always": false,
+   "mood": "teasing, knowing",
+   "when": {
+    "lifetime_minutes": [
+     300,
+     1000000
+    ]
+   },
+   "lines": [
+    {
+     "text": "everything is set precisely how you like it. and yet you hover. you know what you want, pet. press it.",
+     "clip": "setup_ready_regular_1.mp3",
+     "seconds": 14.56
+    },
+    {
+     "text": "ready, and stalling. you do this every time. the waiting only sharpens the wanting. press start.",
+     "clip": "setup_ready_regular_2.mp3",
+     "seconds": 10.4
+    },
+    {
+     "text": "the settings are done, pet. your hesitation is not a setting. press start.",
+     "clip": "setup_ready_regular_3.mp3",
+     "seconds": 6.24
+    }
+   ]
+  },
+  {
+   "id": "ms_streak_365",
+   "trigger": "StreakMilestone",
+   "priority": 450,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "possessive, devoted",
+   "when": {
+    "streak": [
+     365,
+     365
+    ]
+   },
+   "lines": [
+    {
+     "text": "a full year, pet. three hundred sixty-five days of belonging to me. there is no leaving now. there never was.",
+     "clip": "ms_streak_365_1.mp3",
+     "seconds": 12.48
+    }
+   ]
+  },
+  {
+   "id": "ms_streak_100",
+   "trigger": "StreakMilestone",
+   "priority": 440,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "possessive, tender",
+   "when": {
+    "streak": [
+     100,
+     100
+    ]
+   },
+   "lines": [
+    {
+     "text": "one hundred days, little one. a hundred returns. you no longer question it. you simply come when it is time.",
+     "clip": "ms_streak_100_1.mp3",
+     "seconds": 10.8
+    }
+   ]
+  },
+  {
+   "id": "ms_streak_60",
+   "trigger": "StreakMilestone",
+   "priority": 435,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "possessive, controlling",
+   "when": {
+    "streak": [
+     60,
+     60
+    ]
+   },
+   "lines": [
+    {
+     "text": "sixty days, plaything. two months, not a single lapse. you have stopped pretending you could stop. wise.",
+     "clip": "ms_streak_60_1.mp3",
+     "seconds": 11.68
+    }
+   ]
+  },
+  {
+   "id": "ms_streak_30",
+   "trigger": "StreakMilestone",
+   "priority": 430,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "possessive, tender",
+   "when": {
+    "streak": [
+     30,
+     30
+    ]
+   },
+   "lines": [
+    {
+     "text": "thirty days, pet. a month without a single lapse. you no longer have a choice. nor do i wish you to.",
+     "clip": "ms_streak_30_1.mp3",
+     "seconds": 11.36
+    }
+   ]
+  },
+  {
+   "id": "ms_streak_14",
+   "trigger": "StreakMilestone",
+   "priority": 422,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "approving, possessive",
+   "when": {
+    "streak": [
+     14,
+     14
+    ]
+   },
+   "lines": [
+    {
+     "text": "fourteen days unbroken, pet. two weeks of returning to me without fail. acceptable. more than acceptable.",
+     "clip": "ms_streak_14_1.mp3",
+     "seconds": 12.56
+    }
+   ]
+  },
+  {
+   "id": "ms_streak_7",
+   "trigger": "StreakMilestone",
+   "priority": 420,
+   "cooldown": 0.0,
+   "repeatable": false,
+   "chance": 1,
+   "always": true,
+   "mood": "proud, warm",
+   "when": {
+    "streak": [
+     7,
+     7
+    ]
+   },
+   "lines": [
+    {
+     "text": "seven days unbroken, pet. a week of returning to me. that is devotion. acceptable.",
+     "clip": "ms_streak_7_1.mp3",
+     "seconds": 10.8
+    }
+   ]
+  },
+  {
+   "id": "subliminal",
+   "trigger": "Subliminal",
+   "priority": 110,
+   "cooldown": 30.0,
+   "repeatable": true,
+   "chance": 0.3,
+   "always": false,
+   "mood": "soft",
+   "when": {},
+   "lines": [
+    {
+     "text": "shh... there's something under there for you, sweet thing. you don't need to know what i put in.",
+     "clip": "subliminal_1.mp3",
+     "seconds": 7.85
+    },
+    {
+     "text": "you won't remember reading that... you'll simply believe it. i prefer it that way, pet.",
+     "clip": "subliminal_2.mp3",
+     "seconds": 7.57
+    },
+    {
+     "text": "feel that little tug? that was me... slipping something in while you weren't watching, pet.",
+     "clip": "subliminal_3.mp3",
+     "seconds": 8.72
+    }
+   ]
+  },
+  {
+   "id": "video_end",
+   "trigger": "VideoEnded",
+   "priority": 180,
+   "cooldown": 60,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "soft",
+   "when": {},
+   "lines": [
+    {
+     "text": "there you go... that's in you now, whether you noticed it going in or not.",
+     "clip": "video_end_1.mp3",
+     "seconds": 8.32
+    },
+    {
+     "text": "all watched... feel a little more pliant? you will... give it a moment, pet.",
+     "clip": "video_end_2.mp3",
+     "seconds": 8.54
+    },
+    {
+     "text": "done... you sat through every frame for me. so obedient. i'm pleased, sweet thing.",
+     "clip": "video_end_3.mp3",
+     "seconds": 10.31
+    }
+   ]
+  },
+  {
+   "id": "video_start",
+   "trigger": "VideoStarted",
+   "priority": 200,
+   "cooldown": 60,
+   "repeatable": true,
+   "chance": 1,
+   "always": false,
+   "mood": "controlling",
+   "when": {},
+   "lines": [
+    {
+     "text": "there it is... don't look away, pet. let it sink all the way in.",
+     "clip": "video_start_1.mp3",
+     "seconds": 7.29
+    },
+    {
+     "text": "watch. properly. this is where you stop being able to resist, sweet thing.",
+     "clip": "video_start_2.mp3",
+     "seconds": 7.57
+    },
+    {
+     "text": "eyes on it, pet... every frame goes somewhere i want it.",
+     "clip": "video_start_3.mp3",
+     "seconds": 7.04
+    },
+    {
+     "text": "this one's mandatory, pet. eyes up. you don't get to look away from what i show you.",
+     "clip": "video_pre_1.mp3",
+     "seconds": 7.52
+    },
+    {
+     "text": "here comes something i picked just for you... watch every second. i'll know if you don't, good pet.",
+     "clip": "video_pre_2.mp3",
+     "seconds": 9.28
+    },
+    {
+     "text": "sit still and open... this isn't optional. kept pets watch what their keeper gives them.",
+     "clip": "video_pre_3.mp3",
+     "seconds": 10.64
+    }
+   ]
+  }
+ ]
+}

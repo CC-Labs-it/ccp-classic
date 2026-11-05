@@ -8,6 +8,7 @@ using Avalonia.VisualTree;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using CCP.Classic.App.Controls;
+using CCP.Classic.App.Effects;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
 
@@ -18,26 +19,20 @@ public sealed partial class MainWindow
     public void OpenSheet(string key)
     {
         capturePanic = false;
+        if (sheet != key) BarkOpened(key);
         sheet = key;
         var content = new StackPanel { Spacing = 10, Margin = new(14, 12) };
         switch (key)
         {
             case "Settings": FillSettings(content); break;
             case "Library":
-                foreach (var kind in new[] { "Images", "Videos", "Audio" })
-                    content.Children.Add(Row(kind, PendingButton("Change"), "NoFolder"));
-                content.Children.Add(Note("StarterPackPending"));
+                FillLibrary(content);
                 break;
             case "Companion":
-                foreach (var setting in new[] { "Avatar", "Barks", "TriggerPhrases", "KeywordTriggers" })
-                    content.Children.Add(Row(setting, DisabledToggle()));
-                content.Children.Add(Note("CompanionPending"));
+                FillCompanion(content);
                 break;
             case "Toys":
-                foreach (var provider in new[] { "Intiface", "LovenseConnect" })
-                    content.Children.Add(Row(provider, PendingButton("Connect"), "NotConnected"));
-                content.Children.Add(Note("LocalhostOnly"));
-                content.Children.Add(Note("ToysPending"));
+                FillToys(content);
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(key));
         }
@@ -48,38 +43,62 @@ public sealed partial class MainWindow
     {
         capturePanic = false;
         var definition = EffectCatalog.All.Single(d => d.Id == id && (!d.WindowsOnly || windows));
+        BarkOpened("Effect." + id);
         sheet = null;
         var content = new StackPanel { Spacing = 12, Margin = new(14, 12) };
-        content.Children.Add(new EffectCard(definition, Settings.Effects[id], text, () =>
+        var card = new EffectCard(definition, Settings.Effects[id], text, () =>
         {
             foreach (var tile in this.GetVisualDescendants().OfType<EffectTile>()) tile.Refresh();
-        }));
-        content.Children.Add(Note("ShellOnly"));
+            effects?.RefreshSettings();
+        }, EffectCustomization(id));
+        card.ActionRequested += key => { if (id == "spiral" && key == "loom") OpenLoom(); };
+        card.ValueChanged += key =>
+        {
+            if (id != "spiral" || key != "spiral") return;
+            Settings.CustomSpiralId = null; Settings.Spiral.UseProcedural = true; effects?.RefreshSettings();
+        };
+        content.Children.Add(card);
+        content.Children.Add(Note(DesktopEffectsService.IsPlayable(id) ? "LiveSettings" : "Unavailable"));
         ShowSettingsWindow(definition.Title, content);
     }
 
     private void ShowSettingsWindow(string key, Control content)
     {
         SettingsWindow?.Close();
-        var frame = new Grid { RowDefinitions = new("44,*,44") };
-        var header = new Grid { ColumnDefinitions = new("*,Auto"), Margin = new(14, 0) };
-        var title = Label(text[key], 14); title.Name = "SheetTitle"; title.FontWeight = FontWeight.SemiBold;
+        var frame = new Grid { RowDefinitions = new("58,*,32") };
+        var header = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 12, Margin = new(18, 0) };
+        var title = Label(text[key], 21); title.Name = "SheetTitle"; title.FontWeight = FontWeight.SemiBold;
+        title.Foreground = Brush("#FF9BD5"); title.TextWrapping = TextWrapping.Wrap; title.MaxLines = 2;
         header.Children.Add(title);
         var close = Button("Close", CloseSheet); close.Name = "SheetClose";
-        Grid.SetColumn(close, 1); header.Children.Add(close); frame.Children.Add(header);
-        var scroll = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        actions.Children.Add(HelpButton(key)); actions.Children.Add(close);
+        Grid.SetColumn(actions, 1); header.Children.Add(actions); frame.Children.Add(header);
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        var maximumHeight = Math.Max(200, (screen?.WorkingArea.Height / (screen?.Scaling ?? 1) ?? 900) - 48);
+        var maximumWidth = Math.Max(320, (screen?.WorkingArea.Width / (screen?.Scaling ?? 1) ?? 1280) - 40);
+        var scroll = new ScrollViewer { Content = content, MaxHeight = Math.Max(100, maximumHeight - 124),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetRow(scroll, 1); frame.Children.Add(scroll);
-        var credit = Label(text["ByCredit"], 11); credit.HorizontalAlignment = HorizontalAlignment.Center;
+        var credit = Label(text["ByCredit"], 12); credit.Foreground = Brush("#AFA6C7"); credit.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(credit, 2); frame.Children.Add(credit);
-        var child = new Window { Title = "CCP Classic · " + text[key], Width = 450, Height = 650,
-            MinWidth = 420, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        var child = new Window { Title = "CCP Classic · " + text[key], Width = Math.Min(760, maximumWidth),
+            SizeToContent = SizeToContent.Height, MinWidth = Math.Min(400, maximumWidth), MinHeight = 180,
+            MaxHeight = maximumHeight, MaxWidth = maximumWidth, WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = new Border { Name = "SheetHost", Child = frame } };
+        if (key == "Library")
+        {
+            child.SizeToContent = SizeToContent.Manual; child.Width = Math.Min(920, maximumWidth);
+            child.Height = Math.Min(740, maximumHeight); child.MinWidth = Math.Min(880, maximumWidth);
+        }
+        VisualPolish.ApplyWindow(child, Settings);
         child.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
-        child.AddHandler(KeyUpEvent, (_, e) => Session.KeyUp(e.Key.ToString()), RoutingStrategies.Tunnel, handledEventsToo: true);
+        child.AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
         child.Deactivated += (_, _) => ReleaseKeysWhenUnfocused();
         child.Closed += (_, _) => { if (ReferenceEquals(SettingsWindow, child)) SettingsWindow = null; capturePanic = false; };
         SettingsWindow = child;
         child.Show(this);
+        VisualPolish.Enter(content, Settings);
         close.Focus();
     }
 
@@ -98,18 +117,21 @@ public sealed partial class MainWindow
                 RefreshLanguage(selected.Code);
         };
         content.Children.Add(Row("Language", language));
-        foreach (var key in new[] { "StartWithSystem", "StartHidden", "AutoRun" })
-            content.Children.Add(Row(key, DisabledToggle()));
+        var startup = Toggle(Settings.StartWithSystem, text["StartWithSystem"], ChangeStartupPreference); startup.Name = "StartWithSystem";
+        content.Children.Add(Row("StartWithSystem", startup));
+        content.Children.Add(Row("StartHidden", Toggle(Settings.StartHidden, text["StartHidden"], value => Settings.StartHidden = value), "StartHiddenHelp"));
+        content.Children.Add(Row("AutoRun", Toggle(Settings.AutoRun, text["AutoRun"], value => Settings.AutoRun = value)));
         content.Children.Add(Row("FillAllMonitors", Toggle(Settings.FillAllMonitors, text["FillAllMonitors"], value => Settings.FillAllMonitors = value)));
         var panicKey = Button("Change", () => { capturePanic = true; SetStatus("CapturePanicKey"); });
         panicKey.Content = PanicName() + " · " + text["Change"];
         content.Children.Add(Row("PanicKey", panicKey, "PanicKeyHelp"));
         var soft = Toggle(Settings.GentleVisuals, text["GentleVisuals"], SetGentle); soft.Name = "SettingsGentle";
         content.Children.Add(Row("GentleVisuals", soft, "GentleVisualsHelp"));
-        content.Children.Add(Row("Performance", Toggle(Settings.PerformanceMode, text["Performance"], value => Settings.PerformanceMode = value)));
-        content.Children.Add(Row("ReducedMotion", Toggle(Settings.ReducedMotion, text["ReducedMotion"], value => Settings.ReducedMotion = value)));
+        content.Children.Add(Row("Performance", Toggle(Settings.PerformanceMode, text["Performance"], value => { Settings.PerformanceMode = value; VisualPolish.ApplyWindow(this, Settings); })));
+        content.Children.Add(Row("ReducedMotion", Toggle(Settings.ReducedMotion, text["ReducedMotion"], value => { Settings.ReducedMotion = value; VisualPolish.ApplyWindow(this, Settings); })));
         content.Children.Add(Row("Export", Button("Export", ExportSettings)));
-        content.Children.Add(Row("Reset", PendingButton("Reset")));
+        content.Children.Add(Row("Reset", Button("Reset", ResetSettings)));
+        content.Children.Add(Row("AppVersion", NewVersionLink()));
         var warning = new StackPanel { Spacing = 10, IsVisible = false };
         warning.Children.Add(Note("NoPanicWarning"));
         var confirm = Button("ConfirmNoPanic", () => { Session.SetPanicEnabled(false, true); OpenSheet("Settings"); });
@@ -125,7 +147,40 @@ public sealed partial class MainWindow
             else { red.IsVisible = true; warning.IsVisible = true; }
         });
         noPanic.Name = "NoPanic"; noPanic.Foreground = Brush("#FF8A8A");
-        content.Children.Add(noPanic); content.Children.Add(red);
+        content.Children.Add(OptionHelp.Wrap(noPanic, "NoPanic", text)); content.Children.Add(red);
+        var rows = content.Children.ToArray(); content.Children.Clear(); content.Spacing = 0;
+        content.Children.Add(OptionLayout.Group(rows.Take(5), text["OptionsGeneral"]));
+        content.Children.Add(OptionLayout.Group(rows.Skip(5).Take(4), text["GentleVisuals"], 1));
+        content.Children.Add(OptionLayout.Group(rows.Skip(9), text["OptionsUtility"], 2));
+    }
+
+    public static readonly Uri ReleasesPage = new("https://github.com/CC-Labs-it/ccp-classic/releases");
+
+    /// <summary>The installed version. Builds pass -p:Version; the commit suffix after '+' is dropped.</summary>
+    public static string AppVersion
+    {
+        get
+        {
+            var value = typeof(MainWindow).Assembly
+                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion ?? "";
+            var plus = value.IndexOf('+');
+            return plus >= 0 ? value[..plus] : value;
+        }
+    }
+
+    // Owner-approved like the support banner: opens the public releases page in the system browser, only when clicked.
+    // The app itself never checks for updates.
+    private Control NewVersionLink()
+    {
+        var link = new HyperlinkButton { Name = "NewVersionLink", Content = text["NewVersionLink"], NavigateUri = ReleasesPage,
+            Padding = new(2, 3), MinHeight = 24, FontSize = 13, FontWeight = FontWeight.SemiBold,
+            Foreground = Brush("#FF83C5"), Background = Brushes.Transparent };
+        ToolTip.SetTip(link, "github.com/CC-Labs-it/ccp-classic/releases");
+        var version = Label(AppVersion, 13); version.Name = "AppVersionText"; version.Foreground = Brush("#C7B6EB");
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        panel.Children.Add(version); panel.Children.Add(link);
+        return panel;
     }
 
     private async void ExportSettings()
@@ -144,16 +199,18 @@ public sealed partial class MainWindow
 
     private Control Row(string key, Control control, string? hint = null)
     {
-        var grid = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 8, MinHeight = 36 };
+        var grid = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 12, MinHeight = 40 };
         var words = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-        words.Children.Add(Label(text[key]));
+        var label = Label(text[key], 14); label.Foreground = Brush("#D7C9F0"); label.FontWeight = FontWeight.Medium;
+        label.TextWrapping = TextWrapping.Wrap; words.Children.Add(label);
         if (hint is not null) words.Children.Add(Note(hint));
         grid.Children.Add(words); Grid.SetColumn(control, 1); grid.Children.Add(control);
-        return grid;
+        var helped = OptionHelp.Wrap(grid, key, text);
+        if (key is not ("Intiface" or "Lovense")) helped.Classes.Add("option-compact"); return helped;
     }
     private TextBlock Note(string key)
     {
-        var label = Label(text[key], 11); label.Classes.Add("muted"); label.TextWrapping = TextWrapping.Wrap; return label;
+        var label = Label(text[key], 12.5); label.Classes.Add("muted"); label.TextWrapping = TextWrapping.Wrap; return label;
     }
     private Button PendingButton(string key)
     {

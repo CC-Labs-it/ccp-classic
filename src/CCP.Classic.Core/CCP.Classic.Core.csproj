@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <EmbeddedResource Include="Localization/Languages/*.json" />
+    <EmbeddedResource Include="Barks/barks.json" LogicalName="CCP.Classic.Core.Barks.barks.json" />
   </ItemGroup>
 </Project>

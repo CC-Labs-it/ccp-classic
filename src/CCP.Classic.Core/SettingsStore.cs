@@ -26,6 +26,9 @@ public sealed class SettingsStore(string path)
         }
     }
 
+    /// <summary>The saved form of the settings, used to tell whether anything changed since the last save.</summary>
+    public static string Snapshot(ClassicSettings settings) => JsonSerializer.Serialize(settings, Options);
+
     public void Save(ClassicSettings settings)
     {
         settings.Normalize();

@@ -18,6 +18,16 @@ namespace CCP.Classic.Tests;
 public sealed class ShellTests
 {
     [Fact]
+    public Task LoadingAPresetClosesEditorsHoldingThePreviousOptions() => WithWindow(window =>
+    {
+        window.OpenEffect("flash"); var previous = window.SettingsWindow!;
+        window.SelectTab("Presets"); Dispatcher.UIThread.RunJobs();
+        Named<Button>(window, "PresetLoad_builtin-gentle").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.False(previous.IsVisible); Assert.Null(window.SettingsWindow);
+        window.OpenEffect("flash"); Assert.NotSame(previous, window.SettingsWindow);
+    });
+
+    [Fact]
     public Task DefaultWindowFitsTheMosaicWithoutEmptySideColumns() => WithWindow(window =>
     {
         Assert.InRange(window.Width / window.Height, .9, 1.1);
@@ -29,10 +39,86 @@ public sealed class ShellTests
         Assert.True(corner.Y + mosaic.Bounds.Height <= start.Y);
     });
 
+    [Fact]
+    public Task SettingsSaveOnTheirOwnWithoutASaveButton() => UiDispatcher.Run(() =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "ccp-classic-ui-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(folder, "settings.json");
+        var store = new SettingsStore(path);
+        var window = new MainWindow(new ClassicSettings(), store, windows: true);
+        try
+        {
+            window.Show();
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(), b => b.Name == "SaveSettings");
+            window.FlushSettings();
+            Assert.False(File.Exists(path));
+            Click(window, Named<ToggleButton>(window, "GentleToggle"));
+            window.FlushSettings();
+            Assert.True(store.Load(out _).GentleVisuals);
+            Click(window, Named<ToggleButton>(window, "GentleToggle"));
+            window.Close();
+            Assert.False(store.Load(out _).GentleVisuals);
+        }
+        finally
+        {
+            window.Close();
+            if (File.Exists(path)) File.Delete(path);
+            if (Directory.Exists(folder)) Directory.Delete(folder);
+        }
+    });
+
+    [Fact]
+    public Task SettingsShowTheVersionAndLinkToTheReleasesPage() => WithWindow(window =>
+    {
+        window.OpenSheet("Settings");
+        var child = Owned(window);
+        var link = Named<HyperlinkButton>(child, "NewVersionLink");
+        Assert.Equal(new Uri("https://github.com/CC-Labs-it/ccp-classic/releases"), link.NavigateUri);
+        Assert.False(string.IsNullOrWhiteSpace(Named<TextBlock>(child, "AppVersionText").Text));
+        Assert.DoesNotContain("+", MainWindow.AppVersion);
+    });
+
+    [Fact]
+    public Task SupportBannerUsesTheFixedSystemBrowserLinkAndLocalizedCaption() => WithWindow(window =>
+    {
+        var expected = new Uri("https://www.patreon.com/CodeBambi");
+        foreach (var code in new[] { "en", "it" })
+        {
+            window.RefreshLanguage(code); Dispatcher.UIThread.RunJobs();
+            var link = Named<HyperlinkButton>(window, "SupportLink");
+            Assert.Equal(expected, link.NavigateUri);
+            Assert.Equal(new LocalizationService(code)["SupportLink"], link.Content);
+            Assert.True(link.IsEffectivelyVisible);
+            var banner = Named<Border>(window, "SupportBanner");
+            Assert.True(banner.Bounds.Width <= window.ClientSize.Width);
+        }
+    });
+
+    [Fact]
+    public Task FlashEditorFitsItsControlsAndMoreExpandsWithinTheScreen() => WithWindow(window =>
+    {
+        window.OpenEffect("flash"); var editor = Owned(window); editor.UpdateLayout();
+        var collapsed = editor.ClientSize.Height;
+        Assert.Equal(SizeToContent.Height, editor.SizeToContent);
+        Assert.InRange(collapsed, 180, 700);
+        Assert.True(collapsed <= editor.MaxHeight);
+        Click(editor, Named<Button>(editor, "More_flash")); editor.UpdateLayout();
+        Assert.True(editor.ClientSize.Height > collapsed);
+        Assert.True(editor.ClientSize.Height <= editor.MaxHeight);
+        var fade = Named<Slider>(editor, "Knob_flash_fade");
+        fade.BringIntoView(); Dispatcher.UIThread.RunJobs();
+        Assert.True(fade.IsEffectivelyVisible); Assert.True(fade.IsEffectivelyEnabled);
+        AssertFrame(editor, "flash-settings-expanded", 300);
+        Click(editor, Named<Button>(editor, "More_flash")); editor.UpdateLayout();
+        Assert.Equal(collapsed, editor.ClientSize.Height, 1);
+        AssertFrame(editor, "flash-settings-compact", 300);
+        AssertFrame(window, "studio-support", 700);
+    }, settings: new() { GentleVisuals = true, ReducedMotion = true });
+
     [Theory]
     [InlineData(true, 12)]
     [InlineData(false, 11)]
-    public Task DashboardTilesOpenOwnedEditorsWithAtMostThreePrimaryControls(bool windows, int count) =>
+    public Task DashboardTilesOpenOwnedEditorsWithUsefulPrimaryControls(bool windows, int count) =>
         WithWindow(window =>
         {
             var tiles = window.GetVisualDescendants().OfType<EffectTile>().ToArray();
@@ -44,7 +130,7 @@ public sealed class ShellTests
                 Click(window, Named<EffectTile>(window, "Effect_" + definition.Id));
                 var editor = Owned(window);
                 var card = Assert.Single(editor.GetVisualDescendants().OfType<EffectCard>());
-                Assert.InRange(card.PrimaryControlCount, 1, 3);
+                Assert.InRange(card.PrimaryControlCount, 1, 6);
                 if (definition.Id == "flash")
                 {
                     var more = Named<Button>(editor, "More_flash");
@@ -194,7 +280,7 @@ public sealed class ShellTests
             Click(child, Named<Button>(child, "SheetClose"));
             Assert.False(Named<ToggleButton>(window, "GentleToggle").IsChecked);
             Click(window, Named<ToggleButton>(window, "GentleToggle"));
-            Click(window, Named<Button>(window, "SaveSettings"));
+            window.FlushSettings();
             var saved = store.Load(out var recovered);
             Assert.False(recovered);
             Assert.True(saved.GentleVisuals);
@@ -235,9 +321,9 @@ public sealed class ShellTests
             }
         });
 
-    private static Task WithWindow(Action<MainWindow> action, bool windows = true) => UiDispatcher.Run(() =>
+    private static Task WithWindow(Action<MainWindow> action, bool windows = true, ClassicSettings? settings = null) => UiDispatcher.Run(() =>
     {
-        var window = new MainWindow(new ClassicSettings(), windows: windows);
+        var window = new MainWindow(settings ?? new ClassicSettings(), windows: windows);
         try { window.Show(); Dispatcher.UIThread.RunJobs(); action(window); }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });

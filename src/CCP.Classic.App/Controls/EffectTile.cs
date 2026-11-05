@@ -24,7 +24,7 @@ public sealed class EffectTile : Button
     private bool hovered;
 
     public EffectTile(EffectDefinition definition, EffectSettings settings,
-        LocalizationService text, Action open, Action changed)
+        LocalizationService text, Action open, Action changed, ClassicSettings? preferences = null)
     {
         this.settings = settings;
         Name = "Effect_" + definition.Id;
@@ -52,6 +52,12 @@ public sealed class EffectTile : Button
             Background = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
                 EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative), GradientStops =
                 [new GradientStop(Colors.Transparent, 0), new GradientStop(Color.Parse("#E6050512"), 1)] } });
+        canvas.Children.Add(new Border { Height = 62, VerticalAlignment = VerticalAlignment.Top, IsHitTestVisible = false,
+            Background = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative), EndPoint = new(0, 1, RelativeUnit.Relative),
+                GradientStops = [new(Color.Parse("#20FFFFFF"), 0), new(Colors.Transparent, 1)] } });
+        canvas.Children.Add(new Border { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+            Margin = new(8), CornerRadius = new(7), Background = Brush("#A00F0D20"), Padding = new(5, 2), IsHitTestVisible = false,
+            Child = new TextBlock { Text = "⚙", FontSize = 13, Foreground = Brush("#E8DAEF") } });
         var caption = new Grid { ColumnDefinitions = new ColumnDefinitions("10,*"),
             Margin = new Thickness(10, 7), VerticalAlignment = VerticalAlignment.Bottom };
         lamp = new Ellipse { Width = 5, Height = 5, VerticalAlignment = VerticalAlignment.Center,
@@ -63,7 +69,7 @@ public sealed class EffectTile : Button
         Grid.SetColumn(title, 1);
         caption.Children.Add(title);
         canvas.Children.Add(caption);
-        frame = new Border { Child = canvas, CornerRadius = new CornerRadius(9),
+        frame = new Border { Child = canvas, CornerRadius = new CornerRadius(12),
             BorderThickness = new Thickness(1), ClipToBounds = true, Background = Brush("#1C1C35") };
         Template = new FuncControlTemplate<EffectTile>((_, _) => frame);
         Click += (_, _) => { open(); Refresh(); };
@@ -79,15 +85,21 @@ public sealed class EffectTile : Button
         PointerExited += (_, _) => { hovered = false; Refresh(); };
         GotFocus += (_, _) => Refresh();
         LostFocus += (_, _) => Refresh();
+        PropertyChanged += (_, change) => { if (change.Property == IsPressedProperty) Refresh(); };
+        if (preferences is not null) VisualPolish.AttachHover(this, preferences, 1.025);
         Refresh();
     }
 
     public void Refresh()
     {
         lamp.Fill = Brush(settings.Enabled ? "#FF69B4" : "#66667C");
-        frame.BorderBrush = Brush(hovered || IsFocused ? "#FF9ACE" : settings.Enabled ? "#A75487" : "#33334E");
-        frame.BoxShadow = BoxShadows.Parse(settings.Enabled ? "0 2 8 0 #45000000, 0 0 5 0 #20FF69B4" : "0 2 6 0 #59000000");
-        if (picture is not null) picture.Opacity = settings.Enabled ? 1 : .45;
+        frame.BorderBrush = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative), EndPoint = new(1, 1, RelativeUnit.Relative),
+            GradientStops = [new(Color.Parse(hovered || IsFocused ? "#FFFFB29F" : settings.Enabled ? "#99FF7E6B" : "#524B63"), 0),
+                new(Color.Parse(hovered || IsFocused ? "#FFFF8FD0" : settings.Enabled ? "#AAFF69B4" : "#38314C"), 1)] };
+        frame.BoxShadow = BoxShadows.Parse(IsPressed ? "0 1 3 0 #A0000000" : hovered || IsFocused
+            ? "0 10 24 0 #90000000, 0 0 15 0 #40FF69B4" : settings.Enabled
+                ? "0 4 12 0 #80000000, 0 0 7 0 #25FF69B4" : "0 3 10 0 #75000000");
+        if (picture is not null) picture.Opacity = settings.Enabled ? 1 : hovered ? .86 : .68;
     }
 
     private static Bitmap? ReadImage(string id)

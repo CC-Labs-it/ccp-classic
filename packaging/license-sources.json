@@ -1,0 +1,37 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/d3c867a9e2de379249b03dbeb3495bd7f076a81a/licence.md",
+    "file": "Avalonia-LICENSE.txt",
+    "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/d3c867a9e2de379249b03dbeb3495bd7f076a81a/NOTICE.md",
+    "file": "Avalonia-NOTICE.md",
+    "sha256": "dd6f80852d16320c865a2e403ffd1a8b07a0e34c5b37122c0bc2343639ff68e6"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/kekekeks/MicroCom/76785efcafd91b5902fd19dd11145f6dd655b7b4/LICENSE",
+    "file": "MicroCom-LICENSE.txt",
+    "sha256": "6ee769c9ac4dac9abb16b98b1341e9528ff9f4ab685481410d3376d14148f3a9"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/tmds/Tmds.DBus/b4a7fed0b878f74cb54f7cca84d2889af4e596ba/COPYING",
+    "file": "Tmds-DBus-COPYING.txt",
+    "sha256": "aca3b49277abcc7886ccb2f115603a9f5b15fc3f96019a10c00f2974098b210c"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/rsms/inter/v4.1/LICENSE.txt",
+    "file": "Inter-OFL.txt",
+    "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/videolan/vlc/3.0.24/COPYING.LIB",
+    "file": "LibVLC-LGPL-2.1.txt",
+    "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/videolan/libvlcsharp/4896d0e06d19ac40b46802cf7dc167d432f3fd63/LICENSE",
+    "file": "LibVLCSharp-LGPL-2.1.txt",
+    "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+  }
+]

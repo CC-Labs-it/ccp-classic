@@ -24,6 +24,7 @@ public sealed class AnimatedLogo : Control
     private bool attached;
     private double phase, energy, last;
     public bool IsMotionActive => attached && motionAllowed();
+    internal long PresentedFrames { get; private set; }
 
     public AnimatedLogo(Func<bool> motionAllowed)
     {
@@ -70,13 +71,14 @@ public sealed class AnimatedLogo : Control
         _ = pending.ContinueWith(result => Dispatcher.UIThread.Post(() =>
         {
             pending = null;
-            if (result.IsFaulted || !attached || !ReferenceEquals(target, buffer)) return;
+            if (result.IsFaulted || !IsMotionActive || !ReferenceEquals(target, buffer)) return;
             if (frame?.PixelSize.Width != size)
             {
                 frame?.Dispose(); frame = new(new PixelSize(size, size), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
             }
             using (var pixels = target.PeekPixels())
             using (var locked = frame.Lock()) pixels.ReadPixels(target.Info, locked.Address, locked.RowBytes);
+            PresentedFrames++;
             InvalidateVisual();
         }), TaskScheduler.Default);
     }

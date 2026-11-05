@@ -166,7 +166,7 @@ internal sealed class DashboardLogoRenderer : IDisposable
 
     private void DrawSparks(SKCanvas canvas, double phase, double energy)
     {
-        var count = (int)Math.Round(6 + energy * 18);
+        var count = (int)Math.Round(24 + energy * 28);
         for (var i = 0; i < count; i++)
         {
             var right = i % 2 == 1;
@@ -174,7 +174,7 @@ internal sealed class DashboardLogoRenderer : IDisposable
             var x = (right ? 803 : 225) + (right ? 1 : -1) * (life * 34 + i % 4 * 5);
             var y = 518 + Math.Sin(i * 7.1) * 23 + Math.Sin(life * Math.PI) * (right ? 1 : -1) * (12 + 20 * energy);
             var alpha = Math.Pow(Math.Sin(life * Math.PI), 4) * (.12 + .7 * energy);
-            Star(canvas, x, y, 1.1 + energy * 1.8, alpha, right ? new SKColor(243, 153, 255) : new SKColor(255, 171, 201));
+            Star(canvas, x, y, 2.4 + energy * 2.8, alpha, right ? new SKColor(243, 153, 255) : new SKColor(255, 171, 201));
         }
         if (energy <= .02) return;
         for (var i = 0; i < _badges.Length; i++)

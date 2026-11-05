@@ -6,8 +6,25 @@
     <SolidColorBrush x:Key="ClassicSurface">#181830</SolidColorBrush>
     <SolidColorBrush x:Key="ClassicLine">#2E2E4A</SolidColorBrush>
     <SolidColorBrush x:Key="ClassicPink">#FF69B4</SolidColorBrush>
-    <SolidColorBrush x:Key="ClassicText">#F0F0F5</SolidColorBrush>
-    <SolidColorBrush x:Key="ClassicMuted">#A0A0BC</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicText">#F1ECF8</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicMuted">#AEA5C6</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicLavender">#D7C9F0</SolidColorBrush>
+    <SolidColorBrush x:Key="ClassicCyan">#91E0EE</SolidColorBrush>
+    <LinearGradientBrush x:Key="ClassicRaisedSurface" StartPoint="0%,0%" EndPoint="100%,100%">
+      <GradientStop Offset="0" Color="#30283E" />
+      <GradientStop Offset="1" Color="#1B192C" />
+    </LinearGradientBrush>
+    <!-- CCP Velvet Kit coral and pink card edge, adapted to native Avalonia controls. -->
+    <LinearGradientBrush x:Key="ClassicAccentEdge" StartPoint="0%,0%" EndPoint="100%,100%">
+      <GradientStop Offset="0" Color="#88FF7E6B" />
+      <GradientStop Offset="0.45" Color="#35FF7E6B" />
+      <GradientStop Offset="1" Color="#88FF69B4" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ClassicPrimaryFace" StartPoint="0%,0%" EndPoint="100%,100%">
+      <GradientStop Offset="0" Color="#FF9BBD" />
+      <GradientStop Offset="0.52" Color="#FF69B4" />
+      <GradientStop Offset="1" Color="#E9559F" />
+    </LinearGradientBrush>
     <ControlTheme x:Key="ClassicTrackButton" TargetType="RepeatButton">
       <Setter Property="Focusable" Value="False" />
       <Setter Property="Template">
@@ -18,11 +35,11 @@
   <Style Selector="Window">
     <Setter Property="Background" Value="{StaticResource ClassicBackground}" />
     <Setter Property="Foreground" Value="{StaticResource ClassicText}" />
-    <Setter Property="FontFamily" Value="Inter, Segoe UI, sans-serif" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
+    <Setter Property="FontSize" Value="14" />
   </Style>
   <Style Selector=":is(Border).card">
-    <Setter Property="Background" Value="{StaticResource ClassicPanel}" />
+    <Setter Property="Background" Value="{StaticResource ClassicRaisedSurface}" />
     <Setter Property="BorderBrush">
       <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
         <GradientStop Offset="0" Color="#38384F" />
@@ -31,34 +48,62 @@
       </LinearGradientBrush>
     </Setter>
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="BoxShadow" Value="0 2 6 0 #59000000" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BoxShadow" Value="0 5 16 0 #70000000, inset 0 1 0 0 #12FFFFFF" />
   </Style>
   <Style Selector="TextBlock.chrome-title">
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource ClassicText}" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicLavender}" />
   </Style>
   <Style Selector="TextBlock.muted">
     <Setter Property="Foreground" Value="{StaticResource ClassicMuted}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="12.5" />
   </Style>
   <Style Selector="Button, ToggleButton, ComboBox">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="CornerRadius" Value="6" />
-    <Setter Property="Background" Value="{StaticResource ClassicSurface}" />
-    <Setter Property="BorderBrush" Value="#33335A" />
+    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Background" Value="{StaticResource ClassicRaisedSurface}" />
+    <Setter Property="BorderBrush" Value="#51415E" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="MinHeight" Value="32" />
   </Style>
   <Style Selector="Button.pill, ToggleButton.pill">
     <Setter Property="Padding" Value="10,3" />
   </Style>
   <Style Selector="Button, ToggleButton">
+    <Setter Property="Cursor" Value="Hand" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.pill /template/ ContentPresenter, ToggleButton.pill /template/ ContentPresenter">
-    <Setter Property="BoxShadow" Value="0 1 0 0 #66000000" />
+    <Setter Property="BoxShadow" Value="0 3 8 0 #65000000, inset 0 1 0 0 #20FFFFFF" />
+  </Style>
+  <Style Selector="Button.pill:pointerover /template/ ContentPresenter, ToggleButton.pill:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#39304B" />
+    <Setter Property="BorderBrush" Value="#CE83B3" />
+    <Setter Property="Foreground" Value="#FFF0FA" />
+    <Setter Property="BoxShadow" Value="0 5 12 0 #80000000, 0 0 10 0 #22FF69B4" />
+  </Style>
+  <Style Selector="Button.pill:pressed /template/ ContentPresenter, ToggleButton.pill:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#191626" />
+    <Setter Property="BoxShadow" Value="inset 0 2 5 0 #90000000" />
+  </Style>
+  <Style Selector="Button:focus-visible /template/ ContentPresenter, ToggleButton:focus-visible /template/ ContentPresenter">
+    <Setter Property="BorderBrush" Value="#FFB2DC" />
+  </Style>
+  <Style Selector="Button.pill:disabled /template/ ContentPresenter, ToggleButton.pill:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource ClassicSurface}" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicMuted}" />
+    <Setter Property="BorderBrush" Value="{StaticResource ClassicLine}" />
+    <Setter Property="BoxShadow" Value="none" />
+  </Style>
+  <Style Selector="Window.motion Button.pill /template/ ContentPresenter, Window.motion ToggleButton.pill /template/ ContentPresenter">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.14" />
+      </Transitions>
+    </Setter>
   </Style>
   <Style Selector="ToggleButton.pill:checked">
     <Setter Property="Background" Value="#141428" />
@@ -71,7 +116,7 @@
     <Setter Property="Foreground" Value="{StaticResource ClassicPink}" />
   </Style>
   <Style Selector="Button.primary">
-    <Setter Property="Background" Value="{StaticResource ClassicPink}" />
+    <Setter Property="Background" Value="{StaticResource ClassicPrimaryFace}" />
     <Setter Property="Foreground" Value="#1A0A12" />
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="FontSize" Value="14" />
@@ -80,30 +125,75 @@
     <Setter Property="BorderThickness" Value="0" />
   </Style>
   <Style Selector="Button.primary /template/ ContentPresenter">
-    <Setter Property="BoxShadow" Value="0 2 0 0 #E0507A, 0 4 10 0 #40FF1493" />
+    <Setter Property="BoxShadow" Value="0 3 0 0 #A83367, 0 6 16 0 #60FF1493, inset 0 1 0 0 #80FFE8F4" />
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#E95A9F" />
+    <Setter Property="BoxShadow" Value="inset 0 2 4 0 #80451332, 0 1 5 0 #30FF1493" />
+  </Style>
+  <Style Selector="Border.art-card">
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Background" Value="{StaticResource ClassicRaisedSurface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource ClassicAccentEdge}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="0 5 18 0 #75000000, inset 0 1 0 0 #16FFFFFF" />
+  </Style>
+  <Style Selector="Border.art-card:pointerover, Border.art-card.selected">
+    <Setter Property="BorderBrush" Value="#DB8DBE" />
+    <Setter Property="BoxShadow" Value="0 8 22 0 #90000000, 0 0 16 0 #30FF69B4" />
+  </Style>
+  <Style Selector="Border.art-card.locked">
+    <Setter Property="Opacity" Value="0.72" />
+  </Style>
+  <Style Selector="Button.media-card /template/ ContentPresenter, Button.art-card /template/ ContentPresenter">
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderBrush" Value="{StaticResource ClassicAccentEdge}" />
+    <Setter Property="BoxShadow" Value="0 4 12 0 #75000000" />
+  </Style>
+  <Style Selector="Button.media-card:pointerover /template/ ContentPresenter, Button.art-card:pointerover /template/ ContentPresenter">
+    <Setter Property="BorderBrush" Value="#F29CCC" />
+    <Setter Property="BoxShadow" Value="0 8 20 0 #90000000, 0 0 12 0 #35FF69B4" />
+  </Style>
+  <Style Selector="Button.media-card:pressed /template/ ContentPresenter, Button.art-card:pressed /template/ ContentPresenter">
+    <Setter Property="BoxShadow" Value="inset 0 2 6 0 #90000000" />
+  </Style>
+  <Style Selector="TextBox, NumericUpDown">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicCyan}" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="#141221" />
+    <Setter Property="BorderBrush" Value="#4B3C5A" />
+  </Style>
+  <Style Selector="TextBox:focus, NumericUpDown:focus-within">
+    <Setter Property="BorderBrush" Value="#D980B8" />
+  </Style>
+  <Style Selector="ComboBoxItem:pointerover">
+    <Setter Property="Background" Value="#36283F" />
   </Style>
   <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="#FF7AC0" />
     <Setter Property="Foreground" Value="#1A0A12" />
   </Style>
   <Style Selector="Button.more">
-    <Setter Property="Foreground" Value="{StaticResource ClassicMuted}" />
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="MinHeight" Value="17" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{StaticResource ClassicLavender}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Background" Value="#242138" />
+    <Setter Property="BorderBrush" Value="#51415E" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Slider.knob">
-    <Setter Property="Height" Value="16" />
+    <Setter Property="Height" Value="22" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="Foreground" Value="#C9C9DE" />
+    <Setter Property="Foreground" Value="#F0C1DC" />
     <Setter Property="Background" Value="{StaticResource ClassicLine}" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Grid Height="16">
-          <Border Height="4" Margin="6,0" CornerRadius="2" VerticalAlignment="Center"
+        <Grid Height="22">
+          <Border Height="5" Margin="8,0" CornerRadius="3" VerticalAlignment="Center"
                   Background="#2E2E4A" BoxShadow="inset 0 1 1 0 #80000000" />
           <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}"
                  Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}"
@@ -114,10 +204,10 @@
             <Track.IncreaseButton>
               <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource ClassicTrackButton}" />
             </Track.IncreaseButton>
-            <Thumb Name="thumb" Width="12" Height="16" MinWidth="0" MinHeight="0">
+            <Thumb Name="thumb" Width="16" Height="22" MinWidth="0" MinHeight="0">
               <Thumb.Template>
                 <ControlTemplate>
-                  <Border Width="12" Height="12" CornerRadius="6" Background="#C9C9DE"
+                  <Border Width="16" Height="16" CornerRadius="8" Background="#B2E6F0"
                           BorderBrush="#0E0E1A" BorderThickness="1" VerticalAlignment="Center"
                           BoxShadow="0 1 2 0 #99000000" />
                 </ControlTemplate>
@@ -129,17 +219,17 @@
     </Setter>
   </Style>
   <Style Selector="ToggleButton.switch">
-    <Setter Property="Width" Value="34" />
-    <Setter Property="Height" Value="18" />
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="22" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Border Name="SwitchTrack" CornerRadius="9" Background="#2E2E4A"
+        <Border Name="SwitchTrack" CornerRadius="11" Background="#2E2E4A"
                 BorderBrush="#3A3A5A" BorderThickness="1" BoxShadow="0 1 2 0 #80000000">
-          <Ellipse Name="SwitchThumb" Width="12" Height="12" Fill="#C9C9DE"
-                   HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0" />
+          <Ellipse Name="SwitchThumb" Width="14" Height="14" Fill="#D7C9F0"
+                   HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0" />
         </Border>
       </ControlTemplate>
     </Setter>

@@ -43,8 +43,73 @@ public sealed class SettingsTests
         settings.Effects["video"].Values.Clear();
         settings.Normalize();
         Assert.Equal(0, settings.RunMinutes);
-        Assert.Equal(60, settings.Effects["flash"].Values["rate"]);
+        Assert.Equal(180, settings.Effects["flash"].Values["rate"]);
         Assert.Equal(8, settings.Effects["video"].Values["cap"]);
         Assert.All(EffectCatalog.All, d => Assert.InRange(d.Primary.Count, 1, 3));
+    }
+
+    [Fact]
+    public void OlderPreviewFilesAcquireExitAndBubbleDefaultsAndKeepPersistedChoices()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "settings.json");
+        try
+        {
+            File.WriteAllText(path, """
+                {"SchemaVersion":1,"Language":"it","PanicKey":"F8","Effects":{
+                  "flash":{"Enabled":true,"Values":{"rate":18,"opacity":71}},
+                  "bubble":{"Enabled":true,"Values":{"rate":12,"click":1,"sound":0}}}}
+                """);
+            var store = new SettingsStore(path); var loaded = store.Load(out var recovered);
+            Assert.False(recovered); Assert.Equal("it", loaded.Language); Assert.Equal("F8", loaded.PanicKey);
+            Assert.Equal(18, loaded.Effects["flash"].Values["rate"]); Assert.Equal(0, loaded.Effects["bubble"].Values["sound"]);
+            Assert.Equal(0, loaded.Effects["flash"].Values["exit"]);
+            Assert.Equal(1, loaded.Effects["bubble"].Values["effects"]);
+            Assert.Equal(10, loaded.Effects["bubble"].Values["chance"]); Assert.Equal(0, loaded.Effects["bubble"].Values["kind"]);
+            loaded.Effects["flash"].Values["exit"] = 999;
+            loaded.Effects["bubble"].Values["effects"] = 0; loaded.Effects["bubble"].Values["chance"] = 37;
+            loaded.Effects["bubble"].Values["kind"] = 999;
+            store.Save(loaded); var restored = store.Load(out recovered);
+            Assert.False(recovered); Assert.Equal(6, restored.Effects["flash"].Values["exit"]);
+            Assert.Equal(0, restored.Effects["bubble"].Values["effects"]);
+            Assert.Equal(37, restored.Effects["bubble"].Values["chance"]); Assert.Equal(9, restored.Effects["bubble"].Values["kind"]);
+            Assert.Equal(71, restored.Effects["flash"].Values["opacity"]); Assert.Equal(0, restored.Effects["bubble"].Values["sound"]);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    // Keyword triggers were removed. Files written before then still load, keep every other choice and
+    // lose the keyword fields on the next save.
+    [Fact]
+    public void FilesWithRemovedKeywordTriggerDataLoadAndDropIt()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "settings.json");
+        try
+        {
+            File.WriteAllText(path, """
+                {"SchemaVersion":2,"Language":"it","PanicKey":"F8","KeywordTriggersEnabled":true,"TriggerPhrasesEnabled":true,
+                 "Keywords":{"BufferTimeoutMs":3000,"GlobalCooldownSeconds":10,"SameWordCooldownSeconds":15,
+                   "SessionXpMultiplier":1.5,"IgnoreOwnFocus":true,"AppScope":1,"Apps":["notepad"],"LoopProtection":true,
+                   "LoopProtectionMs":5000,"Triggers":[{"Id":"0123456789abcdef0123456789abcdef","Keyword":"focus","Enabled":true,
+                     "Match":1,"CooldownSeconds":30,"AppScope":0,"Apps":[],"Actions":[{"Kind":0,"Enabled":true,"Visual":9},
+                     {"Kind":1,"AudioPath":"C:/missing.mp3","Gain":0.8,"PlayCount":2,"DelayMs":200,"DuckAudio":true},
+                     {"Kind":2,"Gain":0.5},{"Kind":3,"Xp":10}]}]},
+                 "Devices":{"EventLevels":{"Keyword":0.9,"Flash":0.4},"EventPatterns":{"Keyword":2},
+                   "Routing":{"EventTargets":{"Keyword":1}}},
+                 "Effects":{"flash":{"Enabled":true,"Values":{"rate":18}}}}
+                """);
+            var store = new SettingsStore(path); var loaded = store.Load(out var recovered);
+            Assert.False(recovered); Assert.Equal("it", loaded.Language); Assert.Equal("F8", loaded.PanicKey);
+            Assert.True(loaded.TriggerPhrasesEnabled); Assert.Equal(18, loaded.Effects["flash"].Values["rate"]);
+            Assert.Equal(.4, loaded.Devices.EventLevels["Flash"]);
+            Assert.DoesNotContain("Keyword", loaded.Devices.EventLevels.Keys);
+            Assert.DoesNotContain("Keyword", loaded.Devices.EventPatterns.Keys);
+            Assert.DoesNotContain("Keyword", loaded.Devices.Routing.EventTargets.Keys);
+            store.Save(loaded);
+            Assert.DoesNotContain("Keyword", File.ReadAllText(path), StringComparison.OrdinalIgnoreCase);
+            Assert.True(store.Load(out recovered).TriggerPhrasesEnabled); Assert.False(recovered);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
     }
 }

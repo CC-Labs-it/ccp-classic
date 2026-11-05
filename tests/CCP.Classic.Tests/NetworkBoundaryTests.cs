@@ -15,7 +15,7 @@ public sealed class NetworkBoundaryTests
         var hits = Directory.EnumerateFiles(root.FullName, "*", SearchOption.AllDirectories)
             .Where(f => extensions.Contains(Path.GetExtension(f)))
             .Where(f => !Path.GetRelativePath(root.FullName, f).Split(Path.DirectorySeparatorChar)
-                .Any(p => p is "bin" or "obj" or ".git"))
+                .Any(p => p is "bin" or "obj" or ".git" or "artifacts"))
             .Where(f => !Path.GetRelativePath(root.FullName, f).Replace('\\', '/')
                 .StartsWith("src/CCP.Classic.Core/LocalDevices/", StringComparison.Ordinal))
             .Where(f => forbidden.Any(token => File.ReadAllText(f).Contains(token, StringComparison.Ordinal)))

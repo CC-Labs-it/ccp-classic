@@ -1,0 +1,93 @@
+using CCP.Classic.Core;
+using LibVLCSharp.Shared;
+using System.Runtime.InteropServices;
+
+namespace CCP.Classic.App.Media;
+
+public sealed record LocalAudioOutput(string Id, string Name);
+
+public static class AudioOutputSelection
+{
+    private static string selected = "";
+    public static void Configure(AudioOptions options)
+    {
+        Volatile.Write(ref selected, Sanitize(options.OutputDeviceId));
+    }
+    internal static string Sanitize(string? id) => id is not null && id.Length <= 1024 && !id.Any(char.IsControl) ? id : "";
+    // Called only on the native player worker. The output module stays DirectSound on Windows.
+    internal static void Apply(MediaPlayer player, ref string? previous)
+        => Apply(Volatile.Read(ref selected), ref previous, id => SetNativeDevice(OperatingSystem.IsWindows(), id,
+            (module, device) => player.SetOutputDevice(deviceId: device, module: module)));
+    internal static void Apply(string selectedId, ref string? previous, Action<string> set)
+    {
+        if (previous == selectedId) return;
+        set(selectedId); previous = selectedId;
+    }
+    internal static void SetNativeDevice(bool windows, string id, Action<string?, string> set)
+    {
+        // VLC3 stores module-specific choices for a future output. DirectSound's configuration prefix is directx.
+        if (windows) set("directx", id);
+        // On Windows an empty string restores the default. VLC treats a null device as no request at all.
+        // VLC3's PulseAudio output passes the device id as a sink name, and "" is an invalid sink, so the
+        // stream is refused and playback falls through to a silent ALSA output. Linux leaves the default alone.
+        if (windows || id.Length > 0) set(null, id);
+    }
+    public static Task<IReadOnlyList<LocalAudioOutput>> EnumerateAsync(CancellationToken token = default) => Task.Run<IReadOnlyList<LocalAudioOutput>>(() =>
+    {
+        token.ThrowIfCancellationRequested();
+        if (OperatingSystem.IsWindows()) return EnumerateDirectSound(ReadDirectSound, token);
+        NativeAudioDevice.EnsureInitialized();
+        using var vlc = new LibVLC(NativeAudioDevice.Options(OperatingSystem.IsWindows()));
+        // VLC3's instance-level AudioOutputDevices("pulse") is always empty. A player creates its output
+        // module up front, and that module reports the server's sinks (PulseAudio or PipeWire's pulse layer).
+        using var player = new MediaPlayer(vlc);
+        var result = FromVlcDevices(player.AudioOutputDeviceEnum.Select(item => ((string?)item.DeviceIdentifier, (string?)item.Description)), token);
+        token.ThrowIfCancellationRequested(); return result;
+    }, token);
+
+    // Ids follow Configure's limits so a listed output can always be selected. The empty id is System default.
+    internal static IReadOnlyList<LocalAudioOutput> FromVlcDevices(IEnumerable<(string? Id, string? Name)> devices, CancellationToken token)
+    {
+        var result = new List<LocalAudioOutput>(); var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (id, description) in devices)
+        {
+            token.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(id) || Sanitize(id).Length == 0 || !seen.Add(id)) continue;
+            var name = new string((description ?? "").Where(character => !char.IsControl(character)).Take(256).ToArray());
+            result.Add(new(id, string.IsNullOrWhiteSpace(name) ? id : name));
+            if (result.Count >= 128) break;
+        }
+        return result.AsReadOnly();
+    }
+
+    // VLC3 directsound.c uses DirectSoundEnumerate and StringFromGUID2, then IIDFromString on selection.
+    // Its legacy instance-level AudioOutputDevices API does not enumerate this module reliably.
+    internal static IReadOnlyList<LocalAudioOutput> EnumerateDirectSound(Func<Func<Guid?, string?, bool>, int> enumerate, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested(); var result = new List<LocalAudioOutput>(); var seen = new HashSet<Guid>();
+        var error = enumerate((guid, description) =>
+        {
+            if (token.IsCancellationRequested || result.Count >= 128) return false;
+            // The null primary-driver callback duplicates the separately localized System Default option.
+            if (guid is null || guid == Guid.Empty || !seen.Add(guid.Value)) return true;
+            var id = guid.Value.ToString("B").ToUpperInvariant();
+            var name = new string((description ?? "").Where(character => !char.IsControl(character)).Take(256).ToArray());
+            result.Add(new(id, string.IsNullOrWhiteSpace(name) ? id : name)); return result.Count < 128;
+        });
+        token.ThrowIfCancellationRequested();
+        if (error < 0) throw new IOException("Audio output enumeration is unavailable.", Marshal.GetExceptionForHR(error));
+        return result.AsReadOnly();
+    }
+    private static int ReadDirectSound(Func<Guid?, string?, bool> receive)
+    {
+        DirectSoundCallback callback = (guid, description, _, _) => receive(guid == IntPtr.Zero ? null : Marshal.PtrToStructure<Guid>(guid),
+            description == IntPtr.Zero ? null : Marshal.PtrToStringUni(description));
+        var result = DirectSoundEnumerate(callback, IntPtr.Zero); GC.KeepAlive(callback); return result;
+    }
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool DirectSoundCallback(IntPtr guid, IntPtr description, IntPtr module, IntPtr context);
+    [DllImport("dsound.dll", EntryPoint = "DirectSoundEnumerateW", ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern int DirectSoundEnumerate(DirectSoundCallback callback, IntPtr context);
+}

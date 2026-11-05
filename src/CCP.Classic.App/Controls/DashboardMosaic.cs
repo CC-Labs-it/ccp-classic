@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia;
+using Avalonia.Media;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
 
@@ -24,12 +26,17 @@ public static class DashboardMosaic
             var definition = EffectCatalog.All.Single(x => x.Id == id);
             if (definition.WindowsOnly && !windows) continue;
             var tile = new EffectTile(definition, settings.Effects[id], text,
-                () => open(definition), () => { });
+                () => open(definition), () => { }, settings);
             Grid.SetRow(tile, row);
             Grid.SetColumn(tile, column);
             mosaic.Children.Add(tile);
         }
-        var centre = logo();
+        var centre = new Border { Name = "LogoFrame", Child = logo(), Margin = new(5), CornerRadius = new(14),
+            Background = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative), EndPoint = new(1, 1, RelativeUnit.Relative),
+                GradientStops = [new(Color.Parse("#2B173D"), 0), new(Color.Parse("#120E20"), 1)] },
+            BorderBrush = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative), EndPoint = new(1, 1, RelativeUnit.Relative),
+                GradientStops = [new(Color.Parse("#88FF7E6B"), 0), new(Color.Parse("#66D06BFF"), 1)] },
+            BorderThickness = new(1), BoxShadow = BoxShadows.Parse("0 8 24 0 #90000000, 0 0 18 0 #24FF69B4") };
         Grid.SetRow(centre, 1);
         Grid.SetColumn(centre, 1);
         Grid.SetRowSpan(centre, 2);
