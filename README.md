@@ -6,6 +6,10 @@ One main window, three tabs, twelve image tiles around the animated CCP logo.
 Click a tile to open its settings window. No accounts, downloads, telemetry,
 mods or games. Licensed under MIT.
 
+**Download:** the latest build is on the [releases page](https://github.com/CC-Labs-it/ccp-classic/releases)
+(Windows installer or zip, Linux tarball). 18+ only. Bugs and ideas: open an issue, or
+#ccp-classic on the CCP Discord.
+
 ## Development
 
 Requires .NET 10. The desktop uses Avalonia 12.1.2, matching the CCP port.
