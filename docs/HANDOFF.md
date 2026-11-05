@@ -1,5 +1,18 @@
 # CCP Classic handoff
 
+## 1.0.0-beta.6, 2026-11-05 (fix/beta6-autosave)
+
+Before announcing Classic to every CCP user (beta.5 had 11 downloads and no feedback in
+#ccp-classic), the owner asked for two fixes. 1) Settings save on their own: the main-window
+timer compares `SettingsStore.Snapshot` every 2 s and writes on change, `Closed` flushes once
+more, a failed write shows SaveFailed once; the Save button is gone (`MainWindow.FlushSettings`).
+2) Classic has no update path, so Settings > Utility shows the version (assembly informational
+version, `+sha` dropped) and a "Check for a new version" HyperlinkButton to
+https://github.com/CC-Labs-it/ccp-classic/releases (owner approval 2026-11-05, same rule as the
+support banner: click only, system browser, no request from the app). Three loc keys in all ten
+languages. Notes drop "right click her" (chrome stays neutral) and the "press Save" warning:
+artifacts/release-v1.0.0-beta.6/NOTES.md. 830 Release tests pass (6 opt-in skipped).
+
 ## 1.0.0-beta.5 release, 2026-11-03
 
 Owner tested the unpackaged build (tube size/centre, menu, emotes, barks) and asked for the

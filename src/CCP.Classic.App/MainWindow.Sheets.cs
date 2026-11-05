@@ -131,6 +131,7 @@ public sealed partial class MainWindow
         content.Children.Add(Row("ReducedMotion", Toggle(Settings.ReducedMotion, text["ReducedMotion"], value => { Settings.ReducedMotion = value; VisualPolish.ApplyWindow(this, Settings); })));
         content.Children.Add(Row("Export", Button("Export", ExportSettings)));
         content.Children.Add(Row("Reset", Button("Reset", ResetSettings)));
+        content.Children.Add(Row("AppVersion", NewVersionLink()));
         var warning = new StackPanel { Spacing = 10, IsVisible = false };
         warning.Children.Add(Note("NoPanicWarning"));
         var confirm = Button("ConfirmNoPanic", () => { Session.SetPanicEnabled(false, true); OpenSheet("Settings"); });
@@ -151,6 +152,35 @@ public sealed partial class MainWindow
         content.Children.Add(OptionLayout.Group(rows.Take(5), text["OptionsGeneral"]));
         content.Children.Add(OptionLayout.Group(rows.Skip(5).Take(4), text["GentleVisuals"], 1));
         content.Children.Add(OptionLayout.Group(rows.Skip(9), text["OptionsUtility"], 2));
+    }
+
+    public static readonly Uri ReleasesPage = new("https://github.com/CC-Labs-it/ccp-classic/releases");
+
+    /// <summary>The installed version. Builds pass -p:Version; the commit suffix after '+' is dropped.</summary>
+    public static string AppVersion
+    {
+        get
+        {
+            var value = typeof(MainWindow).Assembly
+                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion ?? "";
+            var plus = value.IndexOf('+');
+            return plus >= 0 ? value[..plus] : value;
+        }
+    }
+
+    // Owner-approved like the support banner: opens the public releases page in the system browser, only when clicked.
+    // The app itself never checks for updates.
+    private Control NewVersionLink()
+    {
+        var link = new HyperlinkButton { Name = "NewVersionLink", Content = text["NewVersionLink"], NavigateUri = ReleasesPage,
+            Padding = new(2, 3), MinHeight = 24, FontSize = 13, FontWeight = FontWeight.SemiBold,
+            Foreground = Brush("#FF83C5"), Background = Brushes.Transparent };
+        ToolTip.SetTip(link, "github.com/CC-Labs-it/ccp-classic/releases");
+        var version = Label(AppVersion, 13); version.Name = "AppVersionText"; version.Foreground = Brush("#C7B6EB");
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        panel.Children.Add(version); panel.Children.Add(link);
+        return panel;
     }
 
     private async void ExportSettings()

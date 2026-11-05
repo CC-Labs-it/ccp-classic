@@ -40,6 +40,45 @@ public sealed class ShellTests
     });
 
     [Fact]
+    public Task SettingsSaveOnTheirOwnWithoutASaveButton() => UiDispatcher.Run(() =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "ccp-classic-ui-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(folder, "settings.json");
+        var store = new SettingsStore(path);
+        var window = new MainWindow(new ClassicSettings(), store, windows: true);
+        try
+        {
+            window.Show();
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(), b => b.Name == "SaveSettings");
+            window.FlushSettings();
+            Assert.False(File.Exists(path));
+            Click(window, Named<ToggleButton>(window, "GentleToggle"));
+            window.FlushSettings();
+            Assert.True(store.Load(out _).GentleVisuals);
+            Click(window, Named<ToggleButton>(window, "GentleToggle"));
+            window.Close();
+            Assert.False(store.Load(out _).GentleVisuals);
+        }
+        finally
+        {
+            window.Close();
+            if (File.Exists(path)) File.Delete(path);
+            if (Directory.Exists(folder)) Directory.Delete(folder);
+        }
+    });
+
+    [Fact]
+    public Task SettingsShowTheVersionAndLinkToTheReleasesPage() => WithWindow(window =>
+    {
+        window.OpenSheet("Settings");
+        var child = Owned(window);
+        var link = Named<HyperlinkButton>(child, "NewVersionLink");
+        Assert.Equal(new Uri("https://github.com/CC-Labs-it/ccp-classic/releases"), link.NavigateUri);
+        Assert.False(string.IsNullOrWhiteSpace(Named<TextBlock>(child, "AppVersionText").Text));
+        Assert.DoesNotContain("+", MainWindow.AppVersion);
+    });
+
+    [Fact]
     public Task SupportBannerUsesTheFixedSystemBrowserLinkAndLocalizedCaption() => WithWindow(window =>
     {
         var expected = new Uri("https://www.patreon.com/CodeBambi");
@@ -241,7 +280,7 @@ public sealed class ShellTests
             Click(child, Named<Button>(child, "SheetClose"));
             Assert.False(Named<ToggleButton>(window, "GentleToggle").IsChecked);
             Click(window, Named<ToggleButton>(window, "GentleToggle"));
-            Click(window, Named<Button>(window, "SaveSettings"));
+            window.FlushSettings();
             var saved = store.Load(out var recovered);
             Assert.False(recovered);
             Assert.True(saved.GentleVisuals);

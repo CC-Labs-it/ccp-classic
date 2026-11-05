@@ -9,6 +9,9 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   Future localhost-only haptics providers live under src/CCP.Classic.Core/LocalDevices.
   Owner-approved exception: the support banner opens the fixed public Patreon URL
   in the system browser only when clicked. The app makes no request itself.
+  Owner approval 2026-11-05: Settings shows the version and a "Check for a new version"
+  link to the public GitHub releases page, same rule (click only, system browser).
+  Settings save on their own (2 s change check + on close); there is no Save button.
 - Ten languages: de, en, es, fr, it, ja, ko, pt-BR, ru, zh-CN.
   Flat JSON, UTF-8 without BOM. Edit existing lines, never reserialize translations.
 - Chrome is neutral, no persona names, no exclamation marks, no en/em dashes.

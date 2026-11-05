@@ -32,6 +32,9 @@ public sealed partial class MainWindow : Window
     private string? sheet;
     private string statusKey = "ShellOnly";
     private bool capturePanic;
+    private string? savedSnapshot;
+    private int autosaveTicks;
+    private bool autosaveFailed;
     private DesktopEffectsService? effects;
     private readonly PanicInputRouter input;
     private readonly PresetStore presetStore;
@@ -56,6 +59,7 @@ public sealed partial class MainWindow : Window
         text = new(Settings.Language);
         Settings.Language = text.Language;
         Session = new(Settings);
+        savedSnapshot = SettingsStore.Snapshot(Settings);
         InitializeProgress();
         input = new(Session, globalPanicAvailable ?? (() => effects?.GlobalPanicAvailable == true));
         InitializeToys();
@@ -77,6 +81,7 @@ public sealed partial class MainWindow : Window
             TickStartup();
             TickProgress();
             effects?.PollBarks();
+            AutoSave();
             elapsed.Text = Session.Elapsed.ToString(@"hh\:mm\:ss");
         });
         Opened += (_, _) =>
@@ -117,7 +122,7 @@ public sealed partial class MainWindow : Window
             if (SettingsRecovered) SetStatus("SettingsRecovered");
             timer.Start();
         };
-        Closed += (_, _) => { DisposeToys(); DisposeStartup(); timer.Stop(); if (effects is not null) effects.LayeredAudio.StateChanged -= LayeredAudioStateChanged; effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
+        Closed += (_, _) => { FlushSettings(); DisposeToys(); DisposeStartup(); timer.Stop(); if (effects is not null) effects.LayeredAudio.StateChanged -= LayeredAudioStateChanged; effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
     }
 
     private void BuildShell()
@@ -208,7 +213,7 @@ public sealed partial class MainWindow : Window
 
     private Control Bottom()
     {
-        var grid = new Grid { ColumnDefinitions = new("Auto,Auto,Auto,*,Auto,Auto"), ColumnSpacing = 10,
+        var grid = new Grid { ColumnDefinitions = new("Auto,Auto,*,Auto,Auto"), ColumnSpacing = 10,
             VerticalAlignment = VerticalAlignment.Center };
         startStop = Button("Start", () =>
         {
@@ -221,19 +226,17 @@ public sealed partial class MainWindow : Window
         startStop.Name = "StartStop"; startStop.Classes.Add("primary"); grid.Children.Add(startStop);
         elapsed = Label("00:00:00", 15);
         Grid.SetColumn(elapsed, 1); grid.Children.Add(elapsed);
-        var save = Button("Save", SaveSettings); save.Name = "SaveSettings";
-        Grid.SetColumn(save, 2); grid.Children.Add(save);
         status = Label(text[statusKey], 12); status.Classes.Add("muted"); status.TextTrimming = TextTrimming.CharacterEllipsis;
-        Grid.SetColumn(status, 3); grid.Children.Add(status);
+        Grid.SetColumn(status, 2); grid.Children.Add(status);
         var panicBadge = Label(text["PanicKey"] + ": " + PanicName(), 12);
         panicBadge.Foreground = Brush("#C7B6EB");
         panicBadge.Name = "PanicBadge";
-        Grid.SetColumn(panicBadge, 4); grid.Children.Add(panicBadge);
+        Grid.SetColumn(panicBadge, 3); grid.Children.Add(panicBadge);
         var group = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         group.Children.Add(Label(text["GentleVisuals"], 13));
         gentle = Toggle(Settings.GentleVisuals, text["GentleVisuals"], SetGentle); gentle.Name = "GentleToggle";
         group.Children.Add(gentle);
-        Grid.SetColumn(group, 5); grid.Children.Add(group);
+        Grid.SetColumn(group, 4); grid.Children.Add(group);
         return grid;
     }
 
@@ -346,8 +349,29 @@ public sealed partial class MainWindow : Window
     private string PanicName() => Settings.PanicKey == "Escape" ? "Esc" : Settings.PanicKey;
     private void SaveSettings()
     {
-        try { store?.Save(Settings); SetStatus("Saved"); }
+        try { store?.Save(Settings); savedSnapshot = SettingsStore.Snapshot(Settings); autosaveFailed = false; SetStatus("Saved"); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { SetStatus("SaveFailed"); }
+    }
+
+    // Settings save on their own: every two seconds the timer writes them when they changed, and closing writes them once more.
+    private void AutoSave()
+    {
+        if (++autosaveTicks < 8) return;
+        autosaveTicks = 0;
+        FlushSettings();
+    }
+
+    /// <summary>Writes the settings when they changed since the last save. Quiet unless the write fails.</summary>
+    public void FlushSettings()
+    {
+        if (store is null) return;
+        if (SettingsStore.Snapshot(Settings) == savedSnapshot) return;
+        try { store.Save(Settings); savedSnapshot = SettingsStore.Snapshot(Settings); autosaveFailed = false; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            if (!autosaveFailed) SetStatus("SaveFailed");
+            autosaveFailed = true;
+        }
     }
     private void SetGentle(bool value)
     {
