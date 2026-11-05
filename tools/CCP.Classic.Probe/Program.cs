@@ -133,7 +133,7 @@ internal static class Program
             Key(display, escape, false); await Until(() => ups == 1, 2);
             Key(display, letter, true); await Task.Delay(100, token);
             Key(display, letter, false); await Task.Delay(100, token);
-            Check(downs == 1 && ups == 1, "typing_ignored");
+            Check(downs == 1 && ups == 1, $"typing_ignored_down{downs}_up{ups}");
             monitor.Dispose(); Check(!monitor.IsAvailable, "listener_disposal");
             Pass(stage, new { down = downs, up = ups });
         }
