@@ -13,6 +13,21 @@ support banner: click only, system browser, no request from the app). Three loc 
 languages. Notes drop "right click her" (chrome stays neutral) and the "press Save" warning:
 artifacts/release-v1.0.0-beta.6/NOTES.md. 830 Release tests pass (6 opt-in skipped).
 
+Built: tag v1.0.0-beta.6 on 5e74821. Windows packaged locally from 1048990 with -SignWindows (exe +
+setup Valid Authenticode, timestamped); 5e74821 differs only in README and tools/, not the app.
+Linux tarball from package workflow run 41998510139 (Release tests + native probe green). SHA256SUMS
++ .asc GPG signed (a stale keyboxd failed the first try: `gpgconf --kill all` fixed it). Sources
+split .001/.002 at 1258291200 bytes, rejoin matches c21de488. Uploaded as a DRAFT; publishing, the
+main fast-forward and closing the 74 shipped drafts are owner-run: CCP repo
+handoff-1105/run-classic-beta6.sh. SHA256: linux b12b6309..., setup 560742bc..., zip 5f01b6fb....
+
+Probe fix: tools/CCP.Classic.Probe is not in the solution, so Release tests never built it, and the
+keyword removal left it calling the old GlobalPanicMonitor API (the beta.5 Linux tarball was not
+built through this workflow). It now checks that the panic key fires once per press and that
+typing a letter never fires a panic press. Known quirk, cause unproven: on Xvfb a fake letter makes
+the X11 listener report one extra panic-key RELEASE with nothing held (ups 2, downs 1). A release
+never fires panic (PanicInputRouter.GlobalChanged), so the probe records it as strayReleases.
+
 ## 1.0.0-beta.5 release, 2026-11-03
 
 Owner tested the unpackaged build (tube size/centre, menu, emotes, barks) and asked for the
