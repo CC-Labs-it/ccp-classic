@@ -118,11 +118,11 @@ internal static class Program
     private static async Task Input(nint display)
     {
         stage = "x11_global_input";
-        var downs = 0; var ups = 0; var letters = 0;
+        // Keyword triggers are gone (beta 5): the listener watches only the panic key.
+        var downs = 0; var ups = 0;
         using var monitor = new GlobalPanicMonitor(() => "Escape", (name, down) =>
-        { if (name == "Escape") { if (down) downs++; else ups++; } }, () => true);
-        monitor.TextReceived += text => { if (text == "f") letters++; };
-        await Until(() => monitor.IsAvailable && monitor.IsTextAvailable, 5);
+        { if (name == "Escape") { if (down) downs++; else ups++; } });
+        await Until(() => monitor.IsAvailable, 5);
         var escape = XKeysymToKeycode(display, XStringToKeysym("Escape"));
         var letter = XKeysymToKeycode(display, XStringToKeysym("f"));
         Check(escape != 0 && letter != 0, "key_mapping");
@@ -131,11 +131,11 @@ internal static class Program
             Key(display, escape, true); await Until(() => downs == 1, 2);
             await Task.Delay(150, token); Check(downs == 1, "held_repeat");
             Key(display, escape, false); await Until(() => ups == 1, 2);
-            Key(display, letter, true); await Until(() => letters == 1, 2);
-            await Task.Delay(100, token); Check(letters == 1, "text_held_repeat");
-            Key(display, letter, false);
-            monitor.Dispose(); Check(!monitor.IsTextAvailable, "listener_disposal");
-            Pass(stage, new { down = downs, up = ups, keywordEvents = letters });
+            Key(display, letter, true); await Task.Delay(100, token);
+            Key(display, letter, false); await Task.Delay(100, token);
+            Check(downs == 1 && ups == 1, "typing_ignored");
+            monitor.Dispose(); Check(!monitor.IsAvailable, "listener_disposal");
+            Pass(stage, new { down = downs, up = ups });
         }
         finally { Key(display, escape, false); Key(display, letter, false); }
     }
