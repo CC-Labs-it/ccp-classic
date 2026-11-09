@@ -12,6 +12,9 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   GitHub releases list (prereleases count, drafts never), User-Agent CCP-Classic/<version>,
   nothing else; a newer release shows one link to its page, opened in the system browser.
   No download, no installer run; a failed check is silent unless it was manual.
+  Owner 2026-11-09: off by default but hard to miss. A strip above the support banner says
+  checks are off with Turn on (flips the switch, runs one check) and Not now (remembered in
+  UpdatePromptDismissed, never shown again); it hides while the switch is on.
   2) Report a bug (Settings > Utility): form (what happened, optional contact, "include this
   session's log" OFF by default), then the exact JSON body in a preview, then Send; nothing is
   sent before Send. POST to the CCP proxy /bug/upload (the CCP desktop pipeline: ccp-bugs issue +

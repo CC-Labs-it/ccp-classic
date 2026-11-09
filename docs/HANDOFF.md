@@ -17,6 +17,13 @@ status lines, panics and unobserved task errors in memory (200 lines, repeats sk
 2/hour and 5/day per IP on its own counters, contact kept in the issue only, "classic" label and
 title); deploy the proxy and the bot before shipping a Classic build with this. Not desk-run.
 
+## Update prompt strip, 2026-11-09 (feat/classic-update-prompt)
+
+Owner: keep the switch off by default but make it hard to miss. The main window shows a strip above
+the support banner, "Update checks are off. Turn on to hear about new versions." with Turn on (sets
+`CheckForUpdates`, runs one check) and Not now (`UpdatePromptDismissed`, never shown again; Reset
+brings it back). Hidden while the switch is on. No request before Turn on. Three loc keys.
+
 ## Opt-in update check, 2026-11-09 (feat/classic-update-and-bugreport)
 
 Owner change: Classic may go online for exactly two opt-in features; this is the first.

@@ -19,6 +19,8 @@ public sealed class ClassicSettings
     public bool AutoRun { get; set; }
     /// <summary>Opt-in: ask GitHub once at startup whether a newer release exists. Off by default.</summary>
     public bool CheckForUpdates { get; set; }
+    /// <summary>The player pressed Not now on the main-window update prompt; it never shows again.</summary>
+    public bool UpdatePromptDismissed { get; set; }
     public bool CompanionEnabled { get; set; } = true;
     public bool BarksEnabled { get; set; } = true;
     public bool TriggerPhrasesEnabled { get; set; }
@@ -56,7 +58,7 @@ public sealed class ClassicSettings
         SchemaVersion = defaults.SchemaVersion; Language = defaults.Language;
         GentleVisuals = defaults.GentleVisuals; ReducedMotion = defaults.ReducedMotion;
         FillAllMonitors = defaults.FillAllMonitors; PerformanceMode = defaults.PerformanceMode;
-        StartWithSystem = defaults.StartWithSystem; StartHidden = defaults.StartHidden; AutoRun = defaults.AutoRun; CheckForUpdates = defaults.CheckForUpdates;
+        StartWithSystem = defaults.StartWithSystem; StartHidden = defaults.StartHidden; AutoRun = defaults.AutoRun; CheckForUpdates = defaults.CheckForUpdates; UpdatePromptDismissed = defaults.UpdatePromptDismissed;
         CompanionEnabled = defaults.CompanionEnabled;
         BarksEnabled = defaults.BarksEnabled; TriggerPhrasesEnabled = defaults.TriggerPhrasesEnabled;
         BarkIntervalSeconds = defaults.BarkIntervalSeconds; RunMinutes = defaults.RunMinutes;

@@ -143,6 +143,7 @@ public sealed partial class MainWindow : Window
         SelectTab(tab);
         UpdateSession();
         RefreshUpdateLink();
+        RefreshUpdatePrompt();
     }
 
     private Control Header()
@@ -211,7 +212,7 @@ public sealed partial class MainWindow : Window
         ToolTip.SetTip(link, "patreon.com/CodeBambi");
         words.Children.Add(link);
         var rows = new StackPanel { Spacing = 2 };
-        rows.Children.Add(UpdateLink()); rows.Children.Add(words);
+        rows.Children.Add(UpdatePrompt()); rows.Children.Add(UpdateLink()); rows.Children.Add(words);
         return new Border { Name = "SupportBanner", Child = rows, Padding = new(12, 5),
             Background = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative),
                 EndPoint = new(1, 0, RelativeUnit.Relative), GradientStops = [new(Color.Parse("#22172F"), 0), new(Color.Parse("#302039"), .5), new(Color.Parse("#211D36"), 1)] },
