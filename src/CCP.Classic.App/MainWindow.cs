@@ -45,7 +45,8 @@ public sealed partial class MainWindow : Window
 
     public MainWindow(ClassicSettings? settings = null, SettingsStore? store = null, bool? windows = null,
         bool desktopEffects = false, Func<bool>? globalPanicAvailable = null, PresetStore? presetStore = null,
-        bool startupLaunch = false, StartupRegistration? startupRegistration = null, LocalDeviceController? deviceController = null)
+        bool startupLaunch = false, StartupRegistration? startupRegistration = null, LocalDeviceController? deviceController = null,
+        CCP.Classic.Core.Online.UpdateCheck? updateCheck = null)
     {
         Settings = settings ?? new();
         Settings.Normalize();
@@ -54,6 +55,7 @@ public sealed partial class MainWindow : Window
         this.store = store;
         this.presetStore = presetStore ?? new(PresetStore.DefaultDirectory);
         this.startupRegistration = startupRegistration;
+        updates = updateCheck ?? new();
         haptics = deviceController ?? new();
         this.windows = windows ?? OperatingSystem.IsWindows();
         text = new(Settings.Language);
@@ -121,6 +123,7 @@ public sealed partial class MainWindow : Window
             }
             if (SettingsRecovered) SetStatus("SettingsRecovered");
             timer.Start();
+            CheckForUpdatesAtStartup();
         };
         Closed += (_, _) => { FlushSettings(); DisposeToys(); DisposeStartup(); timer.Stop(); if (effects is not null) effects.LayeredAudio.StateChanged -= LayeredAudioStateChanged; effects?.Dispose(); SettingsWindow?.Close(); Session.Dispose(); SaveProgress(); };
     }
@@ -138,6 +141,7 @@ public sealed partial class MainWindow : Window
         Content = root;
         SelectTab(tab);
         UpdateSession();
+        RefreshUpdateLink();
     }
 
     private Control Header()
@@ -205,7 +209,9 @@ public sealed partial class MainWindow : Window
             Foreground = Brush("#FF83C5"), Background = Brushes.Transparent };
         ToolTip.SetTip(link, "patreon.com/CodeBambi");
         words.Children.Add(link);
-        return new Border { Name = "SupportBanner", Child = words, Padding = new(12, 5),
+        var rows = new StackPanel { Spacing = 2 };
+        rows.Children.Add(UpdateLink()); rows.Children.Add(words);
+        return new Border { Name = "SupportBanner", Child = rows, Padding = new(12, 5),
             Background = new LinearGradientBrush { StartPoint = new(0, 0, RelativeUnit.Relative),
                 EndPoint = new(1, 0, RelativeUnit.Relative), GradientStops = [new(Color.Parse("#22172F"), 0), new(Color.Parse("#302039"), .5), new(Color.Parse("#211D36"), 1)] },
             BorderBrush = Brush("#50324E"), BorderThickness = new(0, 1, 0, 0) };

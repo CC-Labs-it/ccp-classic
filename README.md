@@ -6,6 +6,10 @@ One main window, three tabs, twelve image tiles around the animated CCP logo.
 Click a tile to open its settings window. No accounts, downloads, telemetry,
 mods or games. Licensed under MIT.
 
+Classic goes online only when you ask. Settings > Check for updates on startup is
+off by default; when on, or when you press Check now, Classic asks the public GitHub
+releases list once and shows a link if a newer version is out. It sends nothing else.
+
 **Download:** the latest build is on the [releases page](https://github.com/CC-Labs-it/ccp-classic/releases)
 (Windows installer or zip, Linux tarball). 18+ only. Bugs and ideas: open an issue, or
 #ccp-classic on the CCP Discord.

@@ -132,6 +132,7 @@ public sealed partial class MainWindow
         content.Children.Add(Row("Export", Button("Export", ExportSettings)));
         content.Children.Add(Row("Reset", Button("Reset", ResetSettings)));
         content.Children.Add(Row("AppVersion", NewVersionLink()));
+        content.Children.Add(Row("CheckUpdates", UpdateControls()));
         var warning = new StackPanel { Spacing = 10, IsVisible = false };
         warning.Children.Add(Note("NoPanicWarning"));
         var confirm = Button("ConfirmNoPanic", () => { Session.SetPanicEnabled(false, true); OpenSheet("Settings"); });
@@ -154,7 +155,7 @@ public sealed partial class MainWindow
         content.Children.Add(OptionLayout.Group(rows.Skip(9), text["OptionsUtility"], 2));
     }
 
-    public static readonly Uri ReleasesPage = new("https://github.com/CC-Labs-it/ccp-classic/releases");
+    public static readonly Uri ReleasesPage = CCP.Classic.Core.Online.UpdateCheck.ReleasesPage;
 
     /// <summary>The installed version. Builds pass -p:Version; the commit suffix after '+' is dropped.</summary>
     public static string AppVersion
@@ -170,7 +171,7 @@ public sealed partial class MainWindow
     }
 
     // Owner-approved like the support banner: opens the public releases page in the system browser, only when clicked.
-    // The app itself never checks for updates.
+    // The opt-in update check beside it (MainWindow.Updates.cs) is the only code that asks GitHub anything.
     private Control NewVersionLink()
     {
         var link = new HyperlinkButton { Name = "NewVersionLink", Content = text["NewVersionLink"], NavigateUri = ReleasesPage,

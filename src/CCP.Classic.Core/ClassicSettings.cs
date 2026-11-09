@@ -17,6 +17,8 @@ public sealed class ClassicSettings
     public bool StartWithSystem { get; set; }
     public bool StartHidden { get; set; }
     public bool AutoRun { get; set; }
+    /// <summary>Opt-in: ask GitHub once at startup whether a newer release exists. Off by default.</summary>
+    public bool CheckForUpdates { get; set; }
     public bool CompanionEnabled { get; set; } = true;
     public bool BarksEnabled { get; set; } = true;
     public bool TriggerPhrasesEnabled { get; set; }
@@ -54,7 +56,7 @@ public sealed class ClassicSettings
         SchemaVersion = defaults.SchemaVersion; Language = defaults.Language;
         GentleVisuals = defaults.GentleVisuals; ReducedMotion = defaults.ReducedMotion;
         FillAllMonitors = defaults.FillAllMonitors; PerformanceMode = defaults.PerformanceMode;
-        StartWithSystem = defaults.StartWithSystem; StartHidden = defaults.StartHidden; AutoRun = defaults.AutoRun;
+        StartWithSystem = defaults.StartWithSystem; StartHidden = defaults.StartHidden; AutoRun = defaults.AutoRun; CheckForUpdates = defaults.CheckForUpdates;
         CompanionEnabled = defaults.CompanionEnabled;
         BarksEnabled = defaults.BarksEnabled; TriggerPhrasesEnabled = defaults.TriggerPhrasesEnabled;
         BarkIntervalSeconds = defaults.BarkIntervalSeconds; RunMinutes = defaults.RunMinutes;

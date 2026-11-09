@@ -3,8 +3,9 @@
 The Windows 1.0.0-beta package signs both the app and installer with Authenticode.
 Earlier preview packages are unsigned. From 1.0.0-beta.3, every release also has a
 GPG-signed checksum list, which is how Linux packages are verified.
-Use the version shown in the package filename. The application works offline and does
-not check for updates. Install later versions manually.
+Use the version shown in the package filename. The application works offline. It checks
+for updates only if you turn on Settings > Check for updates on startup (off by default)
+or press Check now, and then only shows a link: install later versions manually.
 
 ## Windows x64
 
