@@ -9,6 +9,8 @@ mods or games. Licensed under MIT.
 Classic goes online only when you ask. Settings > Check for updates on startup is
 off by default; when on, or when you press Check now, Classic asks the public GitHub
 releases list once and shows a link if a newer version is out. It sends nothing else.
+Settings > Report a bug opens a short form; you see exactly what will be sent, and
+nothing leaves until you press Send. These are the only two network features.
 
 **Download:** the latest build is on the [releases page](https://github.com/CC-Labs-it/ccp-classic/releases)
 (Windows installer or zip, Linux tarball). 18+ only. Bugs and ideas: open an issue, or

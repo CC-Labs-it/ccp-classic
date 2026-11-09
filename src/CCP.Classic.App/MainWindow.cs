@@ -46,7 +46,7 @@ public sealed partial class MainWindow : Window
     public MainWindow(ClassicSettings? settings = null, SettingsStore? store = null, bool? windows = null,
         bool desktopEffects = false, Func<bool>? globalPanicAvailable = null, PresetStore? presetStore = null,
         bool startupLaunch = false, StartupRegistration? startupRegistration = null, LocalDeviceController? deviceController = null,
-        CCP.Classic.Core.Online.UpdateCheck? updateCheck = null)
+        CCP.Classic.Core.Online.UpdateCheck? updateCheck = null, CCP.Classic.Core.Online.BugReportSender? bugReportSender = null)
     {
         Settings = settings ?? new();
         Settings.Normalize();
@@ -56,6 +56,7 @@ public sealed partial class MainWindow : Window
         this.presetStore = presetStore ?? new(PresetStore.DefaultDirectory);
         this.startupRegistration = startupRegistration;
         updates = updateCheck ?? new();
+        bugReports = bugReportSender ?? new();
         haptics = deviceController ?? new();
         this.windows = windows ?? OperatingSystem.IsWindows();
         text = new(Settings.Language);
@@ -351,7 +352,7 @@ public sealed partial class MainWindow : Window
             badge.Text = Session.PanicEnabled ? text["PanicKey"] + ": " + PanicName() : text["PanicOff"];
     }
     private void StartSession() { statusKey = "ShellOnly"; Session.Start(); }
-    private void SetStatus(string key) { statusKey = key; status.Text = text[key]; }
+    private void SetStatus(string key) { statusKey = key; status.Text = text[key]; SessionLog.Shared.Add("status " + key); }
     private string PanicName() => Settings.PanicKey == "Escape" ? "Esc" : Settings.PanicKey;
     private void SaveSettings()
     {

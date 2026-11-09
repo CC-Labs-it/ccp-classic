@@ -1,5 +1,22 @@
 # CCP Classic handoff
 
+## Opt-in bug report, 2026-11-09 (feat/classic-update-and-bugreport)
+
+The second of the two opt-in network features. Settings > Utility > Report a bug replaces the
+Settings window with a form: what happened (4000 chars), contact (optional, one line, 200), and
+"Include this session's log" (off). Review shows `BugReport.Preview`, the indented form of the exact
+body; Send posts `BugReport.Body` to `https://codebambi-proxy.vercel.app/bug/upload`, the CCP desktop
+endpoint, signed like CCP (X-Bug-Timestamp + HMAC X-Bug-Signature; the key already ships in the
+public CCP source), User-Agent `CCP-Classic/<version>`, no cookies, no redirects. Body: metadata
+{app: classic, app_version, os}, description, contact, empty steps and crash_log, app_log (only when
+ticked), scrubber counts. The answer's BUG-XXXXXXXXXX id is shown selectable; 202 means saved for
+the bot, 429 means the per-IP limit. Classic writes no log file: `SessionLog` keeps this run's
+status lines, panics and unobserved task errors in memory (200 lines, repeats skipped);
+`ReportScrubber` ports CCP's path, email and token rules and also turns file names into
+`<file>.ext`. Server side is a separate draft PR in CCP-Server (Classic tag, 64 KB cap, no crash log,
+2/hour and 5/day per IP on its own counters, contact kept in the issue only, "classic" label and
+title); deploy the proxy and the bot before shipping a Classic build with this. Not desk-run.
+
 ## Opt-in update check, 2026-11-09 (feat/classic-update-and-bugreport)
 
 Owner change: Classic may go online for exactly two opt-in features; this is the first.

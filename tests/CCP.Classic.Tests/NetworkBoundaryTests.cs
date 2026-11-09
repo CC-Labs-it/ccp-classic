@@ -8,8 +8,8 @@ public sealed class NetworkBoundaryTests
     // Owner approval 2026-11-09: exactly two opt-in online features, both in one folder. Anything that
     // adds a file or a host there has to change these lists on purpose.
     private const string OnlineFolder = "src/CCP.Classic.Core/Online/";
-    private static readonly string[] OnlineFiles = ["ClassicVersion.cs", "UpdateCheck.cs"];
-    private static readonly string[] OnlineHosts = ["api.github.com", "github.com"];
+    private static readonly string[] OnlineFiles = ["BugReport.cs", "ClassicVersion.cs", "UpdateCheck.cs"];
+    private static readonly string[] OnlineHosts = ["api.github.com", "codebambi-proxy.vercel.app", "github.com"];
 
     [Fact]
     public void SolutionContainsNoNetworkOrBrowserApis()

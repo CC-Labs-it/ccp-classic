@@ -133,6 +133,8 @@ public sealed partial class MainWindow
         content.Children.Add(Row("Reset", Button("Reset", ResetSettings)));
         content.Children.Add(Row("AppVersion", NewVersionLink()));
         content.Children.Add(Row("CheckUpdates", UpdateControls()));
+        var report = Button("ReportBugOpen", OpenBugReport); report.Name = "ReportBugOpen";
+        content.Children.Add(Row("ReportBug", report));
         var warning = new StackPanel { Spacing = 10, IsVisible = false };
         warning.Children.Add(Note("NoPanicWarning"));
         var confirm = Button("ConfirmNoPanic", () => { Session.SetPanicEnabled(false, true); OpenSheet("Settings"); });
