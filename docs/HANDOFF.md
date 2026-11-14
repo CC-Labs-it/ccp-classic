@@ -1,5 +1,19 @@
 # CCP Classic handoff
 
+## Opt-in update check, 2026-11-09 (feat/classic-update-and-bugreport)
+
+Owner change: Classic may go online for exactly two opt-in features; this is the first.
+Settings > Utility: "Check for updates on startup" (`ClassicSettings.CheckForUpdates`, OFF by
+default and after Reset) and Check now, which works with the switch off. `Core/Online/UpdateCheck`
+sends one GET to `api.github.com/repos/CC-Labs-it/ccp-classic/releases?per_page=20` (betas ship
+as prereleases, which `/releases/latest` skips; drafts never count), headers User-Agent
+`CCP-Classic/<version>` and Accept only, no cookies, 10 s timeout, 1 MB cap. `ClassicVersion` orders
+tags by SemVer 2 (beta.6 < beta.10 < 1.0.0). A newer release shows "Update available (vX). Click
+here to download" above the support banner (and under Check now), opening its release page in the
+system browser; a page off the Classic repo falls back to the releases list. A failed startup
+check is silent; a manual one says so. `NetworkBoundaryTests` now allows HTTP only inside
+`src/CCP.Classic.Core/Online/` and pins its files and hosts. Not desk-run.
+
 ## 1.0.0-beta.6, 2026-11-05 (fix/beta6-autosave)
 
 Before announcing Classic to every CCP user (beta.5 had 11 downloads and no feedback in

@@ -5,7 +5,14 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
 - Work only in this repository. CCP and its port are read-only lift sources.
   Never copy server code or private assets here.
 - Target net10.0 and Avalonia 12.1.2. Never reference WPF or the full CCP projects.
-- No networking APIs, embedded browser, accounts, telemetry or update checks.
+- No networking APIs, embedded browser, accounts or telemetry. Owner change 2026-11-09:
+  exactly two opt-in online features, both in src/CCP.Classic.Core/Online/ and pinned by
+  NetworkBoundaryTests (files and hosts). 1) Update check: Settings switch "Check for updates
+  on startup", OFF by default, plus Check now (pressing it is consent). One GET to the public
+  GitHub releases list (prereleases count, drafts never), User-Agent CCP-Classic/<version>,
+  nothing else; a newer release shows one link to its page, opened in the system browser.
+  No download, no installer run; a failed check is silent unless it was manual.
+  Everything else stays offline. Tests go through an injected HttpMessageHandler, never the network.
   Future localhost-only haptics providers live under src/CCP.Classic.Core/LocalDevices.
   Owner-approved exception: the support banner opens the fixed public Patreon URL
   in the system browser only when clicked. The app makes no request itself.
