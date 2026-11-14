@@ -12,6 +12,13 @@ Fresh public MIT application, CC labs Srls. Follow the owner's global brief.
   GitHub releases list (prereleases count, drafts never), User-Agent CCP-Classic/<version>,
   nothing else; a newer release shows one link to its page, opened in the system browser.
   No download, no installer run; a failed check is silent unless it was manual.
+  2) Report a bug (Settings > Utility): form (what happened, optional contact, "include this
+  session's log" OFF by default), then the exact JSON body in a preview, then Send; nothing is
+  sent before Send. POST to the CCP proxy /bug/upload (the CCP desktop pipeline: ccp-bugs issue +
+  #bug-alerts) tagged metadata.app "classic"; the server side (Classic caps, rate limit, label)
+  lives in the private CCP-Server repo, never here. The "log" is SessionLog: this run's status
+  lines and caught errors, in memory only. ReportScrubber (CCP's path/email/token rules plus file
+  names) runs before the preview. No account, no identifiers, no background reports.
   Everything else stays offline. Tests go through an injected HttpMessageHandler, never the network.
   Future localhost-only haptics providers live under src/CCP.Classic.Core/LocalDevices.
   Owner-approved exception: the support banner opens the fixed public Patreon URL

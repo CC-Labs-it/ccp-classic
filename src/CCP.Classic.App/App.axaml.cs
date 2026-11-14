@@ -12,6 +12,8 @@ public sealed class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // In memory only; a bug report includes it when the player ticks the box (SessionLog).
+            TaskScheduler.UnobservedTaskException += (_, e) => SessionLog.Shared.Error("background task", e.Exception);
             var store = new SettingsStore(SettingsStore.DefaultPath);
             var settings = store.Load(out var recovered);
             desktop.MainWindow = new MainWindow(settings, store, desktopEffects: true,

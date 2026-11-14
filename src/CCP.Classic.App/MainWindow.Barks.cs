@@ -51,6 +51,6 @@ public sealed partial class MainWindow
     // Every panic route: progress first, then the bark lane falls silent and stays quiet.
     private void Panicked()
     {
-        Progress.PanicPressed(); effects?.SilenceBarks();
+        Progress.PanicPressed(); effects?.SilenceBarks(); SessionLog.Shared.Add("panic");
     }
 }
