@@ -154,6 +154,46 @@ public sealed class UpdateCheckWindowTests
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });
 
+    [Fact]
+    public Task ThePromptShowsOnlyWhileChecksAreOffAndNotDismissed() => WithWindow(new ClassicSettings(), (window, network) =>
+    {
+        Assert.True(Named<Border>(window, "UpdatePrompt").IsEffectivelyVisible);
+        Assert.Empty(network.Requests);
+        Click(window, Named<Button>(window, "UpdatePromptLater"));
+        Assert.False(Named<Border>(window, "UpdatePrompt").IsVisible);
+        Assert.True(window.Settings.UpdatePromptDismissed);
+        Assert.False(window.Settings.CheckForUpdates);
+        window.RefreshLanguage("it"); Dispatcher.UIThread.RunJobs();
+        Assert.False(Named<Border>(window, "UpdatePrompt").IsVisible);
+        Pump(() => false, 10);
+        Assert.Empty(network.Requests);
+    });
+
+    [Fact]
+    public Task ThePromptIsHiddenWhenChecksAreOnOrItWasDismissed() => UiDispatcher.Run(() =>
+    {
+        foreach (var settings in new[] { new ClassicSettings { CheckForUpdates = true }, new ClassicSettings { UpdatePromptDismissed = true } })
+        {
+            var window = new MainWindow(settings, windows: true, updateCheck: new UpdateCheck(FakeNetwork.Unreachable()));
+            try { window.Show(); Dispatcher.UIThread.RunJobs(); Assert.False(Named<Border>(window, "UpdatePrompt").IsVisible); }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        }
+        var reset = new ClassicSettings { UpdatePromptDismissed = true }; reset.ResetToDefaults();
+        Assert.False(reset.UpdatePromptDismissed);
+    });
+
+    [Fact]
+    public Task TurnOnFlipsTheSwitchAndRunsOneCheck() => WithWindow(new ClassicSettings(), (window, network) =>
+    {
+        Assert.Empty(network.Requests);
+        Click(window, Named<Button>(window, "UpdatePromptOn"));
+        Assert.True(window.Settings.CheckForUpdates);
+        Assert.False(Named<Border>(window, "UpdatePrompt").IsVisible);
+        Pump(() => window.UpdateTask?.IsCompleted == true);
+        Pump(() => Named<HyperlinkButton>(window, "UpdateLink").IsVisible);
+        Assert.Single(network.Requests);
+    });
+
     private static Task WithWindow(ClassicSettings settings, Action<MainWindow, FakeNetwork> action) => UiDispatcher.Run(() =>
     {
         var network = FakeNetwork.Answer(HttpStatusCode.OK, UpdateCheckTests.Releases(("v99.0.0", false, false)));
