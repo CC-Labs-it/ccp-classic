@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using CCP.Classic.Core;
 using CCP.Classic.Core.Localization;
 
@@ -15,45 +16,56 @@ public sealed class SubliminalOptionsEditor : OptionEditor
         Children.Add(Row("Font", font));
         Number("WhisperVolume", options.WhisperVolume * 100, 0, 100, v => options.WhisperVolume = v / 100);
         Heading("PhrasePool");
+        // Each box owns its own row. Rows are matched by reference, never by value: phrases are records,
+        // so two blank lines compare equal, and saving normalizes the live list (drops blanks, trims text).
+        var rows = options.Phrases.Select(phrase => new PhraseRow(phrase.Text, phrase.AudioPath)).ToList();
         var list = new StackPanel { Spacing = 8 }; Children.Add(list);
-        void Refresh()
+        void Publish()
         {
-            list.Children.Clear();
-            foreach (var phrase in options.Phrases.ToArray())
+            options.Phrases = rows.Where(row => !string.IsNullOrWhiteSpace(row.Text))
+                .Select(row => new SubliminalPhrase(row.Text, row.AudioPath)).ToList();
+            Changed();
+        }
+        TextBox? Refresh()
+        {
+            list.Children.Clear(); TextBox? last = null;
+            foreach (var item in rows.ToArray())
             {
-                var editor = new TextBox { Text = phrase.Text, MaxLength = 2000, AcceptsReturn = true };
-                var captured = phrase;
-                editor.TextChanged += (_, _) =>
-                {
-                    var index = options.Phrases.IndexOf(captured);
-                    if (index < 0) return;
-                    captured = captured with { Text = editor.Text ?? "" };
-                    var next = options.Phrases.ToList(); next[index] = captured; options.Phrases = next; Changed();
-                };
-                var audio = new Button { Content = phrase.AudioPath is null ? Text["SelectAudio"] : System.IO.Path.GetFileName(phrase.AudioPath) };
+                var editor = new TextBox { Text = item.Text, MaxLength = 2000, AcceptsReturn = true };
+                editor.TextChanged += (_, _) => { item.Text = editor.Text ?? ""; Publish(); };
+                var audio = new Button { Content = item.AudioPath is null ? Text["SelectAudio"] : System.IO.Path.GetFileName(item.AudioPath) };
                 audio.Click += async (_, _) =>
                 {
-                    var path = await LocalAudioPicker.Pick(this); if (path is null) return;
-                    var index = options.Phrases.IndexOf(captured); if (index < 0) return;
-                    captured = captured with { AudioPath = path }; var next = options.Phrases.ToList(); next[index] = captured;
-                    options.Phrases = next; audio.Content = System.IO.Path.GetFileName(path); Changed();
+                    var path = await LocalAudioPicker.Pick(this); if (path is null || !rows.Contains(item)) return;
+                    item.AudioPath = path; audio.Content = System.IO.Path.GetFileName(path); Publish();
                 };
                 var clear = new Button { Content = Text["ClearAudio"] };
-                clear.Click += (_, _) =>
-                {
-                    var index = options.Phrases.IndexOf(captured); if (index < 0) return;
-                    captured = captured with { AudioPath = null }; var next = options.Phrases.ToList(); next[index] = captured;
-                    options.Phrases = next; audio.Content = Text["SelectAudio"]; Changed();
-                };
+                clear.Click += (_, _) => { item.AudioPath = null; audio.Content = Text["SelectAudio"]; Publish(); };
                 var remove = new Button { Content = Text["Remove"] };
-                remove.Click += (_, _) => { options.Phrases = options.Phrases.Where(p => !ReferenceEquals(p, captured)).ToList(); Refresh(); Changed(); };
+                remove.Click += (_, _) => { rows.Remove(item); Refresh(); Publish(); };
                 var row = new WrapPanel(); row.Children.Add(OptionHelp.Wrap(audio, "SelectAudio", text)); row.Children.Add(OptionHelp.Wrap(clear, "ClearAudio", text)); row.Children.Add(OptionHelp.Wrap(remove, "Remove", text));
                 list.Children.Add(OptionHelp.Wrap(editor, "PhrasePool", text)); list.Children.Add(row);
+                last = editor;
             }
+            return last;
         }
         Refresh(); var add = new Button { Content = Text["Add"] };
-        add.Click += (_, _) => { if (options.Phrases.Count < 256) { options.Phrases = [..options.Phrases, new("")]; Refresh(); Changed(); } };
+        add.Click += (_, _) =>
+        {
+            if (rows.Count >= 256) return;
+            rows.Add(new PhraseRow("", null));
+            if (Refresh() is not { } added) return;
+            Publish();
+            // The new box lands at the bottom of a long list: focus it and scroll to it once it has a layout.
+            Dispatcher.UIThread.Post(() => { added.Focus(); added.BringIntoView(); }, DispatcherPriority.Loaded);
+        };
         Children.Add(OptionHelp.Wrap(add, "Add", text));
+    }
+
+    private sealed class PhraseRow(string text, string? audioPath)
+    {
+        public string Text { get; set; } = text;
+        public string? AudioPath { get; set; } = audioPath;
     }
 }
 
